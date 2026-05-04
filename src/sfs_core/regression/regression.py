@@ -85,11 +85,11 @@ def regress(filename, path, cols = ['ts','engine','prefill','prefill_sq_sum','de
     #     plt.close()
 
 if __name__ == "__main__":
-    path = Path('/ocean/projects/cis250162p/aparthas/sfs/experiments/batches_qwen3_8b_new_data.csv')
+    path = Path("experiments/batches_qwen3_8b_new_data.csv")
     regress('regression_qwen3_8b_new_data.png', path)
-    path = Path('/ocean/projects/cis250162p/aparthas/sfs/experiments/batches_qwen3_32b_new_data.csv')
+    path = Path("experiments/batches_qwen3_32b_new_data.csv")
     regress('regression_qwen3_32b_new_data.png', path)
-    path = Path('/ocean/projects/cis250162p/aparthas/sfs/experiments/batches_qwen3_0.6b_new_data.csv')
+    path = Path("experiments/batches_qwen3_0.6b_new_data.csv")
     regress('regression_qwen3_0.6b_new_data.png', path)
 
 # try for non power of 2 number of sequences

@@ -1,24 +1,31 @@
 #!/bin/bash
 #SBATCH --job-name=router-exp-qps-sweep
-#SBATCH --output=/ocean/projects/cis250162p/aparthas/sfs/experiments/router_qps_sweep_%j.out
-#SBATCH --error=/ocean/projects/cis250162p/aparthas/sfs/experiments/router_qps_sweep_%j.err
+#SBATCH --output=experiments/router_qps_sweep_%j.out
+#SBATCH --error=experiments/router_qps_sweep_%j.err
 #SBATCH --time=24:00:00
-#SBATCH -A cis250162p
 #SBATCH -N 1
 #SBATCH --ntasks=1
 #SBATCH -p GPU-shared
 #SBATCH --cpus-per-task=32
 #SBATCH --gres=gpu:h100-80:4
 #SBATCH --mail-type=BEGIN,FAIL,END
-#SBATCH --mail-user=akaashrp@cmu.edu
 
 set -euo pipefail
 
-PROJECT=/ocean/projects/cis250162p/aparthas
-EXPERIMENT_DIR=$PROJECT/sfs/experiments
-CHAT_TEMPLATE=$PROJECT/sfs/src/assets/templates/chat_template_qwen3.jinja
-OUTPUT_PREDICTOR=$PROJECT/sfs/src/assets/predictors/output_length_predictor
-ACCURACY_PREDICTOR=$PROJECT/sfs/src/assets/predictors/accuracy_predictor
+SBATCH_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SFS_ROOT="$SBATCH_SCRIPT_DIR"
+while [[ "$SFS_ROOT" != "/" && ! -d "$SFS_ROOT/src/slurm" ]]; do
+  SFS_ROOT="$(dirname "$SFS_ROOT")"
+done
+if [[ "$SFS_ROOT" == "/" ]]; then
+  echo "[ERROR] Could not resolve SFS repo root from script location: $SBATCH_SCRIPT_DIR" >&2
+  exit 1
+fi
+PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SFS_ROOT/.." && pwd)}"
+EXPERIMENT_DIR=$SFS_ROOT/experiments
+CHAT_TEMPLATE=$SFS_ROOT/src/assets/templates/chat_template_qwen3.jinja
+OUTPUT_PREDICTOR=$SFS_ROOT/src/assets/predictors/output_length_predictor
+ACCURACY_PREDICTOR=$SFS_ROOT/src/assets/predictors/accuracy_predictor
 
 # QPS sweep configuration: fixed utility family, fixed lambda/delta, sweep QPS.
 QPS_SWEEP=(3 4 5 6 7 8 8.3 8.6 8.75 9 9.2 9.3 9.5)
@@ -33,16 +40,16 @@ MAX_COMPLETION_TOKENS=8192
 TEMPERATURE=0
 
 HOLDOUT_PROMPTS_PER_BUCKET=4000
-HOLDOUT_BUCKET_DIR=$PROJECT/sfs/experiments/data/prompts/bucketed_prompts/qwen3-0.6b
-HOLDOUT_CACHE_DIR=$PROJECT/sfs/experiments/data/prompts/holdout_cache_4000
+HOLDOUT_BUCKET_DIR=$SFS_ROOT/experiments/data/prompts/bucketed_prompts/qwen3-0.6b
+HOLDOUT_CACHE_DIR=$SFS_ROOT/experiments/data/prompts/holdout_cache_4000
 
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate vllm
-export PYTHONPATH="$PROJECT/sfs/src:${PYTHONPATH:-}"
+export PYTHONPATH="$SFS_ROOT/src:${PYTHONPATH:-}"
 
-PERSIST_VLLM=$PROJECT/.cache/vllm
-PERSIST_TRITON=$PROJECT/.triton
-PERSIST_NV=$PROJECT/.nv
+PERSIST_VLLM=$PROJECT_ROOT/.cache/vllm
+PERSIST_TRITON=$PROJECT_ROOT/.triton
+PERSIST_NV=$PROJECT_ROOT/.nv
 JOB_ID=${SLURM_JOB_ID:-$$}
 PORT_BASE=$((20000 + (JOB_ID % 15000) * 3))
 PORT_32B=$PORT_BASE
@@ -68,7 +75,7 @@ export ACCURACY_MODEL_PATH="$ACCURACY_PREDICTOR"
 stage_model() {
   local model_id="$1"
   local snapshot="$2"
-  local src="/ocean/projects/cis250162p/aparthas/.cache/huggingface/hub/${model_id}/snapshots/${snapshot}"
+  local src="$PROJECT_ROOT/.cache/huggingface/hub/${model_id}/snapshots/${snapshot}"
   local dst="$SCRATCH/${model_id}/snapshots/${snapshot}"
   mkdir -p "$dst"
   rsync -aL --delete "$src/" "$dst/"
@@ -184,7 +191,7 @@ wait_for_server() {
   return 1
 }
 
-cd "$PROJECT/sfs"
+cd "$SFS_ROOT"
 
 VLLM_PER_REQUEST_WAIT_LOG_PATH="$PER_REQUEST_WAIT_LOG_32B" \
 CUDA_VISIBLE_DEVICES="${GPU_32_A},${GPU_32_B}" vllm serve --disable-uvicorn-access-log --model "$MODEL_DST_32B" \

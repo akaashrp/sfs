@@ -8,7 +8,7 @@ By default this reads:
 
 Example:
   python collect_model_dataset_lengths.py \
-    --output-json /ocean/projects/cis250162p/aparthas/sfs/experiments/bucketed_prompt_outputs/model_dataset_lengths.json
+    --output-json experiments/bucketed_prompt_outputs/model_dataset_lengths.json
 """
 
 from __future__ import annotations

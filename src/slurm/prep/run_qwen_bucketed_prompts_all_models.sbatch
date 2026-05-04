@@ -1,16 +1,14 @@
 #!/bin/bash
 #SBATCH --job-name=qwen-bucketed-all-models
-#SBATCH --output=/ocean/projects/cis250162p/aparthas/sfs/experiments/qwen_bucketed_all_models_%j.out
-#SBATCH --error=/ocean/projects/cis250162p/aparthas/sfs/experiments/qwen_bucketed_all_models_%j.err
+#SBATCH --output=experiments/qwen_bucketed_all_models_%j.out
+#SBATCH --error=experiments/qwen_bucketed_all_models_%j.err
 #SBATCH --time=04:30:00
-#SBATCH -A cis260115p
 #SBATCH -N 1
 #SBATCH --ntasks=1
 #SBATCH -p GPU-shared
 #SBATCH --cpus-per-task=32
 #SBATCH --gres=gpu:h100-80:4
 #SBATCH --mail-type=BEGIN,FAIL,END
-#SBATCH --mail-user=akaashrp@cmu.edu
 
 set -euo pipefail
 
@@ -46,13 +44,22 @@ touch_with_retry() {
   return 1
 }
 
-PROJECT=/ocean/projects/cis250162p/aparthas
-EXPERIMENT_DIR=$PROJECT/sfs/experiments
-SCRIPT_DIR=$PROJECT/sfs/src/scripts/prep
-CHAT_TEMPLATE=$PROJECT/sfs/src/assets/templates/chat_template_qwen3.jinja
+SBATCH_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SFS_ROOT="$SBATCH_SCRIPT_DIR"
+while [[ "$SFS_ROOT" != "/" && ! -d "$SFS_ROOT/src/slurm" ]]; do
+  SFS_ROOT="$(dirname "$SFS_ROOT")"
+done
+if [[ "$SFS_ROOT" == "/" ]]; then
+  echo "[ERROR] Could not resolve SFS repo root from script location: $SBATCH_SCRIPT_DIR" >&2
+  exit 1
+fi
+PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SFS_ROOT/.." && pwd)}"
+EXPERIMENT_DIR=$SFS_ROOT/experiments
+SCRIPT_DIR=$SFS_ROOT/src/scripts/prep
+CHAT_TEMPLATE=$SFS_ROOT/src/assets/templates/chat_template_qwen3.jinja
 
 # Input/output settings.
-BUCKET_DIR="${BUCKET_DIR:-$PROJECT/sfs/experiments/data/prompts/bucketed_prompts/qwen3-0.6b}"
+BUCKET_DIR="${BUCKET_DIR:-$SFS_ROOT/experiments/data/prompts/bucketed_prompts/qwen3-0.6b}"
 MAX_PROMPTS_PER_BUCKET="${MAX_PROMPTS_PER_BUCKET:-2500}"
 CONTEXT_LENGTH="${CONTEXT_LENGTH:-65536}"
 MAX_COMPLETION_TOKENS="${MAX_COMPLETION_TOKENS:-8192}"
@@ -81,11 +88,11 @@ fi
 
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate vllm
-export PYTHONPATH="$PROJECT/sfs/src:${PYTHONPATH:-}"
+export PYTHONPATH="$SFS_ROOT/src:${PYTHONPATH:-}"
 
-PERSIST_VLLM=$PROJECT/.cache/vllm
-PERSIST_TRITON=$PROJECT/.triton
-PERSIST_NV=$PROJECT/.nv
+PERSIST_VLLM=$PROJECT_ROOT/.cache/vllm
+PERSIST_TRITON=$PROJECT_ROOT/.triton
+PERSIST_NV=$PROJECT_ROOT/.nv
 JOB_ID=${SLURM_JOB_ID:-$$}
 PORT_BASE=$((20000 + (JOB_ID % 15000) * 3))
 PORT_32B=$PORT_BASE
@@ -111,7 +118,7 @@ export EXPERIMENT_DIR
 stage_model() {
   local model_id="$1"
   local snapshot="$2"
-  local src="$PROJECT/.cache/huggingface/hub/${model_id}/snapshots/${snapshot}"
+  local src="$PROJECT_ROOT/.cache/huggingface/hub/${model_id}/snapshots/${snapshot}"
   local dst="$SCRATCH/${model_id}/snapshots/${snapshot}"
   mkdir_with_retry "$dst"
   rsync -aL --delete "$src/" "$dst/"
@@ -201,7 +208,7 @@ wait_for_server() {
   return 1
 }
 
-cd "$PROJECT/sfs"
+cd "$SFS_ROOT"
 
 VLLM_PER_REQUEST_WAIT_LOG_PATH="$WAIT_LOG_32B" \
 CUDA_VISIBLE_DEVICES="${GPU_32_A},${GPU_32_B}" vllm serve --disable-uvicorn-access-log --model "$MODEL_DST_32B" \

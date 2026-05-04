@@ -239,12 +239,12 @@ def run_two_part_fit(
 
 
 if __name__ == "__main__":
-    # path = Path("/ocean/projects/cis250162p/aparthas/sfs/experiments/metrics/batch_stats_qwen3-0_6b.csv")
+    # path = Path("experiments/metrics/batch_stats_qwen3-0_6b.csv")
     # print(run_two_part_fit("regression_qwen3_0.6b_final", path))
-    # path = Path("/ocean/projects/cis250162p/aparthas/sfs/experiments/metrics/batch_stats_qwen3-8b.csv")
+    # path = Path("experiments/metrics/batch_stats_qwen3-8b.csv")
     # print(run_two_part_fit("regression_qwen3_8b_final", path))
-    # path = Path("/ocean/projects/cis250162p/aparthas/sfs/experiments/metrics/batch_stats_qwen3-32b.csv")
+    # path = Path("experiments/metrics/batch_stats_qwen3-32b.csv")
     # print(run_two_part_fit("regression_qwen3_32b_final", path))
     
-    path = Path("/ocean/projects/cis250162p/aparthas/sfs/experiments/batch_stats_qwen3-0_6b_38075153_2026-03-20_075741.csv")
+    path = Path("experiments/batch_stats_qwen3-0_6b_38075153_2026-03-20_075741.csv")
     print(run_two_part_fit("regression_qwen3_0.6b_test_router_experiment", path))

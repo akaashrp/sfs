@@ -688,7 +688,3 @@ def parse_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     train_model(parse_args())
-
-"""
-python output_length_model.py --input /ocean/projects/cis250162p/aparthas/sfs/experiments/bucketed_prompt_outputs/qwen3-0.6b/scored /ocean/projects/cis250162p/aparthas/sfs/experiments/bucketed_prompt_outputs/qwen3-8b/scored /ocean/projects/cis250162p/aparthas/sfs/experiments/bucketed_prompt_outputs/qwen3-32b/scored --output-dir /ocean/projects/cis250162p/aparthas/sfs/src/assets/predictors/output_length_predictor --test-fraction 0.1 --num-leaves 31
-"""

@@ -35,7 +35,7 @@ For each bucket:
 ## Environment Setup
 
 ```bash
-cd /ocean/projects/cis250162p/aparthas/sfs
+cd /path/to/sfs
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate vllm
 export PYTHONPATH="$PWD/src:${PYTHONPATH:-}"
