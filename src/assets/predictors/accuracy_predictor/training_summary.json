@@ -1,0 +1,25 @@
+{
+  "train_examples": 27000,
+  "test_examples": 3000,
+  "total_examples": 30000,
+  "models": [
+    "qwen3-0.6b",
+    "qwen3-32b",
+    "qwen3-8b"
+  ],
+  "learning_rate": 0.05,
+  "num_boost_round": 500,
+  "semantic_dim": 16,
+  "hash_dim": 512,
+  "objective": "huber",
+  "split_seed": 69,
+  "test_fraction": 0.1,
+  "target_link": "identity",
+  "link_epsilon": 0.0001,
+  "quality_balancing_enabled": false,
+  "test_example_ids_file": "test_example_ids.json",
+  "test_metrics": {
+    "mae": 0.17283780872821808,
+    "rmse": 0.25189799070358276
+  }
+}

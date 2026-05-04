@@ -1,0 +1,4 @@
+[submodule "vllm"]
+	path = vllm
+	url = https://github.com/akaashrp/vllm.git
+	branch = neurips26

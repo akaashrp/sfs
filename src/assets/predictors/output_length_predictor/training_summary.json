@@ -1,0 +1,56 @@
+{
+  "train_examples": 27000,
+  "test_examples": 3000,
+  "total_examples": 30000,
+  "model_ids": [
+    "qwen3-0.6b",
+    "qwen3-32b",
+    "qwen3-8b"
+  ],
+  "tail_quantile": 0.9,
+  "learning_rate": 0.05,
+  "num_boost_round": 500,
+  "semantic_dim": 16,
+  "hash_dim": 512,
+  "split_seed": 69,
+  "test_fraction": 0.1,
+  "test_example_ids_file": "test_example_ids.json",
+  "eval_examples": 0,
+  "eval_input": [],
+  "test_metrics": {
+    "mean_head": {
+      "log": {
+        "mae": 0.6127325892448425,
+        "rmse": 0.9948090314865112
+      },
+      "tokens": {
+        "mae": 222.16607666015625,
+        "rmse": 561.923095703125
+      }
+    },
+    "median_head": {
+      "log": {
+        "mae": 0.4998183250427246,
+        "rmse": 0.7532870769500732
+      },
+      "tokens": {
+        "mae": 193.8610382080078,
+        "rmse": 563.3077392578125
+      },
+      "log_pinball": 0.2499091625213623,
+      "tokens_pinball": 96.9305191040039
+    },
+    "tail_head": {
+      "log": {
+        "mae": 0.6934927701950073,
+        "rmse": 1.024926781654358
+      },
+      "tokens": {
+        "mae": 293.698486328125,
+        "rmse": 709.024658203125
+      },
+      "log_pinball": 0.11321979016065598,
+      "tokens_pinball": 72.5468978881836
+    }
+  }
+}
