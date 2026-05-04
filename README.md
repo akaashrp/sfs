@@ -2,7 +2,17 @@
 
 This repository contains the experiment pipeline for serving framework simulation (SFS).
 
-## Core Data-Split Policy (Critical)
+## Third-Party Assets (Version, URL, License)
+
+| Asset | Version Used | URL | License |
+|---|---|---|---|
+| vLLM (vendored as submodule) | commit `4dbdf4a2944849a540c97542c4839b87fcd2988c` | https://github.com/vllm-project/vllm | Apache License 2.0 |
+| Alpaca dataset | HF revision `dce01c9b08f87459cf36a430d809084718273017` | https://huggingface.co/datasets/tatsu-lab/alpaca/tree/dce01c9b08f87459cf36a430d809084718273017 | CC BY-NC 4.0 |
+| WritingPrompts dataset | HF revision `35f0aa359452ba8147b34d925684fccee26679cc` | https://huggingface.co/datasets/euclaise/writingprompts/tree/35f0aa359452ba8147b34d925684fccee26679cc | MIT |
+| HotpotQA dataset (`distractor` config) | HF revision `1908d6afbbead072334abe2965f91bd2709910ab` | https://huggingface.co/datasets/hotpotqa/hotpot_qa/tree/1908d6afbbead072334abe2965f91bd2709910ab | CC BY-SA 4.0 |
+| GovReport summarization dataset (`ccdv/govreport-summarization`) | HF revision `4e21184e01ae8017e2c036e180fe5e541fef60a0` | https://huggingface.co/datasets/ccdv/govreport-summarization/tree/4e21184e01ae8017e2c036e180fe5e541fef60a0 | CC BY 4.0 |
+
+## Data-Split Policy
 
 Experiments are **not** run on the initial calibration prompts.
 
