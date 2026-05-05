@@ -27,18 +27,12 @@ CHAT_TEMPLATE=$SFS_ROOT/src/assets/templates/chat_template_qwen3.jinja
 OUTPUT_PREDICTOR=$SFS_ROOT/src/assets/predictors/output_length_predictor
 ACCURACY_PREDICTOR=$SFS_ROOT/src/assets/predictors/accuracy_predictor
 
-# Delta sweep configuration (Pareto-style: fixed lambda/QPS, varying delta).
-REQUEST_RATE_QPS=8 # do a few different QPS values here
+# Delta sweep configuration (fixed lambda/QPS, varying delta).
+REQUEST_RATE_QPS=8
 NUM_REQUESTS=8000
 LAMBDA_WEIGHT=5e-4
-DELTA_SWEEP=(0 1e-5 5e-5 8e-5 3e-4 7e-4 1e-3 4e-3 5e-3 1e-2 3e-2 5e-2 7e-2 1e-1 1e9)
-# DELTA_SWEEP=(1e-7 3e-7 4e-7 5e-7)
-# DELTA_SWEEP=(6e-7 7e-7 8e-7 9e-7)
-# DELTA_SWEEP=(1e-6 2e-6 3e-6 4e-6)
-# DELTA_SWEEP=(5e-6 8e-6 1e-5 5e-5)
-# DELTA_SWEEP=(1e-5 5e-4 1e-3 1e9)
+DELTA_SWEEP=(0 1e-7 3e-7 4e-7 5e-7 6e-7 7e-7 8e-7 9e-7 1e-6 2e-6 3e-6 4e-6 5e-6 8e-6 1e-5 5e-5 1e-4 5e-4 1e-3 1e9)
 
-# Router run settings aligned with router_experiments.sbatch.
 WORKER_COUNT=1
 MAX_QUEUE_SIZE=1
 MAX_COMPLETION_TOKENS=8192

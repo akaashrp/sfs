@@ -33,7 +33,6 @@ NUM_REQUESTS=16000
 REQUEST_RATE_QPS=8
 DELTA_WEIGHT=0
 
-# Router run settings aligned with router_experiments.sbatch.
 WORKER_COUNT=1
 MAX_QUEUE_SIZE=1
 MAX_COMPLETION_TOKENS=8192

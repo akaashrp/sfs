@@ -38,7 +38,6 @@ NUM_REQUESTS=16000
 LAMBDA_WEIGHT=5e-4
 DELTA_WEIGHT=0
 
-# Keep these aligned with existing no-snapshot baseline flow.
 WORKER_COUNT=1
 MAX_QUEUE_SIZE=1
 MAX_COMPLETION_TOKENS=8192
