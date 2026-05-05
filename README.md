@@ -1,6 +1,52 @@
 # SFS Experiment Workflow
 
-This repository contains the experiment pipeline for serving framework simulation (SFS).
+This repository contains the end-to-end SFS pipeline for prompt bucketing, calibration, holdout construction, router sweeps, augmentation, and plotting.
+
+## Requirements
+
+### System and Toolchain
+
+- Linux `x86_64`.
+- SLURM cluster (all provided run wrappers are `sbatch` scripts).
+- NVIDIA GPU nodes for generation/routing experiments.
+- Environment modules:
+  - `cuda/12.6.1`
+  - `gcc/13.3.1-p20240614`
+- NVIDIA driver compatible with CUDA `12.6.1` (`R560+` recommended; the build script prints the detected version via `nvidia-smi` when available).
+- Conda or Mamba.
+
+Record the runtime driver in experiment logs with:
+`nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -n 1`
+
+### Python Environment (Conda/Mamba)
+
+```bash
+cd /path/to/sfs
+mamba env create -f env.yml
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate vllm
+export PYTHONPATH="$PWD/src:${PYTHONPATH:-}"
+```
+
+For judge-based quality scoring, set `GOOGLE_API_KEY` or `GEMINI_API_KEY`.
+
+### Compile vLLM Scheduler Simulation Extension
+
+The router's snapshot-SHM wait-time simulation depends on the native `_scheduler_sim` extension in `vllm`.
+
+Run this on a host where CUDA modules are available:
+
+```bash
+cd /path/to/sfs
+bash scripts/setup/compile_vllm_scheduler_sim.sh
+```
+
+This script:
+- Resolves `SFS_ROOT` and `PROJECT_ROOT` from script location.
+- Loads `cuda/12.6.1` and `gcc/13.3.1-p20240614`.
+- Activates conda env `vllm`.
+- Runs editable install in `sfs/vllm` with the same flags used in our setup.
+- Executes `tests/v1/engine/test_scheduler_simulator_native.py -k timing`.
 
 ## Third-Party Assets (Version, URL, License)
 
@@ -12,21 +58,6 @@ This repository contains the experiment pipeline for serving framework simulatio
 | HotpotQA dataset (`distractor` config) | HF revision `1908d6afbbead072334abe2965f91bd2709910ab` | https://huggingface.co/datasets/hotpotqa/hotpot_qa/tree/1908d6afbbead072334abe2965f91bd2709910ab | CC BY-SA 4.0 |
 | GovReport summarization dataset (`ccdv/govreport-summarization`) | HF revision `4e21184e01ae8017e2c036e180fe5e541fef60a0` | https://huggingface.co/datasets/ccdv/govreport-summarization/tree/4e21184e01ae8017e2c036e180fe5e541fef60a0 | CC BY 4.0 |
 
-## Data-Split Policy
-
-Experiments are **not** run on the initial calibration prompts.
-
-Define:
-- `X` = calibration prefix size per bucket (default in current scripts: `X=2500`)
-- `N` = holdout size per bucket (examples used here: `N=2000` or `N=4000`)
-
-For each bucket:
-1. Calibration/training pool uses indices `[0, X-1]`.
-2. Holdout pool starts at index `X` and uses the next `N` prompts.
-3. Router experiments run on this holdout pool only.
-
-`holdout_prompts.py` preserves original `prompt_index` and builds request IDs with that index, so holdout requests remain disjoint from calibration/training data by construction.
-
 ## Repository Layout
 
 | Path | Purpose |
@@ -36,24 +67,31 @@ For each bucket:
 | `src/scripts/eval` | Post-run augmentation/diagnostics. |
 | `src/scripts/reporting` | Sweep summary + plotting scripts. |
 | `src/sfs_core` | Shared library code (routing, predictors, regression, helpers). |
+| `scripts/setup` | Reproducible environment/build wrappers (including vLLM scheduler simulation build). |
 | `src/slurm/prep` | SLURM wrapper for bucketed prompt generation. |
 | `src/slurm/runs` | SLURM wrappers for calibration + sweeps. |
 | `src/assets` | Static assets (template + predictor artifacts). |
 | `experiments/data/prompts` | Generated prompt artifacts (bucket pools + holdout caches). |
 | `experiments/` | Runtime outputs. |
 
-## Environment Setup
+## Data-Split Policy
 
-```bash
-cd /path/to/sfs
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate vllm
-export PYTHONPATH="$PWD/src:${PYTHONPATH:-}"
-```
+Experiments are **not** run on the initial calibration prompts.
 
-For judge-based quality scoring, set `GOOGLE_API_KEY` or `GEMINI_API_KEY`.
+Define:
+- `X`: calibration prefix size per bucket (default in current scripts: `X=2500`)
+- `N`: holdout size per bucket (examples used here: `N=2000` or `N=4000`)
 
-## Standard Workflow
+For each bucket:
+1. Calibration/training pool uses indices `[0, X-1]`.
+2. Holdout pool starts at index `X` and uses the next `N` prompts.
+3. Router experiments run on this holdout pool only.
+
+`holdout_prompts.py` preserves original `prompt_index` and builds request IDs with that index, so holdout requests remain disjoint from calibration/training data by construction.
+
+## Reproducing Results
+
+All experimental results reported are generated via scripts and commands in this repository.
 
 ### 1) Aggregate prompts into bucket files
 
@@ -97,6 +135,8 @@ python -m scripts.prep.quality_metrics \
   --outputs-root experiments/bucketed_prompt_outputs \
   --models qwen3-0.6b qwen3-8b qwen3-32b
 ```
+
+Note: GEMINI-based judging is not fully deterministic. Google recommends default inference settings, and the effective sampling configuration may introduce small score variance across reruns.
 
 ### 5) Train prediction models on calibration data
 
@@ -180,7 +220,7 @@ for N in 2000 4000; do
     --holdout-context-length 65536 \
     --max-completion-tokens 8192 \
     --prompt-token-limit 32768
- done
+done
 ```
 
 ### 8) Generate and score holdout outputs for accuracy augmentation
@@ -203,11 +243,9 @@ sbatch src/slurm/prep/run_qwen_bucketed_prompts_all_models.sbatch
 
 Then score the normalized holdout outputs with `scripts.prep.quality_metrics`.
 
-### 9) Run experiments on holdout caches only
+### 9) Run experiments
 
 All provided sweep scripts pass holdout settings (`--holdout-prompts-per-bucket`, `--holdout-start-index`, `--holdout-cache-dir`) and run on holdout caches, not on calibration prompts.
-
-## Sweep Scripts
 
 Snapshot-enabled sweeps:
 - `src/slurm/runs/router/router_experiments_qps_sweep.sbatch`
@@ -234,7 +272,7 @@ python -m scripts.prep.map_holdout_request_ids \
   --output-dir experiments
 ```
 
-`--preset all` currently emits mappings for the provided defaults (`N=2000` and `N=4000`).  
+`--preset all` currently emits mappings for the provided defaults (`N=2000` and `N=4000`).
 If you run different holdout sizes, update the mapping job definitions in `scripts.prep.map_holdout_request_ids`.
 
 Augment router JSONs with actual accuracy:
@@ -249,8 +287,9 @@ python -m scripts.eval.augment_router_actual_accuracy \
 
 Then run summary/plot scripts in `src/scripts/reporting`.
 
-## Adding a New Model
+## Adapting to New Model or vLLM Config
 
+For a new model:
 1. Add model serving stanza to run scripts or `--instances-config`.
 2. Set `instance_id`, `model_id`, model path, ports, GPU mapping, snapshot SHM settings.
 3. Include new model outputs in `experiments/bucketed_prompt_outputs/<new_model>/...`.
@@ -258,18 +297,9 @@ Then run summary/plot scripts in `src/scripts/reporting`.
 5. Retrain output-length and accuracy predictors including the new model.
 6. Calibrate service metrics for the new model (`service_metrics.sbatch`) and apply priors.
 7. Calibrate batch-fit coefficients for the new model and update serve/config coefficients.
-8. Update per-instance costs and any alias mappings used by utilities.
-9. Rebuild holdout caches if needed and rerun sweeps + reporting.
 
-## Updating vLLM Config
-
-When changing scheduler/serve config (for example `max_num_batched_tokens`, `max_num_seqs`, chunked prefill, TP size, snapshot publish behavior, simulation coefficients):
-
-1. Update `vllm serve` flags in relevant SLURM scripts.
-2. Re-run calibration on the calibration pool:
-   - service metrics
-   - batch-fit coefficient calibration
-   - predictor training if behavior/data changed materially
-3. Rebuild holdout caches if `X`, context limits, or completion caps changed.
-4. Re-run snapshot and no-snapshot sweeps.
-5. Regenerate request maps/augmentation/summaries/plots.
+For a new vLLM runtime config:
+1. Update vLLM serve flags in the relevant `src/slurm/prep` and `src/slurm/runs` scripts.
+2. Re-run step 6 (service metrics + batch-fit coefficient calibration) for that config.
+3. Regenerate outputs and re-run scoring if generation behavior changes.
+4. Re-run sweeps and post-processing (steps 9-10) to keep comparisons consistent.
