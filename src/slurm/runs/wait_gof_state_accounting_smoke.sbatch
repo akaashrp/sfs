@@ -380,8 +380,10 @@ write_comparison() {
     "$baseline_label" \
     "$candidate_label" \
     "$@" <<'PY'
+import ast
 import json
 import re
+import statistics
 import sys
 from pathlib import Path
 
@@ -395,41 +397,155 @@ if len(case_args) == 0 or len(case_args) % 3 != 0:
     raise RuntimeError("Expected repeated label, result path, log path triples.")
 request_id_pattern = re.compile(r"request_id=([^\s]+)")
 ttft_pattern = re.compile(r"ttft_s=([0-9.+-eE]+)")
+queue_pattern = re.compile(r"queue_ms=([0-9.+-eE]+)")
+prefill_pattern = re.compile(r"prefill_s=([0-9.+-eE]+)")
+queued_ts_pattern = re.compile(r"queued_ts_s=([0-9.+-eE]+)")
+first_token_ts_pattern = re.compile(r"first_token_ts_s=([0-9.+-eE]+)")
 
 
-def read_exact_ttft(path):
+def read_engine_latencies(path):
     values = {}
     with path.open("r", encoding="utf-8", errors="ignore") as src:
         for line in src:
             request_match = request_id_pattern.search(line)
-            ttft_match = ttft_pattern.search(line)
-            if request_match is None or ttft_match is None:
+            if request_match is None:
                 continue
-            values[request_match.group(1)] = float(ttft_match.group(1)) * 1000.0
+            parsed = {}
+            for name, pattern, scale in (
+                ("frontend_ttft_ms", ttft_pattern, 1000.0),
+                ("queue_ms", queue_pattern, 1.0),
+                ("prefill_ms", prefill_pattern, 1000.0),
+                ("queued_ts_s", queued_ts_pattern, 1.0),
+                ("first_token_ts_s", first_token_ts_pattern, 1.0),
+            ):
+                match = pattern.search(line)
+                if match is not None:
+                    parsed[name] = float(match.group(1)) * scale
+            values[request_match.group(1)] = parsed
     return values
 
 
-def load(path, log_path):
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    items = payload["wait_gof"]["runs"][0]["per_request"]
-    exact_ttft = read_exact_ttft(log_path)
-    pairs = [
-        (exact_ttft[item["response_id"]], float(item["wait_time_ms"]))
-        for item in items
-        if item.get("response_id") in exact_ttft
-        and isinstance(item.get("wait_time_ms"), (int, float))
-    ]
-    if len(pairs) < len(items) * 0.9:
-        raise RuntimeError(
-            f"Only matched {len(pairs)} of {len(items)} requests to exact TTFT in "
-            f"{log_path}"
-        )
+def read_estimate_timestamps(path):
+    values = {}
+    with path.open("r", encoding="utf-8", errors="ignore") as src:
+        for line in src:
+            try:
+                record = ast.literal_eval(line)
+            except (SyntaxError, ValueError):
+                continue
+            if not isinstance(record, dict):
+                continue
+            request_id = record.get("request_id")
+            payload = record.get("payload")
+            if not isinstance(request_id, str) or not isinstance(payload, dict):
+                continue
+            reports = payload.get("reports")
+            if not isinstance(reports, list) or not reports:
+                continue
+            report = reports[0]
+            if not isinstance(report, dict):
+                continue
+            timestamp = report.get("simulation_timestamp")
+            if isinstance(timestamp, (int, float)):
+                values[request_id] = float(timestamp)
+    return values
+
+
+def fit_metrics(pairs):
     actual = [value for value, _ in pairs]
     predicted = [value for _, value in pairs]
     metrics = _fit_error_metrics(actual, predicted)
     metrics["actual_mean_ms"] = sum(actual) / len(actual)
     metrics["predicted_mean_ms"] = sum(predicted) / len(predicted)
-    return metrics, pairs
+    return metrics
+
+
+def value_summary(values):
+    if not values:
+        return {"count": 0}
+    ordered = sorted(values)
+    p90_index = min(len(ordered) - 1, int(0.9 * len(ordered)))
+    return {
+        "count": len(values),
+        "mean_ms": sum(values) / len(values),
+        "p50_ms": statistics.median(values),
+        "p90_ms": ordered[p90_index],
+        "min_ms": ordered[0],
+        "max_ms": ordered[-1],
+    }
+
+
+def load(path, log_path):
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    run = payload["wait_gof"]["runs"][0]
+    items = run["per_request"]
+    engine_latencies = read_engine_latencies(log_path)
+    estimate_timestamps = read_estimate_timestamps(Path(run["request_log_path"]))
+    pairs_by_target = {
+        "engine_core_queued_to_first_token_ms": [],
+        "engine_first_token_from_estimate_ms": [],
+        "vllm_frontend_first_token_latency_ms": [],
+    }
+    admission_gaps = []
+    core_component_differences = []
+
+    for item in items:
+        response_id = item.get("response_id")
+        predicted = item.get("wait_time_ms")
+        if response_id not in engine_latencies or not isinstance(
+            predicted, (int, float)
+        ):
+            continue
+        observed = engine_latencies[response_id]
+        queued_ts = observed.get("queued_ts_s")
+        first_token_ts = observed.get("first_token_ts_s")
+        if isinstance(queued_ts, float) and isinstance(first_token_ts, float):
+            core_ms = (first_token_ts - queued_ts) * 1000.0
+            pairs_by_target["engine_core_queued_to_first_token_ms"].append(
+                (core_ms, float(predicted))
+            )
+            queue_ms = observed.get("queue_ms")
+            prefill_ms = observed.get("prefill_ms")
+            if isinstance(queue_ms, float) and isinstance(prefill_ms, float):
+                core_component_differences.append(
+                    core_ms - (queue_ms + prefill_ms)
+                )
+
+            scheduler_request_id = item.get("scheduler_request_id")
+            estimate_ts = estimate_timestamps.get(scheduler_request_id)
+            if estimate_ts is not None:
+                admission_gaps.append((queued_ts - estimate_ts) * 1000.0)
+                pairs_by_target["engine_first_token_from_estimate_ms"].append(
+                    ((first_token_ts - estimate_ts) * 1000.0, float(predicted))
+                )
+
+        frontend_ttft_ms = observed.get("frontend_ttft_ms")
+        if isinstance(frontend_ttft_ms, float):
+            pairs_by_target["vllm_frontend_first_token_latency_ms"].append(
+                (frontend_ttft_ms, float(predicted))
+            )
+
+    primary_pairs = pairs_by_target["engine_core_queued_to_first_token_ms"]
+    if len(primary_pairs) < len(items) * 0.9:
+        raise RuntimeError(
+            f"Only matched {len(primary_pairs)} of {len(items)} requests to "
+            f"EngineCore QUEUED/first-token timestamps in {log_path}"
+        )
+    metrics_by_target = {
+        target: fit_metrics(pairs)
+        for target, pairs in pairs_by_target.items()
+        if pairs
+    }
+    consistency = value_summary(core_component_differences)
+    consistency["definition"] = (
+        "(first_token_ts_s - queued_ts_s) * 1000 "
+        "- (queue_ms + prefill_s * 1000)"
+    )
+    return {
+        "metrics_by_target": metrics_by_target,
+        "admission_gap_ms": value_summary(admission_gaps),
+        "core_timestamp_component_consistency_ms": consistency,
+    }, primary_pairs
 
 
 def segment_metrics(pairs):
@@ -451,33 +567,48 @@ for offset in range(0, len(case_args), 3):
     log_path = Path(case_args[offset + 2])
     cases[label], case_pairs[label] = load(result_path, log_path)
 
+primary_metric_name = "engine_core_queued_to_first_token_ms"
+baseline_metrics = cases[baseline_label]["metrics_by_target"][primary_metric_name]
+candidate_metrics = cases[candidate_label]["metrics_by_target"][primary_metric_name]
+
+
+def metric_delta(key):
+    baseline = baseline_metrics.get(key)
+    candidate = candidate_metrics.get(key)
+    if not isinstance(baseline, (int, float)) or not isinstance(
+        candidate, (int, float)
+    ):
+        return None
+    return float(candidate) - float(baseline)
+
+
+def relative_error_change_pct(key):
+    baseline = baseline_metrics.get(key)
+    delta = metric_delta(key)
+    if not isinstance(baseline, (int, float)) or baseline == 0 or delta is None:
+        return None
+    return 100.0 * float(delta) / float(baseline)
+
+
 comparison = {
-    "actual_metric_name": "vllm_first_token_latency_ms",
+    "primary_actual_metric_name": primary_metric_name,
+    "primary_actual_metric_definition": (
+        "(first_token_ts_s - queued_ts_s) * 1000"
+    ),
+    "diagnostic_clock_note": (
+        "engine_first_token_from_estimate_ms compares same-host monotonic/"
+        "steady-clock timestamps across router and EngineCore processes; it is "
+        "diagnostic only"
+    ),
     "baseline_label": baseline_label,
     "candidate_label": candidate_label,
     "cases": cases,
     "delta_candidate_minus_baseline": {
-        key: (
-            float(cases[candidate_label][key]) - float(cases[baseline_label][key])
-            if isinstance(cases[baseline_label].get(key), (int, float))
-            and isinstance(cases[candidate_label].get(key), (int, float))
-            else None
-        )
+        key: metric_delta(key)
         for key in ("mae", "rmse", "mean_error", "mape_pct", "r2", "pearson_r")
     },
     "relative_error_change_pct": {
-        key: (
-            100.0
-            * (
-                float(cases[candidate_label][key])
-                - float(cases[baseline_label][key])
-            )
-            / float(cases[baseline_label][key])
-            if isinstance(cases[baseline_label].get(key), (int, float))
-            and float(cases[baseline_label][key]) != 0.0
-            and isinstance(cases[candidate_label].get(key), (int, float))
-            else None
-        )
+        key: relative_error_change_pct(key)
         for key in ("mae", "rmse", "mape_pct")
     },
     "segments": {

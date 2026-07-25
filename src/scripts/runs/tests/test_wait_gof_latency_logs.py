@@ -31,19 +31,22 @@ class _MemoryPath:
         return "<memory>"
 
 
-def test_wait_gof_prefers_exact_ttft_over_queue_prefill_sum():
+def test_wait_gof_uses_engine_core_queued_to_first_token():
     path = _MemoryPath(
         "vllm.per_request_latency request_id=chatcmpl-1 "
         "queue_ms=2.000000 ttft_s=0.125000 prefill_s=0.010000 "
-        "decode_s=0.020000 inference_s=0.030000 e2e_s=0.150000\n"
+        "decode_s=0.020000 inference_s=0.030000 e2e_s=0.150000 "
+        "queued_ts_s=10.000000000 first_token_ts_s=10.012000000\n"
     )
 
     components = experiments._read_latency_components_from_logs([path])
     queue_map, ttft_map = experiments._build_actual_wait_maps_from_logs([path])
 
-    assert components["chatcmpl-1"].ttft_ms == 125.0
+    assert components["chatcmpl-1"].frontend_ttft_ms == 125.0
+    assert components["chatcmpl-1"].queued_ts_s == 10.0
+    assert components["chatcmpl-1"].first_token_ts_s == 10.012
     assert queue_map["chatcmpl-1"] == 2.0
-    assert ttft_map["chatcmpl-1"] == 125.0
+    assert abs(ttft_map["chatcmpl-1"] - 12.0) < 1e-9
 
 
 def test_wait_gof_falls_back_to_queue_plus_prefill_for_legacy_logs():
@@ -65,7 +68,7 @@ def test_wait_gof_falls_back_to_queue_plus_prefill_for_legacy_logs():
     assert prefill_map["chatcmpl-1"] == 10.0
 
 
-def test_wait_gof_plotting_prefers_exact_ttft():
+def test_wait_gof_plotting_uses_queue_plus_prefill():
     path = _MemoryPath(
         "vllm.per_request_latency request_id=chatcmpl-1 "
         "queue_ms=2.000000 ttft_s=0.125000 prefill_s=0.010000 "
@@ -74,4 +77,4 @@ def test_wait_gof_plotting_prefers_exact_ttft():
 
     _, ttft_map, _ = plot_router_wait_gof._read_actual_wait_logs([path])
 
-    assert ttft_map["chatcmpl-1"] == 125.0
+    assert ttft_map["chatcmpl-1"] == 12.0

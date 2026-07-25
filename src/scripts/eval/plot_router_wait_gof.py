@@ -25,7 +25,6 @@ from sfs_core.shared.router_io_plot_helpers import (
 )
 
 QUEUE_PATTERN = re.compile(r"queue_ms=([0-9.+-eE]+)")
-TTFT_PATTERN = re.compile(r"ttft_s=([0-9.+-eE]+)")
 PREFILL_PATTERN = re.compile(r"prefill_s=([0-9.+-eE]+)")
 REQUEST_ID_PATTERN = re.compile(r"request_id=([^\s]+)")
 
@@ -119,14 +118,6 @@ def _read_actual_wait_logs(
                 except ValueError:
                     continue
                 queue_values[response_id] = queue_ms
-                ttft_match = TTFT_PATTERN.search(line)
-                if ttft_match is not None:
-                    try:
-                        ttft_values[response_id] = (
-                            float(ttft_match.group(1)) * 1000.0
-                        )
-                    except ValueError:
-                        pass
                 prefill_match = PREFILL_PATTERN.search(line)
                 if prefill_match is not None:
                     try:
@@ -134,7 +125,7 @@ def _read_actual_wait_logs(
                     except ValueError:
                         continue
                     prefill_values[response_id] = prefill_ms
-                    ttft_values.setdefault(response_id, float(queue_ms + prefill_ms))
+                    ttft_values[response_id] = float(queue_ms + prefill_ms)
     return queue_values, ttft_values, prefill_values
 
 

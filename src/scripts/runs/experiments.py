@@ -131,6 +131,8 @@ REQUEST_ID_PATTERN = re.compile(r"request_id=([^\s]+)")
 TTFT_PATTERN = re.compile(r"ttft_s=([0-9.+-eE]+)")
 PREFILL_PATTERN = re.compile(r"prefill_s=([0-9.+-eE]+)")
 INFERENCE_PATTERN = re.compile(r"inference_s=([0-9.+-eE]+)")
+QUEUED_TS_PATTERN = re.compile(r"queued_ts_s=([0-9.+-eE]+)")
+FIRST_TOKEN_TS_PATTERN = re.compile(r"first_token_ts_s=([0-9.+-eE]+)")
 LOGGER = logging.getLogger(__name__)
 
 UtilityCallable = Callable[
@@ -227,8 +229,10 @@ class ExperimentRequest:
 @dataclass(slots=True)
 class RequestLatencyComponents:
     queue_ms: Optional[float] = None
-    ttft_ms: Optional[float] = None
+    frontend_ttft_ms: Optional[float] = None
     prefill_ms: Optional[float] = None
+    queued_ts_s: Optional[float] = None
+    first_token_ts_s: Optional[float] = None
 
 
 @dataclass(slots=True)
@@ -2974,7 +2978,9 @@ def _read_latency_components_from_logs(
                 ttft_match = TTFT_PATTERN.search(line)
                 if ttft_match is not None:
                     try:
-                        components.ttft_ms = float(ttft_match.group(1)) * 1000.0
+                        components.frontend_ttft_ms = (
+                            float(ttft_match.group(1)) * 1000.0
+                        )
                     except ValueError:
                         LOGGER.warning(
                             "Skipping queue-log line with non-numeric ttft_s; "
@@ -2996,6 +3002,35 @@ def _read_latency_components_from_logs(
                             request_id,
                             prefill_match.group(1),
                         )
+
+                queued_ts_match = QUEUED_TS_PATTERN.search(line)
+                if queued_ts_match is not None:
+                    try:
+                        components.queued_ts_s = float(queued_ts_match.group(1))
+                    except ValueError:
+                        LOGGER.warning(
+                            "Skipping queue-log line with non-numeric queued_ts_s; "
+                            "path=%s request_id=%s raw_queued_ts_s=%r",
+                            path,
+                            request_id,
+                            queued_ts_match.group(1),
+                        )
+
+                first_token_ts_match = FIRST_TOKEN_TS_PATTERN.search(line)
+                if first_token_ts_match is not None:
+                    try:
+                        components.first_token_ts_s = float(
+                            first_token_ts_match.group(1)
+                        )
+                    except ValueError:
+                        LOGGER.warning(
+                            "Skipping queue-log line with non-numeric "
+                            "first_token_ts_s; path=%s request_id=%s "
+                            "raw_first_token_ts_s=%r",
+                            path,
+                            request_id,
+                            first_token_ts_match.group(1),
+                        )
             if offsets is not None and update_offsets:
                 offsets[path] = src.tell()
     return values
@@ -3013,8 +3048,13 @@ def _build_actual_wait_maps_from_logs(
         if component.queue_ms is not None:
             queue_val = float(component.queue_ms)
             queue_map[request_id] = queue_val
-        if component.ttft_ms is not None:
-            ttft_map[request_id] = float(component.ttft_ms)
+        if (
+            component.queued_ts_s is not None
+            and component.first_token_ts_s is not None
+        ):
+            ttft_map[request_id] = float(
+                (component.first_token_ts_s - component.queued_ts_s) * 1000.0
+            )
         elif component.queue_ms is not None and component.prefill_ms is not None:
             ttft_map[request_id] = float(
                 float(component.queue_ms) + float(component.prefill_ms)
@@ -3600,14 +3640,27 @@ async def run_policy(
             else None
         )
         ttft_ms = (
-            float(latency_components.ttft_ms)
+            float(
+                (
+                    latency_components.first_token_ts_s
+                    - latency_components.queued_ts_s
+                )
+                * 1000.0
+            )
             if latency_components is not None
-            and latency_components.ttft_ms is not None
+            and latency_components.queued_ts_s is not None
+            and latency_components.first_token_ts_s is not None
             else (
                 float(queue_delay_ms + prefill_ms)
                 if queue_delay_ms is not None and prefill_ms is not None
                 else None
             )
+        )
+        frontend_ttft_ms = (
+            float(latency_components.frontend_ttft_ms)
+            if latency_components is not None
+            and latency_components.frontend_ttft_ms is not None
+            else None
         )
 
         system_entry_perf = _as_nonnegative_float(item.get("system_entry_perf"))
@@ -3810,6 +3863,17 @@ async def run_policy(
             "system_entry_to_dispatch_ms": system_entry_to_dispatch_ms,
             "queue_delay_ms": queue_delay_ms,
             "ttft_ms": ttft_ms,
+            "frontend_ttft_ms": frontend_ttft_ms,
+            "queued_ts_s": (
+                latency_components.queued_ts_s
+                if latency_components is not None
+                else None
+            ),
+            "first_token_ts_s": (
+                latency_components.first_token_ts_s
+                if latency_components is not None
+                else None
+            ),
             "e2e_ttft_ms": e2e_ttft_ms,
             "system_entry_e2e_ttft_ms": system_entry_e2e_ttft_ms,
             "prefill_ms": prefill_ms,
@@ -5457,6 +5521,12 @@ async def run_wait_gof_experiment(
         run_summary = dict(shared_run["summary"])
         run_summary["actual_wait_fit"] = gof_summary
         run_summary["actual_metric_name"] = actual_metric_name
+        actual_metric_definition = (
+            "engine_core_first_token_ts_minus_queued_ts"
+            if actual_metric_name == "ttft_ms"
+            else "engine_core_scheduled_ts_minus_queued_ts"
+        )
+        run_summary["actual_metric_definition"] = actual_metric_definition
         run = {
             "label": estimator_name,
             "utility": shared_run["utility"],
@@ -5469,6 +5539,7 @@ async def run_wait_gof_experiment(
             "wait_estimator_spec": estimator_spec,
             "actual_wait_fit": gof_summary,
             "actual_metric_name": actual_metric_name,
+            "actual_metric_definition": actual_metric_definition,
         }
 
         pk_tracker = pk_trackers.get(estimator_name)
