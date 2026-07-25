@@ -412,6 +412,7 @@ request_id_pattern = re.compile(r"request_id=([^\s]+)")
 ttft_pattern = re.compile(r"ttft_s=([0-9.+-eE]+)")
 queue_pattern = re.compile(r"queue_ms=([0-9.+-eE]+)")
 prefill_pattern = re.compile(r"prefill_s=([0-9.+-eE]+)")
+ready_ts_pattern = re.compile(r"ready_ts_s=([0-9.+-eE]+)")
 queued_ts_pattern = re.compile(r"queued_ts_s=([0-9.+-eE]+)")
 first_token_ts_pattern = re.compile(r"first_token_ts_s=([0-9.+-eE]+)")
 
@@ -428,6 +429,7 @@ def read_engine_latencies(path):
                 ("frontend_ttft_ms", ttft_pattern, 1000.0),
                 ("queue_ms", queue_pattern, 1.0),
                 ("prefill_ms", prefill_pattern, 1000.0),
+                ("ready_ts_s", ready_ts_pattern, 1.0),
                 ("queued_ts_s", queued_ts_pattern, 1.0),
                 ("first_token_ts_s", first_token_ts_pattern, 1.0),
             ):
@@ -541,6 +543,9 @@ def load(path, log_path):
     }
     queue_aligned_pairs = []
     admission_gaps = []
+    readiness_gaps = []
+    ready_to_queue_gaps = []
+    ready_to_first_token_gaps = []
     core_component_differences = []
 
     for item in items:
@@ -577,6 +582,13 @@ def load(path, log_path):
                 pairs_by_target["engine_first_token_from_estimate_ms"].append(
                     ((first_token_ts - estimate_ts) * 1000.0, float(predicted))
                 )
+                ready_ts = observed.get("ready_ts_s")
+                if isinstance(ready_ts, float) and ready_ts > 0.0:
+                    readiness_gaps.append((ready_ts - estimate_ts) * 1000.0)
+                    ready_to_queue_gaps.append((queued_ts - ready_ts) * 1000.0)
+                    ready_to_first_token_gaps.append(
+                        (first_token_ts - ready_ts) * 1000.0
+                    )
 
         frontend_ttft_ms = observed.get("frontend_ttft_ms")
         if isinstance(frontend_ttft_ms, float):
@@ -603,6 +615,9 @@ def load(path, log_path):
     result = {
         "metrics_by_target": metrics_by_target,
         "admission_gap_ms": value_summary(admission_gaps),
+        "estimate_to_ready_ms": value_summary(readiness_gaps),
+        "ready_to_queue_ms": value_summary(ready_to_queue_gaps),
+        "ready_to_first_token_ms": value_summary(ready_to_first_token_gaps),
         "core_timestamp_component_consistency_ms": consistency,
     }
     if queue_aligned_predictions:
