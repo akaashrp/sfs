@@ -324,7 +324,7 @@ async def process_bucket(
                         messages,
                         tokenize=True,
                         add_generation_prompt=True,
-                        chat_template_kwargs={"enable_thinking": False},
+                        enable_thinking=False,
                     )
                     total_prompt_tokens = len(prompt_token_ids)
                 except Exception as exc:

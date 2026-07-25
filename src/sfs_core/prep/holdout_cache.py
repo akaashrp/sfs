@@ -13,6 +13,7 @@ from sfs_core.shared.shared_experiment_helpers import (
 )
 
 MANIFEST_FILENAME = "manifest.json"
+PROMPT_TOKENIZATION_VERSION = 2
 
 
 def _as_nonnegative_int(value: Any) -> int | None:
@@ -72,6 +73,7 @@ def _build_expected_manifest_config(
     bucket_files: list[str],
 ) -> dict[str, Any]:
     return {
+        "prompt_tokenization_version": PROMPT_TOKENIZATION_VERSION,
         "source_bucket_dir": str(source_bucket_dir.resolve()),
         "tokenizer_id": str(tokenizer_id),
         "holdout_start_index": int(holdout_start_index),
@@ -139,7 +141,7 @@ def _compute_prompt_tokens(prompt: str, tokenizer: Any, system_prompt: str) -> i
         messages,
         tokenize=True,
         add_generation_prompt=True,
-        chat_template_kwargs={"enable_thinking": False},
+        enable_thinking=False,
     )
     return int(len(token_ids))
 
