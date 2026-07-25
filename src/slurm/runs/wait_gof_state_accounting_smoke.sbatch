@@ -26,6 +26,7 @@ WORKER_COUNT="${WORKER_COUNT:-4}"
 MAX_COMPLETION_TOKENS="${MAX_COMPLETION_TOKENS:-8192}"
 SEED="${SEED:-69}"
 COMPARISON_MODE="${COMPARISON_MODE:-accounting}"
+ENABLE_QUEUE_ALIGNED_DIAGNOSTIC="${ENABLE_QUEUE_ALIGNED_DIAGNOSTIC:-1}"
 
 JOB_ID=${SLURM_JOB_ID:-$$}
 if [[ "$COMPARISON_MODE" == "cross_term" ]]; then
@@ -269,10 +270,21 @@ run_case() {
   local server_log=$case_dir/vllm.log
   local driver_log=$case_dir/driver.log
   local result_json=$case_dir/result.json
+  local queue_aligned_log=$case_dir/queue_aligned_ttft.jsonl
 
   mkdir -p "$case_dir"
   : > "$wait_log"
   write_instances_config "$instances_config" "$snapshot_name"
+
+  local -a diagnostic_env=()
+  if [[
+    "$ENABLE_QUEUE_ALIGNED_DIAGNOSTIC" == "1"
+    && "$runtime_root" == "$NEW_RUNTIME_ROOT"
+  ]]; then
+    diagnostic_env=(
+      VLLM_QUEUE_ALIGNED_TTFT_DIAGNOSTIC_PATH="$queue_aligned_log"
+    )
+  fi
 
   local timing_feature_args
   if [[ "$feature_set" == "cross_term" ]]; then
@@ -293,6 +305,7 @@ run_case() {
   setsid env \
     PYTHONPATH="$runtime_root:$router_root/src" \
     VLLM_PER_REQUEST_WAIT_LOG_PATH="$wait_log" \
+    "${diagnostic_env[@]}" \
     vllm serve \
       --disable-uvicorn-access-log \
       --model "$MODEL_DST" \
@@ -451,6 +464,39 @@ def read_estimate_timestamps(path):
     return values
 
 
+def read_queue_aligned_diagnostics(path):
+    predictions = {}
+    build_latencies = []
+    wall_times = []
+    errors = []
+    if not path.exists():
+        return predictions, build_latencies, wall_times, errors
+    with path.open("r", encoding="utf-8", errors="ignore") as src:
+        for line in src:
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(record, dict):
+                continue
+            request_id = record.get("request_id")
+            if not isinstance(request_id, str):
+                continue
+            if record.get("status") != "ok":
+                errors.append(record)
+                continue
+            prediction = record.get("estimated_ttft_ms")
+            if isinstance(prediction, (int, float)):
+                predictions[request_id] = float(prediction)
+            build_latency = record.get("snapshot_build_latency_ms")
+            if isinstance(build_latency, (int, float)):
+                build_latencies.append(float(build_latency))
+            wall_time = record.get("diagnostic_wall_time_ms")
+            if isinstance(wall_time, (int, float)):
+                wall_times.append(float(wall_time))
+    return predictions, build_latencies, wall_times, errors
+
+
 def fit_metrics(pairs):
     actual = [value for value, _ in pairs]
     predicted = [value for _, value in pairs]
@@ -481,11 +527,19 @@ def load(path, log_path):
     items = run["per_request"]
     engine_latencies = read_engine_latencies(log_path)
     estimate_timestamps = read_estimate_timestamps(Path(run["request_log_path"]))
+    queue_aligned_path = path.parent / "queue_aligned_ttft.jsonl"
+    (
+        queue_aligned_predictions,
+        queue_aligned_build_latencies,
+        queue_aligned_wall_times,
+        queue_aligned_errors,
+    ) = read_queue_aligned_diagnostics(queue_aligned_path)
     pairs_by_target = {
         "engine_core_queued_to_first_token_ms": [],
         "engine_first_token_from_estimate_ms": [],
         "vllm_frontend_first_token_latency_ms": [],
     }
+    queue_aligned_pairs = []
     admission_gaps = []
     core_component_differences = []
 
@@ -504,6 +558,11 @@ def load(path, log_path):
             pairs_by_target["engine_core_queued_to_first_token_ms"].append(
                 (core_ms, float(predicted))
             )
+            queue_aligned_prediction = queue_aligned_predictions.get(response_id)
+            if queue_aligned_prediction is not None:
+                queue_aligned_pairs.append(
+                    (core_ms, queue_aligned_prediction)
+                )
             queue_ms = observed.get("queue_ms")
             prefill_ms = observed.get("prefill_ms")
             if isinstance(queue_ms, float) and isinstance(prefill_ms, float):
@@ -541,11 +600,35 @@ def load(path, log_path):
         "(first_token_ts_s - queued_ts_s) * 1000 "
         "- (queue_ms + prefill_s * 1000)"
     )
-    return {
+    result = {
         "metrics_by_target": metrics_by_target,
         "admission_gap_ms": value_summary(admission_gaps),
         "core_timestamp_component_consistency_ms": consistency,
-    }, primary_pairs
+    }
+    if queue_aligned_predictions:
+        if len(queue_aligned_pairs) < len(items) * 0.9:
+            raise RuntimeError(
+                "Only matched "
+                f"{len(queue_aligned_pairs)} of {len(items)} queue-aligned "
+                f"diagnostic predictions in {queue_aligned_path}"
+            )
+        result["queue_aligned_diagnostic"] = {
+            "actual_metric_name": "engine_core_queued_to_first_token_ms",
+            "prediction_definition": (
+                "native simulation from scheduler state immediately before "
+                "EngineCore admission"
+            ),
+            "metrics": fit_metrics(queue_aligned_pairs),
+            "snapshot_build_latency_ms": value_summary(
+                queue_aligned_build_latencies
+            ),
+            "diagnostic_wall_time_ms": value_summary(
+                queue_aligned_wall_times
+            ),
+            "error_count": len(queue_aligned_errors),
+            "path": str(queue_aligned_path),
+        }
+    return result, primary_pairs
 
 
 def segment_metrics(pairs):
