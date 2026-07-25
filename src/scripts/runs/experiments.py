@@ -35,6 +35,7 @@ from sfs_core.routing.wait_time_scheduler import (
     WaitTimeResult,
     WaitTimeScheduler,
 )
+from sfs_core.routing.pending_dispatch_ledger import PendingDispatch
 from vllm.v1.engine.scheduler_simulator import SimulationStopMode
 
 from sfs_core.shared.shared_experiment_helpers import (
@@ -127,6 +128,7 @@ DEFAULT_MMPP2_HIGH_FRACTION = 0.20
 DEFAULT_MMPP2_CORRELATION_TIME_S = 2.0
 QUEUE_PATTERN = re.compile(r"queue_ms=([0-9.+-eE]+)")
 REQUEST_ID_PATTERN = re.compile(r"request_id=([^\s]+)")
+TTFT_PATTERN = re.compile(r"ttft_s=([0-9.+-eE]+)")
 PREFILL_PATTERN = re.compile(r"prefill_s=([0-9.+-eE]+)")
 INFERENCE_PATTERN = re.compile(r"inference_s=([0-9.+-eE]+)")
 LOGGER = logging.getLogger(__name__)
@@ -225,6 +227,7 @@ class ExperimentRequest:
 @dataclass(slots=True)
 class RequestLatencyComponents:
     queue_ms: Optional[float] = None
+    ttft_ms: Optional[float] = None
     prefill_ms: Optional[float] = None
 
 
@@ -912,6 +915,9 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
         prompt_tokens: int,
         accuracy_scores: Dict[str, float],
         output_lengths: Dict[str, float],
+        pending_dispatches_by_instance: Optional[
+            Dict[str, tuple[PendingDispatch, ...]]
+        ] = None,
     ) -> tuple[
         Dict[str, WaitTimeResult],
         Dict[str, WaitTimeResult],
@@ -948,6 +954,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                 parent_collect_wait_times(
                     prompt_tokens=fetch_args[0],
                     stop_mode=fetch_args[1],
+                    pending_dispatches_by_instance=(pending_dispatches_by_instance),
                 )
             )
             for fetch_key, fetch_args in fetch_specs.items()
@@ -955,6 +962,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
         fetched_wait_results: Dict[str, Dict[str, WaitTimeResult]] = {}
         for fetch_key, task in fetch_tasks.items():
             fetched_wait_results[fetch_key] = await task
+            self._reconcile_observed_dispatches(fetched_wait_results[fetch_key])
 
         if self._include_unconditional_live_fetch:
             live_wait_results = fetched_wait_results.get(live_fetch_key, {})
@@ -1250,10 +1258,14 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
 
     async def _dispatch(self, queued) -> None:
         completion_future = queued.payload.pop("_completion_future", None)
-        system_entry_perf = float(queued.payload.pop("_system_entry_perf", time.perf_counter()))
+        system_entry_perf = float(
+            queued.payload.pop("_system_entry_perf", time.perf_counter())
+        )
         started_perf = float(queued.payload.pop("_started_perf", time.perf_counter()))
         request_slo_ms = float(queued.payload.pop("_request_slo_ms", 0.0))
-        request_bucket = _normalize_bucket_name(queued.payload.pop("_request_bucket", "unknown"))
+        request_bucket = _normalize_bucket_name(
+            queued.payload.pop("_request_bucket", "unknown")
+        )
         target_id: str | None = None
         dispatch_perf: Optional[float] = None
         shortest_queue_routing: Optional[Dict[str, Any]] = None
@@ -1268,7 +1280,9 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                     queued.request_id,
                 )
                 prompt_tokens = (
-                    self._get_prompt_tokens(queued.payload, prompt_text) if prompt_text else 0
+                    self._get_prompt_tokens(queued.payload, prompt_text)
+                    if prompt_text
+                    else 0
                 )
             completion_cap = self._extract_completion_cap(queued.payload)
             accuracy_scores, output_lengths = await self._predict_model_scores(
@@ -1276,51 +1290,86 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                 prompt_tokens=prompt_tokens,
                 completion_cap=completion_cap,
             )
-            if self._skip_wait_result_build:
-                wait_results = self._build_zero_wait_results(
-                    reason="latency_agnostic_fast_path",
-                )
-                live_wait_results = wait_results
-                estimator_wait_results = (
-                    {self._wait_estimator_name: wait_results}
-                    if self._wait_estimators
-                    else {}
-                )
-            else:
-                wait_results, live_wait_results, estimator_wait_results = await self._build_wait_results_for_request(
-                    queued_payload=queued.payload,
-                    request_id=queued.request_id,
-                    prompt_tokens=prompt_tokens,
-                    accuracy_scores=accuracy_scores,
-                    output_lengths=output_lengths,
-                )
-
-            self._utility_state.current_slo_ms = request_slo_ms
-            try:
-                if self._route_strategy == "round_robin":
-                    target_id = self._select_round_robin_instance()
-                elif self._route_strategy == "shortest_queue":
-                    target_id, shortest_queue_routing = self._select_shortest_queue_instance(
-                        wait_results=live_wait_results or wait_results,
+            engine_request_id = self._attach_engine_request_id(
+                queued.payload,
+                queued.request_id,
+            )
+            async with self._routing_state_lock:
+                if self._skip_wait_result_build:
+                    wait_results = self._build_zero_wait_results(
+                        reason="latency_agnostic_fast_path",
                     )
-                elif self._route_strategy == "instance_affinity":
-                    target_id, affinity_routing = self._select_instance_affinity(
-                        request_bucket=request_bucket,
-                        accuracy_scores=accuracy_scores,
+                    live_wait_results = wait_results
+                    estimator_wait_results = (
+                        {self._wait_estimator_name: wait_results}
+                        if self._wait_estimators
+                        else {}
                     )
                 else:
-                    target_id = self._select_instance(
+                    (
                         wait_results,
-                        accuracy_scores,
-                        output_lengths,
-                        prompt_tokens,
+                        live_wait_results,
+                        estimator_wait_results,
+                    ) = await self._build_wait_results_for_request(
+                        queued_payload=queued.payload,
+                        request_id=queued.request_id,
+                        prompt_tokens=prompt_tokens,
+                        accuracy_scores=accuracy_scores,
+                        output_lengths=output_lengths,
+                        pending_dispatches_by_instance=(
+                            self._pending_dispatches_by_instance()
+                        ),
                     )
-            finally:
-                self._utility_state.current_slo_ms = None
+
+                self._utility_state.current_slo_ms = request_slo_ms
+                try:
+                    if self._route_strategy == "round_robin":
+                        target_id = self._select_round_robin_instance()
+                    elif self._route_strategy == "shortest_queue":
+                        (
+                            target_id,
+                            shortest_queue_routing,
+                        ) = self._select_shortest_queue_instance(
+                            wait_results=live_wait_results or wait_results,
+                        )
+                    elif self._route_strategy == "instance_affinity":
+                        (
+                            target_id,
+                            affinity_routing,
+                        ) = self._select_instance_affinity(
+                            request_bucket=request_bucket,
+                            accuracy_scores=accuracy_scores,
+                        )
+                    else:
+                        target_id = self._select_instance(
+                            wait_results,
+                            accuracy_scores,
+                            output_lengths,
+                            prompt_tokens,
+                        )
+                finally:
+                    self._utility_state.current_slo_ms = None
+                self._reserve_pending_dispatch(
+                    instance_id=target_id,
+                    engine_request_id=engine_request_id,
+                    prompt_tokens=prompt_tokens,
+                    predicted_output_tokens=output_lengths.get(
+                        target_id,
+                        1.0,
+                    ),
+                    completion_cap=completion_cap,
+                )
 
             target = self._instances[target_id]
             dispatch_perf = time.perf_counter()
             submit_task = asyncio.create_task(target.submit_request(**queued.payload))
+            submit_task.add_done_callback(
+                partial(
+                    self._release_pending_dispatch_on_done,
+                    instance_id=target_id,
+                    engine_request_id=engine_request_id,
+                )
+            )
             self._submit_tasks.add(submit_task)
             submit_task.add_done_callback(self._submit_tasks.discard)
             if self._response_map_path:
@@ -1341,16 +1390,18 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                 target_id
             ) or target.last_wait_for_mode(
                 prompt_tokens=prompt_tokens if prompt_tokens > 0 else None,
-                stop_mode=SimulationStopMode.PREFILL_DONE
-                if prompt_tokens > 0
-                else None,
+                stop_mode=(
+                    SimulationStopMode.PREFILL_DONE if prompt_tokens > 0 else None
+                ),
             )
 
             estimator_waits_ms: Dict[str, float] = {}
             for estimator_name, estimator_results in estimator_wait_results.items():
                 estimator_record = estimator_results.get(target_id)
                 if estimator_record is None:
-                    estimator_record = live_wait_results.get(target_id) or target.last_wait
+                    estimator_record = (
+                        live_wait_results.get(target_id) or target.last_wait
+                    )
                 if estimator_record is not None:
                     estimator_waits_ms[estimator_name] = float(estimator_record.wait_ms)
 
@@ -1384,7 +1435,9 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                             else None
                         ),
                         "predicted_output_tokens": (
-                            float(selected_output) if selected_output is not None else None
+                            float(selected_output)
+                            if selected_output is not None
+                            else None
                         ),
                         "request_bucket": request_bucket,
                         "prompt_tokens": int(prompt_tokens),
@@ -1397,7 +1450,9 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                     if isinstance(shortest_queue_routing, dict):
                         payload["shortest_queue_routing"] = dict(shortest_queue_routing)
                         payload["selected_effective_num_requests"] = (
-                            shortest_queue_routing.get("selected_effective_num_requests")
+                            shortest_queue_routing.get(
+                                "selected_effective_num_requests"
+                            )
                         )
                         payload["selected_num_requests_source"] = (
                             shortest_queue_routing.get("selected_num_requests_source")
@@ -1428,14 +1483,18 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                                 payload["response_model"] = response.get("model")
                             else:
                                 payload["response_id"] = getattr(response, "id", None)
-                                payload["response_model"] = getattr(response, "model", None)
+                                payload["response_model"] = getattr(
+                                    response, "model", None
+                                )
 
                     payload_response_id = payload.get("response_id")
                     for pk_tracker_cb in self._iter_pk_trackers():
                         pk_tracker_cb.note_response(
-                            str(payload_response_id)
-                            if isinstance(payload_response_id, str)
-                            else None,
+                            (
+                                str(payload_response_id)
+                                if isinstance(payload_response_id, str)
+                                else None
+                            ),
                             str(target_id) if target_id is not None else "",
                         )
                     if not completion_future.done():
@@ -2912,6 +2971,19 @@ def _read_latency_components_from_logs(
                             queue_match.group(1),
                         )
 
+                ttft_match = TTFT_PATTERN.search(line)
+                if ttft_match is not None:
+                    try:
+                        components.ttft_ms = float(ttft_match.group(1)) * 1000.0
+                    except ValueError:
+                        LOGGER.warning(
+                            "Skipping queue-log line with non-numeric ttft_s; "
+                            "path=%s request_id=%s raw_ttft_s=%r",
+                            path,
+                            request_id,
+                            ttft_match.group(1),
+                        )
+
                 prefill_match = PREFILL_PATTERN.search(line)
                 if prefill_match is not None:
                     try:
@@ -2941,8 +3013,12 @@ def _build_actual_wait_maps_from_logs(
         if component.queue_ms is not None:
             queue_val = float(component.queue_ms)
             queue_map[request_id] = queue_val
-            if component.prefill_ms is not None:
-                ttft_map[request_id] = float(queue_val + float(component.prefill_ms))
+        if component.ttft_ms is not None:
+            ttft_map[request_id] = float(component.ttft_ms)
+        elif component.queue_ms is not None and component.prefill_ms is not None:
+            ttft_map[request_id] = float(
+                float(component.queue_ms) + float(component.prefill_ms)
+            )
     return queue_map, ttft_map
 
 
@@ -3524,9 +3600,14 @@ async def run_policy(
             else None
         )
         ttft_ms = (
-            float(queue_delay_ms + prefill_ms)
-            if queue_delay_ms is not None and prefill_ms is not None
-            else None
+            float(latency_components.ttft_ms)
+            if latency_components is not None
+            and latency_components.ttft_ms is not None
+            else (
+                float(queue_delay_ms + prefill_ms)
+                if queue_delay_ms is not None and prefill_ms is not None
+                else None
+            )
         )
 
         system_entry_perf = _as_nonnegative_float(item.get("system_entry_perf"))
@@ -3547,17 +3628,13 @@ async def run_policy(
             else None
         )
         e2e_ttft_ms = (
-            float(arrival_to_dispatch_ms + queue_delay_ms + prefill_ms)
-            if arrival_to_dispatch_ms is not None
-            and queue_delay_ms is not None
-            and prefill_ms is not None
+            float(arrival_to_dispatch_ms + ttft_ms)
+            if arrival_to_dispatch_ms is not None and ttft_ms is not None
             else None
         )
         system_entry_e2e_ttft_ms = (
-            float(system_entry_to_dispatch_ms + queue_delay_ms + prefill_ms)
-            if system_entry_to_dispatch_ms is not None
-            and queue_delay_ms is not None
-            and prefill_ms is not None
+            float(system_entry_to_dispatch_ms + ttft_ms)
+            if system_entry_to_dispatch_ms is not None and ttft_ms is not None
             else None
         )
 

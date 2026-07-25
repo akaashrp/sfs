@@ -6,6 +6,7 @@ import time
 import pytest
 
 from sfs_core.routing.snapshot_shm_client import SnapshotShmClient
+from sfs_core.routing.pending_dispatch_ledger import PendingDispatch
 from vllm.v1.core.sched.snapshot_serialization import (
     encode_scheduler_state_snapshot,
 )
@@ -157,6 +158,72 @@ def test_snapshot_shm_client_snapshot_only_uses_parsed_summary():
         assert report["num_requests"] == 1
         assert report["metadata"]["simulation_mode"] == "snapshot_only"
         assert report["metadata"]["prefill_backlog_total_tokens"] == 32.0
+    finally:
+        client.close()
+        publisher.close()
+
+
+def test_snapshot_shm_client_forwards_pending_and_reconciles_observed_ids():
+    snapshot = _build_snapshot(version=53, created_at=53.0)
+    visible_id = snapshot.waiting_request_ids[0]
+    publisher = SnapshotShmPublisher(
+        name=_publisher_name(),
+        size_bytes=1024 * 1024,
+        simulation_intercept=1.0,
+        simulation_prefill_coeff=0.1,
+        simulation_prefill_sq_coeff=0.0,
+        simulation_decode_coeff=0.2,
+        simulation_sum_coeff=0.0,
+        simulation_sum_sq_coeff=0.0,
+    )
+    client = SnapshotShmClient(
+        shm_name=publisher.name,
+        shm_size_bytes=publisher.size_bytes,
+    )
+    pending = (
+        PendingDispatch(visible_id, 32, 16.0, 64),
+        PendingDispatch("chatcmpl-pending", 32, 16.0, 64),
+    )
+    try:
+        assert publisher.publish(snapshot, encode_scheduler_state_snapshot(snapshot))
+        estimate = client.estimate(
+            prompt_tokens=32,
+            pending_dispatches=pending,
+        )
+        report = estimate.payload["reports"][0]
+
+        assert estimate.observed_pending_request_ids == (visible_id,)
+        assert report["num_requests"] == 2
+    finally:
+        client.close()
+        publisher.close()
+
+
+def test_snapshot_shm_client_never_returns_older_than_sampled_header():
+    first = _build_snapshot(version=54, created_at=54.0)
+    second = _build_snapshot(version=55, created_at=55.0)
+    publisher = SnapshotShmPublisher(
+        name=_publisher_name(),
+        size_bytes=1024 * 1024,
+        simulation_intercept=1.0,
+        simulation_prefill_coeff=0.1,
+        simulation_prefill_sq_coeff=0.0,
+        simulation_decode_coeff=0.2,
+        simulation_sum_coeff=0.0,
+        simulation_sum_sq_coeff=0.0,
+    )
+    client = SnapshotShmClient(
+        shm_name=publisher.name,
+        shm_size_bytes=publisher.size_bytes,
+    )
+    try:
+        assert publisher.publish(first, encode_scheduler_state_snapshot(first))
+        assert _eventually_estimate(client, prompt_tokens=32)
+        assert publisher.publish(second, encode_scheduler_state_snapshot(second))
+
+        estimate = client.estimate(prompt_tokens=32)
+
+        assert estimate.payload["reports"][0]["snapshot_version"] >= 55
     finally:
         client.close()
         publisher.close()

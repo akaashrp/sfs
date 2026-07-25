@@ -27,6 +27,7 @@ from transformers import AutoTokenizer
 import sys
 
 from .snapshot_shm_client import SnapshotShmClient
+from .pending_dispatch_ledger import PendingDispatch, PendingDispatchLedger
 
 LOGGER = logging.getLogger(__name__)
 
@@ -54,6 +55,10 @@ class WaitTimeResult:
     wait_ms: float
     fetched_at_s: float
     raw_payload: Dict[str, Any] = field(default_factory=dict)
+    observed_pending_request_ids: tuple[str, ...] = field(
+        default=(),
+        repr=False,
+    )
 
 
 UtilityCallable = Callable[
@@ -116,9 +121,7 @@ class InstanceClient:
             if snapshot_shm_name
             else None
         )
-        self._wait_time_http_fallback_enabled = bool(
-            wait_time_http_fallback_enabled
-        )
+        self._wait_time_http_fallback_enabled = bool(wait_time_http_fallback_enabled)
 
     async def refresh_wait_time(
         self,
@@ -126,6 +129,7 @@ class InstanceClient:
         prompt_tokens: Optional[int] = None,
         critical_wait_time_timeout_s: Optional[float] = None,
         stop_mode: Optional[SimulationStopMode | str] = None,
+        pending_dispatches: tuple[PendingDispatch, ...] = (),
     ) -> Optional[WaitTimeResult]:
         """Fetch latest wait time from the instance and cache it."""
         cache_key = self._wait_cache_key(
@@ -140,33 +144,16 @@ class InstanceClient:
 
         result: Optional[WaitTimeResult] = None
         if self._snapshot_client is not None:
-            try:
-                result = await asyncio.wait_for(
-                    asyncio.to_thread(
-                        self._fetch_local_wait,
-                        prompt_tokens=prompt_tokens,
-                        stop_mode=stop_mode,
-                    ),
-                    timeout=prompt_timeout,
-                )
-            except asyncio.TimeoutError:
-                LOGGER.debug(
-                    "Local SHM wait estimate timed out for %s; using cached value",
-                    self.instance_id,
-                )
-            except Exception as exc:
-                LOGGER.warning(
-                    "Failed local SHM wait estimate for %s: %s",
-                    self.instance_id,
-                    exc,
-                )
-
-        if (
-            result is None
-            and (
-                self._snapshot_client is None
-                or self._wait_time_http_fallback_enabled
+            result = await asyncio.to_thread(
+                self._fetch_local_wait,
+                prompt_tokens=prompt_tokens,
+                stop_mode=stop_mode,
+                pending_dispatches=pending_dispatches,
+                catchup_timeout_s=prompt_timeout,
             )
+
+        if result is None and (
+            self._snapshot_client is None or self._wait_time_http_fallback_enabled
         ):
             result = await asyncio.to_thread(
                 self._fetch_http_wait,
@@ -178,6 +165,13 @@ class InstanceClient:
         if result:
             self._last_wait = result
             self._last_wait_by_mode[cache_key] = result
+        if self._snapshot_client is not None:
+            if result is None:
+                raise WaitTimeNotReadyError(
+                    f"Local SHM wait estimate is unavailable for "
+                    f"{self.instance_id}"
+                )
+            return result
         return self._last_wait_by_mode.get(cache_key) or self._last_wait
 
     @property
@@ -220,12 +214,17 @@ class InstanceClient:
         )
         return resolved.value
 
-    def _build_wait_result(self, payload: Dict[str, Any]) -> Optional[WaitTimeResult]:
+    def _build_wait_result(
+        self,
+        payload: Dict[str, Any],
+        *,
+        observed_pending_request_ids: tuple[str, ...] = (),
+    ) -> Optional[WaitTimeResult]:
         try:
             wait_ms = self._parse_wait_ms(payload)
         except WaitTimeNotReadyError:
             LOGGER.debug(
-                "Wait time metadata not ready for %s; using cached value",
+                "Wait time metadata not ready for %s",
                 self.instance_id,
             )
             return None
@@ -247,6 +246,7 @@ class InstanceClient:
             wait_ms=wait_ms,
             fetched_at_s=time.time(),
             raw_payload=payload,
+            observed_pending_request_ids=observed_pending_request_ids,
         )
 
     def _fetch_local_wait(
@@ -254,14 +254,21 @@ class InstanceClient:
         *,
         prompt_tokens: Optional[int],
         stop_mode: Optional[SimulationStopMode | str],
+        pending_dispatches: tuple[PendingDispatch, ...],
+        catchup_timeout_s: float,
     ) -> Optional[WaitTimeResult]:
         if self._snapshot_client is None:
             return None
         estimate = self._snapshot_client.estimate(
             prompt_tokens=prompt_tokens,
             stop_mode=stop_mode,
+            pending_dispatches=pending_dispatches,
+            catchup_timeout_s=catchup_timeout_s,
         )
-        return self._build_wait_result(estimate.payload)
+        return self._build_wait_result(
+            estimate.payload,
+            observed_pending_request_ids=(estimate.observed_pending_request_ids),
+        )
 
     def _fetch_http_wait(
         self,
@@ -421,6 +428,8 @@ class WaitTimeScheduler:
         self._enable_wait_time_polling = bool(enable_wait_time_polling)
         self._critical_wait_time_timeout_s = float(critical_wait_time_timeout_s)
         self._route_rng = random.Random(route_random_seed)
+        self._routing_state_lock = asyncio.Lock()
+        self._pending_dispatch_ledger = PendingDispatchLedger(tuple(instances.keys()))
 
     async def start(self) -> None:
         """Start background workers if they are not already running."""
@@ -510,7 +519,9 @@ class WaitTimeScheduler:
             try:
                 await self._dispatch(queued)
             except Exception as exc:
-                LOGGER.warning("Failed to dispatch request %s: %s", queued.request_id, exc)
+                LOGGER.warning(
+                    "Failed to dispatch request %s: %s", queued.request_id, exc
+                )
                 if not queued.result_future.done():
                     queued.result_future.set_exception(exc)
             finally:
@@ -526,32 +537,43 @@ class WaitTimeScheduler:
             )
             prompt_tokens = self._get_prompt_tokens(queued.payload, prompt_text)
         completion_cap = self._extract_completion_cap(queued.payload)
-        wait_results = await self._collect_wait_times(
-            prompt_tokens=prompt_tokens if prompt_tokens > 0 else None,
-        )
-        # wait_results = {"vllm-0": WaitTimeResult(
-        #     instance_id="vllm-0",
-        #     wait_ms=0.0,
-        #     fetched_at_s=time.time(),
-        #     raw_payload={},
-        # )}
         accuracy_scores, output_lengths = await self._predict_model_scores(
             prompt_text=prompt_text,
             prompt_tokens=prompt_tokens,
             completion_cap=completion_cap,
         )
-        target_id = self._select_instance(
-            wait_results, accuracy_scores, output_lengths, prompt_tokens
+        engine_request_id = self._attach_engine_request_id(
+            queued.payload,
+            queued.request_id,
         )
+        async with self._routing_state_lock:
+            wait_results = await self._collect_wait_times(
+                prompt_tokens=prompt_tokens if prompt_tokens > 0 else None,
+                pending_dispatches_by_instance=(self._pending_dispatches_by_instance()),
+            )
+            self._reconcile_observed_dispatches(wait_results)
+            target_id = self._select_instance(
+                wait_results, accuracy_scores, output_lengths, prompt_tokens
+            )
+            self._reserve_pending_dispatch(
+                instance_id=target_id,
+                engine_request_id=engine_request_id,
+                prompt_tokens=prompt_tokens,
+                predicted_output_tokens=output_lengths.get(target_id, 1.0),
+                completion_cap=completion_cap,
+            )
         target = self._instances[target_id]
         wait_record = wait_results.get(target_id) or target.last_wait_for_mode(
             prompt_tokens=prompt_tokens if prompt_tokens > 0 else None,
         )
-        if wait_record:
-            self._request_log[queued.request_id] = wait_record
-            await self._log_to_file(queued.request_id, wait_record)
-
         submit_task = asyncio.create_task(target.submit_request(**queued.payload))
+        submit_task.add_done_callback(
+            partial(
+                self._release_pending_dispatch_on_done,
+                instance_id=target_id,
+                engine_request_id=engine_request_id,
+            )
+        )
         self._submit_tasks.add(submit_task)
         submit_task.add_done_callback(self._submit_tasks.discard)
         if self._response_map_path:
@@ -562,6 +584,9 @@ class WaitTimeScheduler:
                     instance_id=target_id,
                 )
             )
+        if wait_record:
+            self._request_log[queued.request_id] = wait_record
+            await self._log_to_file(queued.request_id, wait_record)
 
         result = RoutedRequest(
             request_id=queued.request_id,
@@ -576,6 +601,9 @@ class WaitTimeScheduler:
         self,
         prompt_tokens: Optional[int] = None,
         stop_mode: Optional[SimulationStopMode | str] = None,
+        pending_dispatches_by_instance: Optional[
+            Dict[str, tuple[PendingDispatch, ...]]
+        ] = None,
     ) -> Dict[str, WaitTimeResult]:
         if not self._enable_wait_time_polling:
             now_s = time.time()
@@ -597,6 +625,9 @@ class WaitTimeScheduler:
                     prompt_tokens=prompt_tokens,
                     critical_wait_time_timeout_s=self._critical_wait_time_timeout_s,
                     stop_mode=stop_mode,
+                    pending_dispatches=(pending_dispatches_by_instance or {}).get(
+                        instance_id, ()
+                    ),
                 )
             )
             for instance_id, instance in self._instances.items()
@@ -607,6 +638,102 @@ class WaitTimeScheduler:
             if result:
                 results[instance_id] = result
         return results
+
+    def _pending_dispatches_by_instance(
+        self,
+    ) -> Dict[str, tuple[PendingDispatch, ...]]:
+        return {
+            instance_id: self._pending_dispatch_ledger.unobserved_for_instance(
+                instance_id
+            )
+            for instance_id in self._instances
+        }
+
+    def _reconcile_observed_dispatches(
+        self,
+        wait_results: Dict[str, WaitTimeResult],
+    ) -> None:
+        for instance_id, wait_result in wait_results.items():
+            self._pending_dispatch_ledger.mark_observed(
+                instance_id,
+                wait_result.observed_pending_request_ids,
+            )
+
+    def _reserve_pending_dispatch(
+        self,
+        *,
+        instance_id: str,
+        engine_request_id: str,
+        prompt_tokens: int,
+        predicted_output_tokens: float,
+        completion_cap: Optional[float],
+    ) -> None:
+        resolved_cap = (
+            max(1, int(math.ceil(completion_cap)))
+            if completion_cap is not None
+            else 2**31 - 1
+        )
+        self._pending_dispatch_ledger.reserve(
+            instance_id,
+            PendingDispatch(
+                engine_request_id=engine_request_id,
+                prompt_tokens=max(0, int(prompt_tokens)),
+                predicted_output_tokens=max(
+                    1.0,
+                    float(predicted_output_tokens),
+                ),
+                completion_cap=resolved_cap,
+            ),
+        )
+
+    def _release_pending_dispatch_on_done(
+        self,
+        _task: asyncio.Task,
+        *,
+        instance_id: str,
+        engine_request_id: str,
+    ) -> None:
+        asyncio.create_task(
+            self._release_pending_dispatch(
+                instance_id,
+                engine_request_id,
+            )
+        )
+
+    async def _release_pending_dispatch(
+        self,
+        instance_id: str,
+        engine_request_id: str,
+    ) -> None:
+        async with self._routing_state_lock:
+            self._pending_dispatch_ledger.release(
+                instance_id,
+                engine_request_id,
+            )
+
+    @staticmethod
+    def _attach_engine_request_id(
+        payload: Dict[str, Any],
+        router_request_id: str,
+    ) -> str:
+        raw_extra_body = payload.get("extra_body")
+        if raw_extra_body is None:
+            extra_body: Dict[str, Any] = {}
+        elif isinstance(raw_extra_body, dict):
+            extra_body = dict(raw_extra_body)
+        else:
+            raise TypeError("extra_body must be a mapping")
+        existing_request_id = extra_body.get("request_id")
+        if (
+            existing_request_id is not None
+            and str(existing_request_id) != router_request_id
+        ):
+            raise ValueError("extra_body.request_id conflicts with router request ID")
+        extra_body["request_id"] = router_request_id
+        payload["extra_body"] = extra_body
+        if "messages" in payload:
+            return f"chatcmpl-{router_request_id}"
+        return f"cmpl-{router_request_id}-0"
 
     def _select_instance(
         self,
@@ -623,9 +750,8 @@ class WaitTimeScheduler:
         output_lengths = output_lengths or {}
         prompt_tokens = prompt_tokens or 0
 
-        if (
-            self._utility_fn is None
-            and (not accuracy_scores or not output_lengths or prompt_tokens <= 0)
+        if self._utility_fn is None and (
+            not accuracy_scores or not output_lengths or prompt_tokens <= 0
         ):
             return min(wait_results, key=lambda k: wait_results[k].wait_ms)
 
@@ -893,7 +1019,7 @@ class WaitTimeScheduler:
                 payload.get("messages"),
                 tokenize=True,
                 add_generation_prompt=True,
-                chat_template_kwargs={"enable_thinking": False},
+                enable_thinking=False,
             )
             return len(prompt_token_ids)
         return len(prompt_text.split())

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from multiprocessing import shared_memory
 from typing import Any, Dict, Optional
 
+from .pending_dispatch_ledger import PendingDispatch
 from vllm.v1.engine.scheduler_simulator import SimulationStopMode
 from vllm.v1.engine.snapshot_shm import (
     SnapshotShmHeader,
@@ -16,10 +17,12 @@ from vllm.v1.engine.snapshot_shm import (
 
 from vllm.v1.engine import _scheduler_sim as _scheduler_sim_native
 
+
 @dataclass(slots=True)
 class SnapshotEstimate:
     wait_ms: float
     payload: Dict[str, Any]
+    observed_pending_request_ids: tuple[str, ...] = ()
 
 
 class SnapshotShmClient:
@@ -59,10 +62,17 @@ class SnapshotShmClient:
         *,
         prompt_tokens: Optional[int],
         stop_mode: Optional[SimulationStopMode | str] = None,
+        pending_dispatches: tuple[PendingDispatch, ...] = (),
+        catchup_timeout_s: float = 2.0,
     ) -> SnapshotEstimate:
         with self._lock:
             header = self._read_latest_header()
             self._ensure_worker(header)
+            minimum_snapshot_version = int(header.snapshot_version)
+            timeout_ms = max(1, int(float(catchup_timeout_s) * 1000.0))
+            native_pending = tuple(
+                reservation.as_native_tuple() for reservation in pending_dispatches
+            )
 
             num_requests = 0
             build_latency_ms = float(header.build_latency_ms)
@@ -78,6 +88,7 @@ class SnapshotShmClient:
             simulation_latency_ms = 0.0
             simulation_mode = "snapshot_only"
             wait_ms = 0.0
+            observed_pending_request_ids: tuple[str, ...] = ()
 
             if prompt_tokens is not None:
                 resolved_stop_mode = SimulationStopMode.from_value(
@@ -87,6 +98,9 @@ class SnapshotShmClient:
                 summary = self._worker.run_simulation_on_latest_snapshot(
                     int(prompt_tokens),
                     resolved_stop_mode.value,
+                    native_pending,
+                    minimum_snapshot_version,
+                    timeout_ms,
                 )
                 if summary is None:
                     raise RuntimeError(
@@ -100,12 +114,18 @@ class SnapshotShmClient:
                     _parsed_build_latency_ms,
                     simulation_latency_ms,
                     native_metadata,
+                    observed_ids,
                 ) = summary
                 metadata.update(dict(native_metadata))
+                observed_pending_request_ids = tuple(observed_ids)
                 simulation_mode = f"critical_path_{resolved_stop_mode.value}"
                 wait_ms = float(metadata.get("estimated_wait_ms", 0.0))
             else:
-                summary = self._worker.latest_parsed_snapshot_summary()
+                summary = self._worker.snapshot_summary_on_latest_snapshot(
+                    native_pending,
+                    minimum_snapshot_version,
+                    timeout_ms,
+                )
                 if summary is None:
                     raise RuntimeError(
                         "Local scheduler simulation has no parsed snapshot yet."
@@ -115,7 +135,11 @@ class SnapshotShmClient:
                     snapshot_timestamp,
                     num_requests,
                     _parsed_build_latency_ms,
+                    observed_ids,
                 ) = summary
+                observed_pending_request_ids = tuple(observed_ids)
+
+            build_latency_ms = float(_parsed_build_latency_ms)
 
             metadata["simulation_mode"] = simulation_mode
             report = {
@@ -129,7 +153,11 @@ class SnapshotShmClient:
                 "snapshot_build_latency_ms": float(build_latency_ms),
                 "simulation_latency_ms": float(simulation_latency_ms),
             }
-            return SnapshotEstimate(wait_ms=float(wait_ms), payload={"reports": [report]})
+            return SnapshotEstimate(
+                wait_ms=float(wait_ms),
+                payload={"reports": [report]},
+                observed_pending_request_ids=observed_pending_request_ids,
+            )
 
     def _ensure_shm(self) -> shared_memory.SharedMemory:
         if self._shm is None:
