@@ -9,22 +9,39 @@ from scripts.eval.fit_readiness_delay import (
 
 
 def _samples(run_name: str, offset_ms: float):
-    return [
-        ReadinessSample(
-            run_name=run_name,
-            request_id=f"{run_name}-{index}",
-            prompt_tokens=prompt_tokens,
-            pending_dispatch_count=pending_count,
-            delay_ms=(
-                offset_ms
-                + 0.01 * prompt_tokens
-                + 4.0 * pending_count
-            ),
+    samples = []
+    prior_ready = []
+    rows = (
+        (0.000, 100),
+        (0.001, 300),
+        (0.002, 100),
+        (0.030, 400),
+        (0.031, 200),
+    )
+    for index, (estimate_timestamp_s, prompt_tokens) in enumerate(rows):
+        unready_count = sum(
+            ready_at_s > estimate_timestamp_s
+            for ready_at_s in prior_ready
         )
-        for index, (prompt_tokens, pending_count) in enumerate(
-            ((100, 0), (300, 0), (100, 2), (400, 1), (200, 3))
+        delay_ms = (
+            offset_ms
+            + 0.01 * prompt_tokens
+            + 4.0 * unready_count
         )
-    ]
+        actual_ready_at_s = estimate_timestamp_s + delay_ms / 1000.0
+        prior_ready.append(actual_ready_at_s)
+        samples.append(
+            ReadinessSample(
+                run_name=run_name,
+                request_id=f"{run_name}-{index}",
+                prompt_tokens=prompt_tokens,
+                pending_dispatch_count=unready_count,
+                delay_ms=delay_ms,
+                estimate_timestamp_s=estimate_timestamp_s,
+                actual_ready_at_s=actual_ready_at_s,
+            )
+        )
+    return samples
 
 
 def test_fit_selects_prompt_and_pending_model():
@@ -36,7 +53,7 @@ def test_fit_selects_prompt_and_pending_model():
         }
     )
 
-    assert payload["selected_model"] == "prompt_tokens_pending"
+    assert payload["selected_model"] == "prompt_tokens_unready"
     coefficients = payload["coefficients"]
     assert coefficients["intercept_ms"] == pytest.approx(2.0)
     assert coefficients["prompt_token_ms"] == pytest.approx(0.01)

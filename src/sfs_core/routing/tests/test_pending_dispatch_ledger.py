@@ -147,8 +147,24 @@ def test_readiness_delay_uses_candidate_specific_pending_count():
         prompt_tokens=100,
         pending_dispatches_by_instance={
             "a": (),
-            "b": (PendingDispatch("pending", 8, 4.0, 16),),
+            "b": (
+                PendingDispatch(
+                    "pending",
+                    8,
+                    4.0,
+                    16,
+                    predicted_ready_at_s=101.0,
+                ),
+                PendingDispatch(
+                    "already-ready",
+                    8,
+                    4.0,
+                    16,
+                    predicted_ready_at_s=99.0,
+                ),
+            ),
         },
+        reference_time_s=100.0,
     )
 
     assert delays == {"a": 2.0, "b": 6.0}

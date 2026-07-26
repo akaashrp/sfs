@@ -689,15 +689,22 @@ class WaitTimeScheduler:
             str,
             tuple[PendingDispatch, ...],
         ],
+        reference_time_s: Optional[float] = None,
     ) -> Dict[str, float]:
         predictor = getattr(self, "_readiness_predictor", None)
         if predictor is None:
             return {}
+        if reference_time_s is None:
+            reference_time_s = time.monotonic()
         return {
             instance_id: predictor.predict_ms(
                 prompt_tokens=prompt_tokens,
-                pending_dispatch_count=len(
-                    pending_dispatches_by_instance.get(instance_id, ())
+                pending_dispatch_count=sum(
+                    reservation.predicted_ready_at_s > reference_time_s
+                    for reservation in pending_dispatches_by_instance.get(
+                        instance_id,
+                        (),
+                    )
                 ),
             )
             for instance_id in self._instances

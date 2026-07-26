@@ -22,7 +22,7 @@ READY_TS_PATTERN = re.compile(
 MODEL_FEATURES = {
     "constant": (),
     "prompt_tokens": ("prompt_tokens",),
-    "prompt_tokens_pending": (
+    "prompt_tokens_unready": (
         "prompt_tokens",
         "pending_dispatch_count",
     ),
@@ -36,6 +36,9 @@ class ReadinessSample:
     prompt_tokens: int
     pending_dispatch_count: int
     delay_ms: float
+    estimate_timestamp_s: float = 0.0
+    actual_ready_at_s: float = 0.0
+    instance_id: str = "default"
 
 
 def _read_actual_ready_times(path: Path) -> dict[str, float]:
@@ -75,7 +78,7 @@ def load_run_samples(result_path: Path) -> list[ReadinessSample]:
     router_records = _read_router_records(request_log_path)
     actual_ready_times = _read_actual_ready_times(actual_log_path)
 
-    samples: list[ReadinessSample] = []
+    samples_without_unready_count: list[ReadinessSample] = []
     for item in run["per_request"]:
         scheduler_request_id = item.get("scheduler_request_id")
         response_id = item.get("response_id")
@@ -102,31 +105,64 @@ def load_run_samples(result_path: Path) -> list[ReadinessSample]:
             continue
         simulation_timestamp = reports[0].get("simulation_timestamp")
         prompt_tokens = inputs.get("prompt_tokens")
-        pending_count = inputs.get("pending_dispatch_count")
         if (
             not isinstance(simulation_timestamp, (int, float))
             or not isinstance(prompt_tokens, int)
-            or not isinstance(pending_count, int)
         ):
             continue
         delay_ms = (ready_ts - float(simulation_timestamp)) * 1000.0
         if not math.isfinite(delay_ms) or delay_ms < 0.0:
             continue
-        samples.append(
+        instance_id = item.get("instance_id")
+        samples_without_unready_count.append(
             ReadinessSample(
                 run_name=result_path.parent.parent.name,
                 request_id=scheduler_request_id,
                 prompt_tokens=prompt_tokens,
-                pending_dispatch_count=pending_count,
+                pending_dispatch_count=0,
                 delay_ms=delay_ms,
+                estimate_timestamp_s=float(simulation_timestamp),
+                actual_ready_at_s=float(ready_ts),
+                instance_id=(
+                    str(instance_id)
+                    if isinstance(instance_id, str)
+                    else "default"
+                ),
             )
         )
 
     expected = len(run["per_request"])
-    if len(samples) < expected * 0.9:
+    if len(samples_without_unready_count) < expected * 0.9:
         raise RuntimeError(
-            f"Matched only {len(samples)} of {expected} readiness samples "
-            f"for {result_path}"
+            f"Matched only {len(samples_without_unready_count)} of {expected} "
+            f"readiness samples for {result_path}"
+        )
+    samples: list[ReadinessSample] = []
+    actual_ready_by_instance: dict[str, list[float]] = {}
+    for sample in sorted(
+        samples_without_unready_count,
+        key=lambda value: value.estimate_timestamp_s,
+    ):
+        prior_ready = actual_ready_by_instance.setdefault(
+            sample.instance_id,
+            [],
+        )
+        unready_count = sum(
+            ready_at_s > sample.estimate_timestamp_s
+            for ready_at_s in prior_ready
+        )
+        prior_ready.append(sample.actual_ready_at_s)
+        samples.append(
+            ReadinessSample(
+                run_name=sample.run_name,
+                request_id=sample.request_id,
+                prompt_tokens=sample.prompt_tokens,
+                pending_dispatch_count=unready_count,
+                delay_ms=sample.delay_ms,
+                estimate_timestamp_s=sample.estimate_timestamp_s,
+                actual_ready_at_s=sample.actual_ready_at_s,
+                instance_id=sample.instance_id,
+            )
         )
     return samples
 
@@ -191,6 +227,43 @@ def _predict(
     return _design_matrix(samples, feature_names) @ coefficients
 
 
+def _predict_for_evaluation(
+    samples: Sequence[ReadinessSample],
+    *,
+    model_name: str,
+    feature_names: Sequence[str],
+    coefficients: np.ndarray,
+) -> np.ndarray:
+    if model_name != "prompt_tokens_unready":
+        return _predict(samples, feature_names, coefficients)
+    predictions = np.zeros(len(samples), dtype=np.float64)
+    predicted_ready_by_instance: dict[tuple[str, str], list[float]] = {}
+    ordered_indices = sorted(
+        range(len(samples)),
+        key=lambda index: samples[index].estimate_timestamp_s,
+    )
+    for index in ordered_indices:
+        sample = samples[index]
+        prior_ready = predicted_ready_by_instance.setdefault(
+            (sample.run_name, sample.instance_id),
+            [],
+        )
+        predicted_unready_count = sum(
+            ready_at_s > sample.estimate_timestamp_s
+            for ready_at_s in prior_ready
+        )
+        prediction_ms = (
+            coefficients[0]
+            + coefficients[1] * sample.prompt_tokens
+            + coefficients[2] * predicted_unready_count
+        )
+        predictions[index] = prediction_ms
+        prior_ready.append(
+            sample.estimate_timestamp_s + prediction_ms / 1000.0
+        )
+    return predictions
+
+
 def _metrics(
     samples: Sequence[ReadinessSample],
     predictions: np.ndarray,
@@ -230,10 +303,11 @@ def evaluate_leave_one_run_out(
                 training_samples,
                 feature_names,
             )
-            predictions = _predict(
+            predictions = _predict_for_evaluation(
                 heldout_samples,
-                feature_names,
-                coefficients,
+                model_name=model_name,
+                feature_names=feature_names,
+                coefficients=coefficients,
             )
             fold_metrics = _metrics(heldout_samples, predictions)
             folds.append(
@@ -249,7 +323,14 @@ def evaluate_leave_one_run_out(
                 for sample, predicted in zip(heldout_samples, predictions)
             )
         evaluations[model_name] = {
-            "features": list(feature_names),
+            "features": [
+                (
+                    "predicted_unready_count"
+                    if name == "pending_dispatch_count"
+                    else name
+                )
+                for name in feature_names
+            ],
             "macro_mae_ms": float(
                 np.mean([fold["mae_ms"] for fold in folds])
             ),
@@ -292,8 +373,25 @@ def build_fit_payload(
         "version": 1,
         "target": "router_estimate_to_engine_ready_ms",
         "fit_objective": "nonnegative_mean_absolute_error",
+        "stateful_feature_definition": {
+            "coefficient_fit": (
+                "prior requests on the same instance whose observed "
+                "ready_at exceeds the current estimate timestamp"
+            ),
+            "heldout_evaluation_and_serving": (
+                "prior router reservations on the same instance whose "
+                "predicted ready_at exceeds the current estimate timestamp"
+            ),
+        },
         "selected_model": selected_model,
-        "features": list(selected_features),
+        "features": [
+            (
+                "predicted_unready_count"
+                if name == "pending_dispatch_count"
+                else name
+            )
+            for name in selected_features
+        ],
         "coefficients": coefficient_by_name,
         "selection": {
             "criterion": "lowest leave-one-run-out macro MAE",
@@ -306,7 +404,12 @@ def build_fit_payload(
             },
             "in_sample": _metrics(
                 all_samples,
-                _predict(all_samples, selected_features, fitted),
+                _predict_for_evaluation(
+                    all_samples,
+                    model_name=selected_model,
+                    feature_names=selected_features,
+                    coefficients=fitted,
+                ),
             ),
         },
     }
