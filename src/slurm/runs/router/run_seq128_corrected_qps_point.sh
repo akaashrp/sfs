@@ -91,8 +91,15 @@ render_sweep() {
         next
       }
       /export PYTHONPATH="\$PROJECT_ROOT\/vllm:\$SFS_ROOT\/src:/ {
-        sub(/\$PROJECT_ROOT\/vllm/, "$SFS_ROOT/vllm")
-        print
+        print "CORRECTED_VLLM_RUNTIME=\"/local/$USER/${SLURM_JOB_ID:-$$}/corrected_vllm_runtime\""
+        print "export CORRECTED_VLLM_RUNTIME"
+        print "mkdir -p \"$CORRECTED_VLLM_RUNTIME/vllm\""
+        print "rsync -aL --exclude=__pycache__ --exclude='\''*.pyc'\'' \\"
+        print "  \"$PROJECT_ROOT/vllm/vllm/\" \"$CORRECTED_VLLM_RUNTIME/vllm/\""
+        print "rsync -aL --exclude=__pycache__ --exclude='\''*.pyc'\'' \\"
+        print "  \"$SFS_ROOT/vllm/vllm/\" \"$CORRECTED_VLLM_RUNTIME/vllm/\""
+        print "export PYTHONPATH=\"$CORRECTED_VLLM_RUNTIME:$SFS_ROOT/src:${PYTHONPATH:-}\""
+        print "python -c '\''import os; from pathlib import Path; import sfs_core, vllm; from vllm.v1.engine import _scheduler_sim; from vllm.vllm_flash_attn.layers import rotary as _flash_rotary; runtime = Path(os.environ[\"CORRECTED_VLLM_RUNTIME\"]).resolve(); sfs_src = (Path(os.environ[\"SFS_ROOT\"]) / \"src\").resolve(); assert Path(vllm.__file__).resolve().is_relative_to(runtime), vllm.__file__; assert Path(_scheduler_sim.__file__).resolve().is_relative_to(runtime), _scheduler_sim.__file__; assert Path(sfs_core.__file__).resolve().is_relative_to(sfs_src), sfs_core.__file__; print(\"Corrected vLLM runtime preflight:\", vllm.__file__, _scheduler_sim.__file__, _flash_rotary.__file__)'\''"
         next
       }
       /--qps-utilities hard shortest_queue/ {
