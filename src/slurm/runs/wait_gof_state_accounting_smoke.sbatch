@@ -31,6 +31,8 @@ ENABLE_QUEUE_ALIGNED_DIAGNOSTIC="${ENABLE_QUEUE_ALIGNED_DIAGNOSTIC:-1}"
 JOB_ID=${SLURM_JOB_ID:-$$}
 if [[ "$COMPARISON_MODE" == "cross_term" ]]; then
   DEFAULT_RESULT_BASE=$BASE_ROOT/sfs_experiments/state_accounting_cross_term
+elif [[ "$COMPARISON_MODE" == "readiness" ]]; then
+  DEFAULT_RESULT_BASE=$BASE_ROOT/sfs_experiments/state_accounting_readiness
 else
   DEFAULT_RESULT_BASE=$BASE_ROOT/sfs_experiments/state_accounting_smoke
 fi
@@ -356,6 +358,7 @@ run_case() {
     --decouple-arrivals \
     --seed "$SEED" \
     --wait-estimators live \
+    --readiness-diagnostics \
     --worker-count "$WORKER_COUNT" \
     --max-queue-size 0 \
     --max-completion-tokens "$MAX_COMPLETION_TOKENS" \
@@ -786,9 +789,19 @@ elif [[ "$COMPARISON_MODE" == "cross_term" ]]; then
     original_legacy "$RESULT_ROOT/original_legacy/result.json" "$RESULT_ROOT/original_legacy/actual_wait_times.log" \
     refit_legacy "$RESULT_ROOT/refit_legacy/result.json" "$RESULT_ROOT/refit_legacy/actual_wait_times.log" \
     refit_cross_term "$RESULT_ROOT/refit_cross_term/result.json" "$RESULT_ROOT/refit_cross_term/actual_wait_times.log"
+elif [[ "$COMPARISON_MODE" == "readiness" ]]; then
+  run_case \
+    corrected "$NEW_RUNTIME_ROOT" "$NEW_SFS_ROOT" legacy \
+    "$ORIGINAL_INTERCEPT" "$ORIGINAL_PREFILL_COEFF" \
+    "$ORIGINAL_DECODE_COEFF" "$ORIGINAL_SUM_COEFF" \
+    "$ORIGINAL_PREFILL_SQ_COEFF" "$ORIGINAL_CONTEXT_FEATURE_COEFF"
 else
   echo "Unsupported COMPARISON_MODE: $COMPARISON_MODE" >&2
   exit 1
 fi
 
-echo "TTFT comparison complete: $RESULT_ROOT/comparison.json"
+if [[ "$COMPARISON_MODE" == "readiness" ]]; then
+  echo "Readiness calibration complete: $RESULT_ROOT/corrected/result.json"
+else
+  echo "TTFT comparison complete: $RESULT_ROOT/comparison.json"
+fi

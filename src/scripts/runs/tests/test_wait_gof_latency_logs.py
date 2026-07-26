@@ -13,6 +13,8 @@ try:
 except ImportError:
     vllm.v1.engine._scheduler_sim = SimpleNamespace()
 
+from sfs_core.routing.pending_dispatch_ledger import PendingDispatch
+from sfs_core.routing.wait_time_scheduler import WaitTimeResult
 from scripts.eval import plot_router_wait_gof
 from scripts.runs import experiments
 
@@ -78,3 +80,34 @@ def test_wait_gof_plotting_uses_queue_plus_prefill():
     _, ttft_map, _ = plot_router_wait_gof._read_actual_wait_logs([path])
 
     assert ttft_map["chatcmpl-1"] == 12.0
+
+
+def test_readiness_diagnostics_record_only_router_visible_inputs():
+    scheduler = experiments.CollectingWaitTimeScheduler.__new__(
+        experiments.CollectingWaitTimeScheduler
+    )
+    scheduler._readiness_diagnostics = True
+    wait_record = WaitTimeResult(
+        instance_id="instance-a",
+        wait_ms=12.0,
+        fetched_at_s=1.0,
+    )
+    pending = (
+        PendingDispatch(
+            engine_request_id="earlier",
+            prompt_tokens=100,
+            predicted_output_tokens=10.0,
+            completion_cap=20,
+        ),
+    )
+
+    scheduler._attach_readiness_predictor_inputs(
+        wait_record=wait_record,
+        prompt_tokens=321,
+        pending_dispatches=pending,
+    )
+
+    assert wait_record.raw_payload["_readiness_predictor_inputs"] == {
+        "prompt_tokens": 321,
+        "pending_dispatch_count": 1,
+    }

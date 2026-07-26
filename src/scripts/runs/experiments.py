@@ -657,6 +657,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
         affinity_upgrade_margin: float = DEFAULT_AFFINITY_UPGRADE_MARGIN,
         skip_wait_result_build: bool = False,
         include_unconditional_live_fetch: bool = True,
+        readiness_diagnostics: bool = False,
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -668,6 +669,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
         self._wait_estimator_contexts: Dict[str, Dict[str, Any]] = {}
         self._skip_wait_result_build = bool(skip_wait_result_build)
         self._include_unconditional_live_fetch = bool(include_unconditional_live_fetch)
+        self._readiness_diagnostics = bool(readiness_diagnostics)
         self._route_rng = random.Random(route_random_seed)
         self._shortest_queue_sentinel = int(SHORTEST_QUEUE_SENTINEL)
         self._last_seen_num_requests_by_instance: Dict[str, int] = {}
@@ -769,6 +771,20 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                 continue
             seen_ids.add(tracker_id)
             yield tracker
+
+    def _attach_readiness_predictor_inputs(
+        self,
+        *,
+        wait_record: WaitTimeResult,
+        prompt_tokens: int,
+        pending_dispatches: tuple[PendingDispatch, ...],
+    ) -> None:
+        if not self._readiness_diagnostics:
+            return
+        wait_record.raw_payload["_readiness_predictor_inputs"] = {
+            "prompt_tokens": int(prompt_tokens),
+            "pending_dispatch_count": len(pending_dispatches),
+        }
 
     @staticmethod
     def _wait_fetch_args_for_estimator(
@@ -1272,6 +1288,9 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
         )
         target_id: str | None = None
         dispatch_perf: Optional[float] = None
+        pending_dispatches_by_instance: Dict[
+            str, tuple[PendingDispatch, ...]
+        ] = {}
         shortest_queue_routing: Optional[Dict[str, Any]] = None
         affinity_routing: Optional[Dict[str, Any]] = None
 
@@ -1299,6 +1318,9 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                 queued.request_id,
             )
             async with self._routing_state_lock:
+                pending_dispatches_by_instance = (
+                    self._pending_dispatches_by_instance()
+                )
                 if self._skip_wait_result_build:
                     wait_results = self._build_zero_wait_results(
                         reason="latency_agnostic_fast_path",
@@ -1321,7 +1343,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                         accuracy_scores=accuracy_scores,
                         output_lengths=output_lengths,
                         pending_dispatches_by_instance=(
-                            self._pending_dispatches_by_instance()
+                            pending_dispatches_by_instance
                         ),
                     )
 
@@ -1390,6 +1412,15 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                 or live_wait_results.get(target_id)
                 or target.last_wait
             )
+            if wait_record is not None:
+                self._attach_readiness_predictor_inputs(
+                    wait_record=wait_record,
+                    prompt_tokens=prompt_tokens,
+                    pending_dispatches=pending_dispatches_by_instance.get(
+                        target_id,
+                        (),
+                    ),
+                )
             live_wait_record = live_wait_results.get(
                 target_id
             ) or target.last_wait_for_mode(
@@ -3377,6 +3408,7 @@ async def run_policy(
     wait_log_offsets: Optional[Dict[Path, int]] = None,
     skip_wait_result_build: bool = False,
     include_unconditional_live_fetch: bool = True,
+    readiness_diagnostics: bool = False,
     enable_wait_time_polling: bool = True,
     critical_wait_time_timeout_s: float = 0.01,
     route_random_seed: Optional[int] = None,
@@ -3427,6 +3459,7 @@ async def run_policy(
         wait_estimator_contexts=wait_estimator_contexts,
         skip_wait_result_build=skip_wait_result_build,
         include_unconditional_live_fetch=include_unconditional_live_fetch,
+        readiness_diagnostics=readiness_diagnostics,
         enable_wait_time_polling=enable_wait_time_polling,
         critical_wait_time_timeout_s=critical_wait_time_timeout_s,
     )
@@ -4212,6 +4245,15 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Timeout in seconds for prompt-aware critical-path /wait_time polling "
             "before falling back to cached /wait_time."
+        ),
+    )
+    parser.add_argument(
+        "--readiness-diagnostics",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "Record router-visible readiness-predictor inputs in the existing "
+            "per-request wait log."
         ),
     )
     parser.add_argument(
@@ -5222,6 +5264,7 @@ async def run_router_experiment(
             include_unconditional_live_fetch=include_unconditional_live_fetch,
             enable_wait_time_polling=bool(args.enable_wait_time_polling),
             critical_wait_time_timeout_s=float(args.critical_wait_time_timeout_s),
+            readiness_diagnostics=bool(args.readiness_diagnostics),
             route_random_seed=int(args.seed),
             affinity_bucket_to_instances=affinity_bucket_to_instances,
             affinity_global_fallback_instances=affinity_global_fallback_instances,
@@ -5468,6 +5511,7 @@ async def run_wait_gof_experiment(
         run_label=primary_estimator_name,
         enable_wait_time_polling=bool(args.enable_wait_time_polling),
         critical_wait_time_timeout_s=float(args.critical_wait_time_timeout_s),
+        readiness_diagnostics=bool(args.readiness_diagnostics),
         close_instances_on_stop=False,
     )
 
