@@ -63,6 +63,7 @@ class SnapshotShmClient:
         prompt_tokens: Optional[int],
         stop_mode: Optional[SimulationStopMode | str] = None,
         pending_dispatches: tuple[PendingDispatch, ...] = (),
+        probe_ready_delay_ms: float = 0.0,
         catchup_timeout_s: float = 2.0,
     ) -> SnapshotEstimate:
         with self._lock:
@@ -101,6 +102,7 @@ class SnapshotShmClient:
                     native_pending,
                     minimum_snapshot_version,
                     timeout_ms,
+                    float(probe_ready_delay_ms),
                 )
                 if summary is None:
                     raise RuntimeError(

@@ -28,6 +28,7 @@ import sys
 
 from .snapshot_shm_client import SnapshotShmClient
 from .pending_dispatch_ledger import PendingDispatch, PendingDispatchLedger
+from .readiness_predictor import ReadinessDelayPredictor
 
 LOGGER = logging.getLogger(__name__)
 
@@ -130,6 +131,7 @@ class InstanceClient:
         critical_wait_time_timeout_s: Optional[float] = None,
         stop_mode: Optional[SimulationStopMode | str] = None,
         pending_dispatches: tuple[PendingDispatch, ...] = (),
+        probe_ready_delay_ms: float = 0.0,
     ) -> Optional[WaitTimeResult]:
         """Fetch latest wait time from the instance and cache it."""
         cache_key = self._wait_cache_key(
@@ -149,6 +151,7 @@ class InstanceClient:
                 prompt_tokens=prompt_tokens,
                 stop_mode=stop_mode,
                 pending_dispatches=pending_dispatches,
+                probe_ready_delay_ms=probe_ready_delay_ms,
                 catchup_timeout_s=prompt_timeout,
             )
 
@@ -255,6 +258,7 @@ class InstanceClient:
         prompt_tokens: Optional[int],
         stop_mode: Optional[SimulationStopMode | str],
         pending_dispatches: tuple[PendingDispatch, ...],
+        probe_ready_delay_ms: float,
         catchup_timeout_s: float,
     ) -> Optional[WaitTimeResult]:
         if self._snapshot_client is None:
@@ -263,6 +267,7 @@ class InstanceClient:
             prompt_tokens=prompt_tokens,
             stop_mode=stop_mode,
             pending_dispatches=pending_dispatches,
+            probe_ready_delay_ms=probe_ready_delay_ms,
             catchup_timeout_s=catchup_timeout_s,
         )
         return self._build_wait_result(
@@ -396,6 +401,7 @@ class WaitTimeScheduler:
         enable_wait_time_polling: bool = True,
         critical_wait_time_timeout_s: float = 0.05,
         route_random_seed: Optional[int] = None,
+        readiness_predictor_path: Optional[str] = None,
     ) -> None:
         if not instances:
             raise ValueError("At least one instance must be provided")
@@ -428,6 +434,11 @@ class WaitTimeScheduler:
         self._enable_wait_time_polling = bool(enable_wait_time_polling)
         self._critical_wait_time_timeout_s = float(critical_wait_time_timeout_s)
         self._route_rng = random.Random(route_random_seed)
+        self._readiness_predictor = (
+            ReadinessDelayPredictor.load(readiness_predictor_path)
+            if readiness_predictor_path
+            else None
+        )
         self._routing_state_lock = asyncio.Lock()
         self._pending_dispatch_ledger = PendingDispatchLedger(tuple(instances.keys()))
 
@@ -547,9 +558,19 @@ class WaitTimeScheduler:
             queued.request_id,
         )
         async with self._routing_state_lock:
+            pending_dispatches_by_instance = self._pending_dispatches_by_instance()
+            probe_ready_delay_ms_by_instance = (
+                self._probe_ready_delays_by_instance(
+                    prompt_tokens=prompt_tokens,
+                    pending_dispatches_by_instance=(
+                        pending_dispatches_by_instance
+                    ),
+                )
+            )
             wait_results = await self._collect_wait_times(
                 prompt_tokens=prompt_tokens if prompt_tokens > 0 else None,
-                pending_dispatches_by_instance=(self._pending_dispatches_by_instance()),
+                pending_dispatches_by_instance=pending_dispatches_by_instance,
+                probe_ready_delay_ms_by_instance=probe_ready_delay_ms_by_instance,
             )
             self._reconcile_observed_dispatches(wait_results)
             target_id = self._select_instance(
@@ -561,6 +582,13 @@ class WaitTimeScheduler:
                 prompt_tokens=prompt_tokens,
                 predicted_output_tokens=output_lengths.get(target_id, 1.0),
                 completion_cap=completion_cap,
+                predicted_ready_at_s=self._predicted_ready_at_s(
+                    wait_record=wait_results.get(target_id),
+                    delay_ms=probe_ready_delay_ms_by_instance.get(
+                        target_id,
+                        0.0,
+                    ),
+                ),
             )
         target = self._instances[target_id]
         wait_record = wait_results.get(target_id) or target.last_wait_for_mode(
@@ -604,6 +632,7 @@ class WaitTimeScheduler:
         pending_dispatches_by_instance: Optional[
             Dict[str, tuple[PendingDispatch, ...]]
         ] = None,
+        probe_ready_delay_ms_by_instance: Optional[Dict[str, float]] = None,
     ) -> Dict[str, WaitTimeResult]:
         if not self._enable_wait_time_polling:
             now_s = time.time()
@@ -628,6 +657,9 @@ class WaitTimeScheduler:
                     pending_dispatches=(pending_dispatches_by_instance or {}).get(
                         instance_id, ()
                     ),
+                    probe_ready_delay_ms=(
+                        probe_ready_delay_ms_by_instance or {}
+                    ).get(instance_id, 0.0),
                 )
             )
             for instance_id, instance in self._instances.items()
@@ -649,6 +681,49 @@ class WaitTimeScheduler:
             for instance_id in self._instances
         }
 
+    def _probe_ready_delays_by_instance(
+        self,
+        *,
+        prompt_tokens: int,
+        pending_dispatches_by_instance: Dict[
+            str,
+            tuple[PendingDispatch, ...],
+        ],
+    ) -> Dict[str, float]:
+        predictor = getattr(self, "_readiness_predictor", None)
+        if predictor is None:
+            return {}
+        return {
+            instance_id: predictor.predict_ms(
+                prompt_tokens=prompt_tokens,
+                pending_dispatch_count=len(
+                    pending_dispatches_by_instance.get(instance_id, ())
+                ),
+            )
+            for instance_id in self._instances
+        }
+
+    @staticmethod
+    def _predicted_ready_at_s(
+        *,
+        wait_record: Optional[WaitTimeResult],
+        delay_ms: float,
+    ) -> float:
+        if delay_ms <= 0.0:
+            return 0.0
+        simulation_timestamp: Optional[float] = None
+        if wait_record is not None:
+            reports = wait_record.raw_payload.get("reports")
+            if isinstance(reports, list) and reports:
+                report = reports[0]
+                if isinstance(report, dict):
+                    value = report.get("simulation_timestamp")
+                    if isinstance(value, (int, float)):
+                        simulation_timestamp = float(value)
+        if simulation_timestamp is None:
+            simulation_timestamp = time.monotonic()
+        return simulation_timestamp + float(delay_ms) / 1000.0
+
     def _reconcile_observed_dispatches(
         self,
         wait_results: Dict[str, WaitTimeResult],
@@ -667,6 +742,7 @@ class WaitTimeScheduler:
         prompt_tokens: int,
         predicted_output_tokens: float,
         completion_cap: Optional[float],
+        predicted_ready_at_s: float = 0.0,
     ) -> None:
         resolved_cap = (
             max(1, int(math.ceil(completion_cap)))
@@ -683,6 +759,10 @@ class WaitTimeScheduler:
                     float(predicted_output_tokens),
                 ),
                 completion_cap=resolved_cap,
+                predicted_ready_at_s=max(
+                    0.0,
+                    float(predicted_ready_at_s),
+                ),
             ),
         )
 

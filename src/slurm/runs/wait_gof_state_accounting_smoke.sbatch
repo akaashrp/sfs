@@ -27,6 +27,7 @@ MAX_COMPLETION_TOKENS="${MAX_COMPLETION_TOKENS:-8192}"
 SEED="${SEED:-69}"
 COMPARISON_MODE="${COMPARISON_MODE:-accounting}"
 ENABLE_QUEUE_ALIGNED_DIAGNOSTIC="${ENABLE_QUEUE_ALIGNED_DIAGNOSTIC:-1}"
+READINESS_PREDICTOR_PATH="${READINESS_PREDICTOR_PATH:-}"
 
 JOB_ID=${SLURM_JOB_ID:-$$}
 if [[ "$COMPARISON_MODE" == "cross_term" ]]; then
@@ -287,6 +288,12 @@ run_case() {
       VLLM_QUEUE_ALIGNED_TTFT_DIAGNOSTIC_PATH="$queue_aligned_log"
     )
   fi
+  local -a readiness_predictor_args=()
+  if [[ -n "$READINESS_PREDICTOR_PATH" ]]; then
+    readiness_predictor_args=(
+      --readiness-predictor-path "$READINESS_PREDICTOR_PATH"
+    )
+  fi
 
   local timing_feature_args
   if [[ "$feature_set" == "cross_term" ]]; then
@@ -359,6 +366,7 @@ run_case() {
     --seed "$SEED" \
     --wait-estimators live \
     --readiness-diagnostics \
+    "${readiness_predictor_args[@]}" \
     --worker-count "$WORKER_COUNT" \
     --max-queue-size 0 \
     --max-completion-tokens "$MAX_COMPLETION_TOKENS" \

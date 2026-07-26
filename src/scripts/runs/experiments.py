@@ -938,6 +938,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
         pending_dispatches_by_instance: Optional[
             Dict[str, tuple[PendingDispatch, ...]]
         ] = None,
+        probe_ready_delay_ms_by_instance: Optional[Dict[str, float]] = None,
     ) -> tuple[
         Dict[str, WaitTimeResult],
         Dict[str, WaitTimeResult],
@@ -975,6 +976,9 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                     prompt_tokens=fetch_args[0],
                     stop_mode=fetch_args[1],
                     pending_dispatches_by_instance=(pending_dispatches_by_instance),
+                    probe_ready_delay_ms_by_instance=(
+                        probe_ready_delay_ms_by_instance
+                    ),
                 )
             )
             for fetch_key, fetch_args in fetch_specs.items()
@@ -1291,6 +1295,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
         pending_dispatches_by_instance: Dict[
             str, tuple[PendingDispatch, ...]
         ] = {}
+        probe_ready_delay_ms_by_instance: Dict[str, float] = {}
         shortest_queue_routing: Optional[Dict[str, Any]] = None
         affinity_routing: Optional[Dict[str, Any]] = None
 
@@ -1321,6 +1326,14 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                 pending_dispatches_by_instance = (
                     self._pending_dispatches_by_instance()
                 )
+                probe_ready_delay_ms_by_instance = (
+                    self._probe_ready_delays_by_instance(
+                        prompt_tokens=prompt_tokens,
+                        pending_dispatches_by_instance=(
+                            pending_dispatches_by_instance
+                        ),
+                    )
+                )
                 if self._skip_wait_result_build:
                     wait_results = self._build_zero_wait_results(
                         reason="latency_agnostic_fast_path",
@@ -1344,6 +1357,9 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                         output_lengths=output_lengths,
                         pending_dispatches_by_instance=(
                             pending_dispatches_by_instance
+                        ),
+                        probe_ready_delay_ms_by_instance=(
+                            probe_ready_delay_ms_by_instance
                         ),
                     )
 
@@ -1384,6 +1400,16 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                         1.0,
                     ),
                     completion_cap=completion_cap,
+                    predicted_ready_at_s=self._predicted_ready_at_s(
+                        wait_record=(
+                            live_wait_results.get(target_id)
+                            or wait_results.get(target_id)
+                        ),
+                        delay_ms=probe_ready_delay_ms_by_instance.get(
+                            target_id,
+                            0.0,
+                        ),
+                    ),
                 )
 
             target = self._instances[target_id]
@@ -3409,6 +3435,7 @@ async def run_policy(
     skip_wait_result_build: bool = False,
     include_unconditional_live_fetch: bool = True,
     readiness_diagnostics: bool = False,
+    readiness_predictor_path: Optional[str] = None,
     enable_wait_time_polling: bool = True,
     critical_wait_time_timeout_s: float = 0.01,
     route_random_seed: Optional[int] = None,
@@ -3460,6 +3487,7 @@ async def run_policy(
         skip_wait_result_build=skip_wait_result_build,
         include_unconditional_live_fetch=include_unconditional_live_fetch,
         readiness_diagnostics=readiness_diagnostics,
+        readiness_predictor_path=readiness_predictor_path,
         enable_wait_time_polling=enable_wait_time_polling,
         critical_wait_time_timeout_s=critical_wait_time_timeout_s,
     )
@@ -4254,6 +4282,15 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Record router-visible readiness-predictor inputs in the existing "
             "per-request wait log."
+        ),
+    )
+    parser.add_argument(
+        "--readiness-predictor-path",
+        type=str,
+        default=None,
+        help=(
+            "Optional fitted router-to-EngineCore readiness-delay predictor "
+            "used by live scheduler simulation."
         ),
     )
     parser.add_argument(
@@ -5265,6 +5302,7 @@ async def run_router_experiment(
             enable_wait_time_polling=bool(args.enable_wait_time_polling),
             critical_wait_time_timeout_s=float(args.critical_wait_time_timeout_s),
             readiness_diagnostics=bool(args.readiness_diagnostics),
+            readiness_predictor_path=args.readiness_predictor_path,
             route_random_seed=int(args.seed),
             affinity_bucket_to_instances=affinity_bucket_to_instances,
             affinity_global_fallback_instances=affinity_global_fallback_instances,
@@ -5512,6 +5550,7 @@ async def run_wait_gof_experiment(
         enable_wait_time_polling=bool(args.enable_wait_time_polling),
         critical_wait_time_timeout_s=float(args.critical_wait_time_timeout_s),
         readiness_diagnostics=bool(args.readiness_diagnostics),
+        readiness_predictor_path=args.readiness_predictor_path,
         close_instances_on_stop=False,
     )
 

@@ -11,13 +11,15 @@ class PendingDispatch:
     prompt_tokens: int
     predicted_output_tokens: float
     completion_cap: int
+    predicted_ready_at_s: float = 0.0
 
-    def as_native_tuple(self) -> tuple[str, int, float, int]:
+    def as_native_tuple(self) -> tuple[str, int, float, int, float]:
         return (
             self.engine_request_id,
             self.prompt_tokens,
             self.predicted_output_tokens,
             self.completion_cap,
+            self.predicted_ready_at_s,
         )
 
 

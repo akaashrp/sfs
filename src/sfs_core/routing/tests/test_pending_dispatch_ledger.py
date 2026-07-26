@@ -24,13 +24,20 @@ from sfs_core.routing.wait_time_scheduler import (
 
 def test_ledger_preserves_per_instance_order_and_reconciles_observed_ids():
     ledger = PendingDispatchLedger(("a", "b"))
-    first = PendingDispatch("chatcmpl-1", 8, 4.0, 16)
+    first = PendingDispatch("chatcmpl-1", 8, 4.0, 16, 123.5)
     second = PendingDispatch("chatcmpl-2", 16, 8.0, 32)
     ledger.reserve("a", first)
     ledger.reserve("a", second)
 
     assert ledger.unobserved_for_instance("a") == (first, second)
     assert ledger.unobserved_for_instance("b") == ()
+    assert first.as_native_tuple() == (
+        "chatcmpl-1",
+        8,
+        4.0,
+        16,
+        123.5,
+    )
 
     ledger.mark_observed("a", ("chatcmpl-1",))
     assert ledger.unobserved_for_instance("a") == (second,)
@@ -80,6 +87,7 @@ def _build_scheduler(gate: asyncio.Event) -> WaitTimeScheduler:
         prompt_tokens=None,
         stop_mode=None,
         pending_dispatches_by_instance=None,
+        probe_ready_delay_ms_by_instance=None,
     ):
         nonlocal active_estimates
         active_estimates += 1
@@ -125,6 +133,41 @@ def _build_scheduler(gate: asyncio.Event) -> WaitTimeScheduler:
     )
     scheduler._select_instance = MethodType(_select_instance, scheduler)
     return scheduler
+
+
+def test_readiness_delay_uses_candidate_specific_pending_count():
+    scheduler = WaitTimeScheduler.__new__(WaitTimeScheduler)
+    scheduler._instances = {"a": object(), "b": object()}
+    scheduler._readiness_predictor = SimpleNamespace(
+        predict_ms=lambda *, prompt_tokens, pending_dispatch_count: (
+            1.0 + 0.01 * prompt_tokens + 4.0 * pending_dispatch_count
+        )
+    )
+    delays = scheduler._probe_ready_delays_by_instance(
+        prompt_tokens=100,
+        pending_dispatches_by_instance={
+            "a": (),
+            "b": (PendingDispatch("pending", 8, 4.0, 16),),
+        },
+    )
+
+    assert delays == {"a": 2.0, "b": 6.0}
+
+
+def test_predicted_ready_time_uses_selected_simulation_timestamp():
+    wait_record = WaitTimeResult(
+        instance_id="a",
+        wait_ms=1.0,
+        fetched_at_s=time.time(),
+        raw_payload={
+            "reports": [{"simulation_timestamp": 100.0}],
+        },
+    )
+
+    assert WaitTimeScheduler._predicted_ready_at_s(
+        wait_record=wait_record,
+        delay_ms=7.5,
+    ) == 100.0075
 
 
 def _queued_request(request_id: str) -> _QueuedRequest:
