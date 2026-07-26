@@ -12,7 +12,8 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
 import numpy as np
-from scipy.optimize import nnls
+from scipy.optimize import linprog
+from scipy.sparse import csr_matrix, eye, hstack, vstack
 
 
 READY_TS_PATTERN = re.compile(
@@ -145,7 +146,7 @@ def _design_matrix(
     return np.column_stack(columns)
 
 
-def fit_nonnegative(
+def fit_nonnegative_mae(
     samples: Sequence[ReadinessSample],
     feature_names: Sequence[str],
 ) -> np.ndarray:
@@ -153,8 +154,33 @@ def fit_nonnegative(
         raise ValueError("At least one readiness sample is required")
     x = _design_matrix(samples, feature_names)
     y = np.asarray([sample.delay_ms for sample in samples], dtype=np.float64)
-    coefficients, _ = nnls(x, y)
-    return coefficients
+    sample_count, coefficient_count = x.shape
+    residual_identity = eye(sample_count, format="csr")
+    x_sparse = csr_matrix(x)
+    constraints = vstack(
+        (
+            hstack((x_sparse, -residual_identity)),
+            hstack((-x_sparse, -residual_identity)),
+        ),
+        format="csr",
+    )
+    bounds = [(0.0, None)] * (coefficient_count + sample_count)
+    objective = np.concatenate(
+        (
+            np.zeros(coefficient_count, dtype=np.float64),
+            np.ones(sample_count, dtype=np.float64),
+        )
+    )
+    result = linprog(
+        objective,
+        A_ub=constraints,
+        b_ub=np.concatenate((y, -y)),
+        bounds=bounds,
+        method="highs",
+    )
+    if not result.success:
+        raise RuntimeError(f"Readiness MAE fit failed: {result.message}")
+    return np.asarray(result.x[:coefficient_count], dtype=np.float64)
 
 
 def _predict(
@@ -200,7 +226,10 @@ def evaluate_leave_one_run_out(
                 if run_name != heldout_name
                 for sample in run_samples
             ]
-            coefficients = fit_nonnegative(training_samples, feature_names)
+            coefficients = fit_nonnegative_mae(
+                training_samples,
+                feature_names,
+            )
             predictions = _predict(
                 heldout_samples,
                 feature_names,
@@ -245,7 +274,7 @@ def build_fit_payload(
     all_samples = [
         sample for run_samples in samples_by_run.values() for sample in run_samples
     ]
-    fitted = fit_nonnegative(all_samples, selected_features)
+    fitted = fit_nonnegative_mae(all_samples, selected_features)
     coefficient_by_name = {
         "intercept_ms": float(fitted[0]),
         "prompt_token_ms": 0.0,
@@ -262,6 +291,7 @@ def build_fit_payload(
     return {
         "version": 1,
         "target": "router_estimate_to_engine_ready_ms",
+        "fit_objective": "nonnegative_mean_absolute_error",
         "selected_model": selected_model,
         "features": list(selected_features),
         "coefficients": coefficient_by_name,
