@@ -29,6 +29,11 @@ if [[ "$RUN_MODE" != "calibrate" && "$RUN_MODE" != "sweep" ]]; then
 fi
 
 PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SFS_ROOT/.." && pwd)}"
+SHARED_PROMPT_ROOT="${SHARED_PROMPT_ROOT:-$PROJECT_ROOT/vllm_utils}"
+CALIBRATION_PROMPT_BUCKET_DIR="${CALIBRATION_PROMPT_BUCKET_DIR:-$SHARED_PROMPT_ROOT/bucketed_prompt_outputs/holdout_cache_4000}"
+HOLDOUT_BUCKET_DIR="${HOLDOUT_BUCKET_DIR:-$SHARED_PROMPT_ROOT/bucketed_prompts_0.6B}"
+HOLDOUT_CACHE_DIR="${HOLDOUT_CACHE_DIR:-$SFS_ROOT/experiments/data/prompts/holdout_cache_4000_v100}"
+HOLDOUT_TOKENIZER_ID="${HOLDOUT_TOKENIZER_ID:-$PROJECT_ROOT/.cache/huggingface/hub/models--Qwen--Qwen3-8B/snapshots/b968826d9c46dd6066d109eabc6255188de91218}"
 EXPERIMENT_TAG="${EXPERIMENT_TAG:-v100_score_proxy}"
 RUN_ROOT="${RUN_ROOT:-$SFS_ROOT/experiments/$EXPERIMENT_TAG}"
 CALIBRATION_OUTPUT_PATH="${CALIBRATION_OUTPUT_PATH:-$RUN_ROOT/calibration.json}"
@@ -58,6 +63,31 @@ fi
 if [[ "$SIMULATION_BATCH_TIME_FEATURE_SET" != "cross_term" ]]; then
   echo "[ERROR] The V100 rebuttal sweep requires cross_term batch features." >&2
   exit 1
+fi
+
+require_prompt_bucket_dir() {
+  local label="$1"
+  local path="$2"
+  local first_jsonl
+  if [[ ! -d "$path" ]]; then
+    echo "[ERROR] Missing $label prompt directory: $path" >&2
+    return 1
+  fi
+  first_jsonl="$(find "$path" -maxdepth 1 -type f -name '*.jsonl' -print -quit)"
+  if [[ -z "$first_jsonl" ]]; then
+    echo "[ERROR] No JSONL prompt files found in $label directory: $path" >&2
+    return 1
+  fi
+}
+
+if [[ "$RUN_MODE" == "calibrate" ]]; then
+  require_prompt_bucket_dir calibration "$CALIBRATION_PROMPT_BUCKET_DIR"
+else
+  require_prompt_bucket_dir holdout "$HOLDOUT_BUCKET_DIR"
+  if [[ ! -d "$HOLDOUT_TOKENIZER_ID" ]]; then
+    echo "[ERROR] Missing stable holdout tokenizer snapshot: $HOLDOUT_TOKENIZER_ID" >&2
+    exit 1
+  fi
 fi
 
 mkdir -p "$RUN_ROOT" "$CALIBRATION_TRACE_DIR" "$QPS_OUTPUT_DIR"
@@ -291,6 +321,10 @@ simulation_flags() {
   echo "tp_qwen3_0.6b=1"
   echo "tp_qwen3_8b=1"
   echo "tp_qwen3_32b=4"
+  echo "calibration_prompt_bucket_dir=$CALIBRATION_PROMPT_BUCKET_DIR"
+  echo "holdout_bucket_dir=$HOLDOUT_BUCKET_DIR"
+  echo "holdout_cache_dir=$HOLDOUT_CACHE_DIR"
+  echo "holdout_tokenizer_id=$HOLDOUT_TOKENIZER_ID"
   echo "calibration_json=$CALIBRATION_OUTPUT_PATH"
 } | tee "$RUN_ROOT/provenance_${RUN_MODE}_${SLURM_JOB_ID}.txt"
 
@@ -339,9 +373,11 @@ if [[ "$RUN_MODE" == "calibrate" ]]; then
     "$RUN_ROOT/vllm_${RUN_MODE}_qwen3-0.6b_${SLURM_JOB_ID}.log"
 
   python -m scripts.runs.compute_model_service_metrics \
+    --prompt-bucket-dir "$CALIBRATION_PROMPT_BUCKET_DIR" \
     --num-requests "$CALIBRATION_NUM_REQUESTS" \
     --request-rate-qps "$CALIBRATION_NUM_REQUESTS" \
     --max-completion-tokens "$MAX_COMPLETION_TOKENS" \
+    --context-length "$MAX_MODEL_LEN" \
     --batch-fit-feature-set "$SIMULATION_BATCH_TIME_FEATURE_SET" \
     --output-path "$CALIBRATION_OUTPUT_PATH" \
     --model-dir-0-6b "$MODEL_06B" \
@@ -488,13 +524,11 @@ python -m scripts.runs.experiments_sweep \
   --lambda-weight "$LAMBDA_WEIGHT" \
   --delta-weight 0 \
   --holdout-prompts-per-bucket 4000 \
-  --holdout-bucket-dir \
-    "$SFS_ROOT/experiments/data/prompts/bucketed_prompts/qwen3-0.6b" \
-  --holdout-cache-dir \
-    "$SFS_ROOT/experiments/data/prompts/holdout_cache_4000_v100" \
+  --holdout-bucket-dir "$HOLDOUT_BUCKET_DIR" \
+  --holdout-cache-dir "$HOLDOUT_CACHE_DIR" \
   --holdout-start-index 2500 \
   --holdout-context-length "$MAX_MODEL_LEN" \
-  --tokenizer-id "$MODEL_8B" \
+  --tokenizer-id "$HOLDOUT_TOKENIZER_ID" \
   --accuracy-model-path "$ACCURACY_PREDICTOR" \
   --output-length-model-path "$OUTPUT_PREDICTOR" \
   --per-request-wait-log "$WAIT_32B" \

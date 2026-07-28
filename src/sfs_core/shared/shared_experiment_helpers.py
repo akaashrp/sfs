@@ -110,6 +110,55 @@ def get_prompt_bucket_files(prompt_bucket_dir: str | os.PathLike[str] | Path) ->
     return sorted(prompt_bucket_files)
 
 
+def resolve_prompt_bucket_dir(
+    path: str | os.PathLike[str] | Path,
+    *,
+    label: str = "Prompt-bucket",
+) -> Path:
+    resolved = Path(path).expanduser().resolve()
+    if not resolved.is_dir():
+        raise FileNotFoundError(f"{label} directory does not exist: {resolved}")
+    if not get_prompt_bucket_files(resolved):
+        raise ValueError(
+            f"No JSONL files found in {label.lower()} directory: {resolved}"
+        )
+    return resolved
+
+
+def resolve_max_completion_tokens(
+    requested_max_completion_tokens: int,
+    prompt_tokens: int,
+    *,
+    context_length: int | None = None,
+    record_max_completion_tokens: Any = None,
+) -> int:
+    if requested_max_completion_tokens <= 0:
+        raise ValueError("requested_max_completion_tokens must be > 0")
+    if prompt_tokens < 0:
+        raise ValueError("prompt_tokens must be >= 0")
+
+    resolved = int(requested_max_completion_tokens)
+    record_limit = as_nonnegative_int(
+        record_max_completion_tokens,
+        require_integral=True,
+    )
+    if record_limit is not None and record_limit > 0:
+        resolved = min(resolved, record_limit)
+
+    if context_length is not None:
+        if context_length <= 0:
+            raise ValueError("context_length must be > 0 when provided")
+        remaining_context = int(context_length) - int(prompt_tokens)
+        if remaining_context <= 0:
+            raise ValueError(
+                f"Prompt has {prompt_tokens} tokens but context length is "
+                f"{context_length}"
+            )
+        resolved = min(resolved, remaining_context)
+
+    return max(1, resolved)
+
+
 def iter_mixed_bucketed_prompts(
     bucket_dir: Path,
     limit: int,

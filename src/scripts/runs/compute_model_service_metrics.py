@@ -32,6 +32,8 @@ from sfs_core.shared.shared_experiment_helpers import (
     iter_mixed_bucketed_prompts,
     iter_mixed_then_random_bucketed_prompts,
     iter_random_bucketed_prompts,
+    resolve_max_completion_tokens,
+    resolve_prompt_bucket_dir,
     select_prompt_subset,
     warm_up_instances,
 )
@@ -181,6 +183,7 @@ async def _compute_single_model_metrics(
     model_name: str | None = None,
     model_id: str | None = None,
     max_completion_tokens: int = 8192,
+    context_length: int | None = None,
     scheduler: WaitTimeScheduler,
     request_id_prefix: str,
     batch_fit_feature_set: str = "legacy",
@@ -207,12 +210,18 @@ async def _compute_single_model_metrics(
         request_id = f"{request_id_prefix}-{idx}"
         request_prompt_tokens[request_id] = int(prompt_record["prompt_tokens"])
         prompt = prompt_record["prompt"]
+        request_max_completion_tokens = resolve_max_completion_tokens(
+            max_completion_tokens,
+            request_prompt_tokens[request_id],
+            context_length=context_length,
+            record_max_completion_tokens=prompt_record.get("max_completion_tokens"),
+        )
         
         payload = {
             "messages": build_messages(prompt, system_prompt=DEFAULT_SYSTEM_PROMPT),
             "temperature": 0.0,
             "top_p": 1.0,
-            "max_completion_tokens": max_completion_tokens,
+            "max_completion_tokens": request_max_completion_tokens,
             "model": model_id,
         }
 
@@ -313,6 +322,7 @@ async def compute_metrics_for_models(
     *,
     request_rate_qps: float | None = None,
     max_completion_tokens: int = 8192,
+    context_length: int | None = None,
     output_path: Path,
     batch_fit_feature_set: str = "legacy",
 ) -> dict[str, dict[str, Any]]:
@@ -338,6 +348,7 @@ async def compute_metrics_for_models(
                 model_name=model_name,
                 model_id=getattr(client, "default_model", None),
                 max_completion_tokens=max_completion_tokens,
+                context_length=context_length,
                 scheduler=scheduler_for_model,
                 request_id_prefix=f"model-metrics-{_sanitize_for_filename(model_name)}",
                 batch_fit_feature_set=batch_fit_feature_set,
@@ -351,16 +362,26 @@ async def compute_metrics_for_models(
     return results
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Calibrate per-model prefill/decode throughput and mean "
             "decode-batch latency for routing baselines."
         )
     )
+    parser.add_argument(
+        "--prompt-bucket-dir",
+        type=Path,
+        default=PROMPT_BUCKET_DIR,
+        help=(
+            "Directory containing the prompt-bucket JSONL files used for "
+            "service-rate calibration."
+        ),
+    )
     parser.add_argument("--num-requests", type=int, default=NUM_REQUESTS)
     parser.add_argument("--request-rate-qps", type=float, default=None)
     parser.add_argument("--max-completion-tokens", type=int, default=8192)
+    parser.add_argument("--context-length", type=int, default=None)
     parser.add_argument(
         "--batch-fit-feature-set",
         choices=FEATURE_SET_CHOICES,
@@ -377,13 +398,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--port-0-6b", type=int, default=8002)
     parser.add_argument("--port-8b", type=int, default=8000)
     parser.add_argument("--port-32b", type=int, default=8001)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.num_requests <= 0:
         parser.error("--num-requests must be > 0")
     if args.request_rate_qps is not None and args.request_rate_qps <= 0:
         parser.error("--request-rate-qps must be > 0 when supplied")
     if args.max_completion_tokens <= 0:
         parser.error("--max-completion-tokens must be > 0")
+    if args.context_length is not None and args.context_length <= 0:
+        parser.error("--context-length must be > 0 when supplied")
     for port_name in ("port_0_6b", "port_8b", "port_32b"):
         if not 1 <= int(getattr(args, port_name)) <= 65535:
             parser.error(f"--{port_name.replace('_', '-')} must be in [1, 65535]")
@@ -393,9 +416,13 @@ def parse_args() -> argparse.Namespace:
 ### Service Rates and Prefill Throughputs:
 def main():
     args = parse_args()
+    prompt_bucket_dir = resolve_prompt_bucket_dir(
+        args.prompt_bucket_dir,
+        label="Calibration prompt-bucket",
+    )
     prompt_records = select_prompt_subset(
         iter_random_bucketed_prompts(
-            PROMPT_BUCKET_DIR,
+            prompt_bucket_dir,
             limit=args.num_requests,
             seed=DEFAULT_RANDOM_SEED,
             include_complete_record=True,
@@ -428,6 +455,7 @@ def main():
                 else float(args.num_requests)
             ),
             max_completion_tokens=args.max_completion_tokens,
+            context_length=args.context_length,
             output_path=args.output_path,
             batch_fit_feature_set=args.batch_fit_feature_set,
         )
