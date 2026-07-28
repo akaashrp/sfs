@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import json
 import os
@@ -16,6 +17,10 @@ from sfs_core.paths import (
     BUCKETED_OUTPUTS_ROOT,
     ensure_experiments_root,
 )
+from sfs_core.regression.two_part_fit import (
+    FEATURE_SET_CHOICES,
+    fit_two_part,
+)
 
 from sfs_core.shared.shared_experiment_helpers import (
     build_messages,
@@ -30,40 +35,56 @@ from sfs_core.shared.shared_experiment_helpers import (
     select_prompt_subset,
     warm_up_instances,
 )
-from sfs_core.shared.trace_theta import estimate_prefill_theta_from_trace, snapshot_trace_file_offsets
+from sfs_core.shared.trace_theta import (
+    estimate_prefill_theta_from_trace,
+    estimate_score_proxy_metrics_from_batch_stats,
+    snapshot_trace_file_offsets,
+)
 
 USER = os.environ.get("USER")
 JOB_ID = os.environ.get("SLURM_JOB_ID", "no-job-id")
 if not USER or not JOB_ID:
     raise EnvironmentError("Expected USER and SLURM_JOB_ID environment variables to be set.")
 
-EXPERIMENT_DIR = ensure_experiments_root()
+_DEFAULT_EXPERIMENT_DIR = ensure_experiments_root()
+EXPERIMENT_DIR = Path(
+    os.environ.get("MODEL_METRICS_TRACE_DIR", str(_DEFAULT_EXPERIMENT_DIR))
+).expanduser()
+EXPERIMENT_DIR.mkdir(parents=True, exist_ok=True)
 NUM_REQUESTS = 2500 * 4 # 2500 per dataset, 4 datasets (alpaca, govreport, writingprompts, hotpot_qa:distractor)
-REQUESTS_PER_SECOND = NUM_REQUESTS
+BATCH_STATS_FLUSH_GRACE_S = 1.1
 
 MODEL_DIR_QWEN3_0_6B = f"/local/{USER}/{JOB_ID}/models--Qwen--Qwen3-0.6B/snapshots/c1899de289a04d12100db370d81485cdf75e47ca"
 MODEL_DIR_QWEN3_8B = f"/local/{USER}/{JOB_ID}/models--Qwen--Qwen3-8B/snapshots/b968826d9c46dd6066d109eabc6255188de91218"
 MODEL_DIR_QWEN3_32B = f"/local/{USER}/{JOB_ID}/models--Qwen--Qwen3-32B/snapshots/9216db5781bf21249d130ec9da846c4624c16137"
 
-def get_instance_clients():
+def get_instance_clients(
+    *,
+    model_dir_0_6b: str = MODEL_DIR_QWEN3_0_6B,
+    model_dir_8b: str = MODEL_DIR_QWEN3_8B,
+    model_dir_32b: str = MODEL_DIR_QWEN3_32B,
+    port_0_6b: int = 8002,
+    port_8b: int = 8000,
+    port_32b: int = 8001,
+):
     instance_0_6b = InstanceClient(
         instance_id="vllm-0.6b",
-        address="http://localhost:8002",
-        default_model=MODEL_DIR_QWEN3_0_6B,
+        address=f"http://localhost:{int(port_0_6b)}",
+        default_model=model_dir_0_6b,
         model_id="qwen3-0.6b",
     )
 
     instance_8b = InstanceClient(
         instance_id="vllm-8b",
-        address="http://localhost:8000",
-        default_model=MODEL_DIR_QWEN3_8B,
+        address=f"http://localhost:{int(port_8b)}",
+        default_model=model_dir_8b,
         model_id="qwen3-8b",
     )
 
     instance_32b = InstanceClient(
         instance_id="vllm-32b",
-        address="http://localhost:8001",
-        default_model=MODEL_DIR_QWEN3_32B,
+        address=f"http://localhost:{int(port_32b)}",
+        default_model=model_dir_32b,
         model_id="qwen3-32b",
     )
 
@@ -162,7 +183,8 @@ async def _compute_single_model_metrics(
     max_completion_tokens: int = 8192,
     scheduler: WaitTimeScheduler,
     request_id_prefix: str,
-) -> dict[str, float | int | str | dict[str, int]]:
+    batch_fit_feature_set: str = "legacy",
+) -> dict[str, Any]:
     """
     Submit a subset of requests to a single running model and return serving rate and prefill throughput.
 
@@ -210,6 +232,9 @@ async def _compute_single_model_metrics(
     elapsed_s = max(time.perf_counter() - start, 1e-9)
     failed = sum(1 for result in results if isinstance(result, Exception))
     succeeded = len(results) - failed
+    # BatchStatsLogger flushes once per second. Keep the service-rate timing
+    # above independent of this telemetry grace period.
+    await asyncio.sleep(BATCH_STATS_FLUSH_GRACE_S)
 
     resolved_model = (
         model_id
@@ -227,8 +252,44 @@ async def _compute_single_model_metrics(
         batch_stats_csv_path=batch_stats_csv_path,
         batch_stats_offset=offsets.get("batch_stats_offset", 0),
     )
+    score_proxy_metrics = estimate_score_proxy_metrics_from_batch_stats(
+        batch_stats_csv_path=batch_stats_csv_path,
+        batch_stats_offset=offsets.get("batch_stats_offset", 0),
+    )
+    score_proxy_metrics["prefill_tps"] = float(
+        theta["theta_p_tps_from_wait_logs"]
+    )
+    batch_fit, batch_df = fit_two_part(
+        batch_stats_csv_path,
+        stall_percentile=99.9,
+        feature_set=batch_fit_feature_set,
+        start_offset=offsets.get("batch_stats_offset", 0),
+    )
+    coefficient_by_name = {
+        str(name): float(coefficient)
+        for name, coefficient in zip(
+            batch_fit.feature_names,
+            batch_fit.base_model.coef_,
+        )
+    }
+    final_feature_name = (
+        "s_sq" if batch_fit_feature_set == "legacy" else "p_x_ctx"
+    )
+    sfs_simulation = {
+        "feature_set": batch_fit_feature_set,
+        "intercept": float(batch_fit.base_model.intercept_),
+        "prefill_coeff": coefficient_by_name["p"],
+        "decode_coeff": coefficient_by_name["d"],
+        "sum_coeff": coefficient_by_name["s"],
+        "prefill_sq_coeff": coefficient_by_name["p_sq_sum"],
+        "sum_sq_coeff": coefficient_by_name[final_feature_name],
+        "fit_rows": int(len(batch_df)),
+        "fit_inlier_rows": int(batch_fit.inlier_mask.sum()),
+        "stall_probability": float(batch_fit.stall_probability),
+        "mean_stall_delay_s": float(batch_fit.mean_stall_delay),
+    }
 
-    result: dict[str, float | int | str | dict[str, int]] = {
+    result: dict[str, Any] = {
         "model_id": str(resolved_model),
         "num_queries": len(prompt_records),
         "succeeded": succeeded,
@@ -236,6 +297,8 @@ async def _compute_single_model_metrics(
         "elapsed_s": elapsed_s,
         "service_rate_qps": succeeded / elapsed_s,
         "prefill_theta": theta,
+        "score_proxy": score_proxy_metrics,
+        "sfs_simulation": sfs_simulation,
         "actual_wait_log_path": str(actual_wait_log_path),
         "response_map_path": str(response_map_path),
         "batch_stats_csv_path": str(batch_stats_csv_path) if batch_stats_csv_path else None,
@@ -251,19 +314,23 @@ async def compute_metrics_for_models(
     request_rate_qps: float | None = None,
     max_completion_tokens: int = 8192,
     output_path: Path,
-) -> dict[str, dict[str, float | int | str]]:
+    batch_fit_feature_set: str = "legacy",
+) -> dict[str, dict[str, Any]]:
     """
     Convenience wrapper to compute service rates and prefill throughputs for different models.
 
     Start all model servers before calling this function. Each model will be routed to independently.
     """
-    results: dict[str, dict[str, float | int | str]] = {}
+    results: dict[str, dict[str, Any]] = {}
     for model_name, client in model_clients.items():    
         scheduler_for_model = build_single_model_wait_time_scheduler(
             model_name, model_clients, enable_wait_time_polling=False,
         )
         try:
             await warm_up_instances([client])
+            # Let warm-up telemetry reach disk before the measured interval's
+            # byte offsets are captured.
+            await asyncio.sleep(BATCH_STATS_FLUSH_GRACE_S)
             results[model_name] = await _compute_single_model_metrics(
                 client,
                 prompt_records,
@@ -273,6 +340,7 @@ async def compute_metrics_for_models(
                 max_completion_tokens=max_completion_tokens,
                 scheduler=scheduler_for_model,
                 request_id_prefix=f"model-metrics-{_sanitize_for_filename(model_name)}",
+                batch_fit_feature_set=batch_fit_feature_set,
             )
         finally:
             await scheduler_for_model.stop()
@@ -283,14 +351,66 @@ async def compute_metrics_for_models(
     return results
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Calibrate per-model prefill/decode throughput and mean "
+            "decode-batch latency for routing baselines."
+        )
+    )
+    parser.add_argument("--num-requests", type=int, default=NUM_REQUESTS)
+    parser.add_argument("--request-rate-qps", type=float, default=None)
+    parser.add_argument("--max-completion-tokens", type=int, default=8192)
+    parser.add_argument(
+        "--batch-fit-feature-set",
+        choices=FEATURE_SET_CHOICES,
+        default="legacy",
+    )
+    parser.add_argument(
+        "--output-path",
+        type=Path,
+        default=EXPERIMENT_DIR / "model_metrics.json",
+    )
+    parser.add_argument("--model-dir-0-6b", default=MODEL_DIR_QWEN3_0_6B)
+    parser.add_argument("--model-dir-8b", default=MODEL_DIR_QWEN3_8B)
+    parser.add_argument("--model-dir-32b", default=MODEL_DIR_QWEN3_32B)
+    parser.add_argument("--port-0-6b", type=int, default=8002)
+    parser.add_argument("--port-8b", type=int, default=8000)
+    parser.add_argument("--port-32b", type=int, default=8001)
+    args = parser.parse_args()
+    if args.num_requests <= 0:
+        parser.error("--num-requests must be > 0")
+    if args.request_rate_qps is not None and args.request_rate_qps <= 0:
+        parser.error("--request-rate-qps must be > 0 when supplied")
+    if args.max_completion_tokens <= 0:
+        parser.error("--max-completion-tokens must be > 0")
+    for port_name in ("port_0_6b", "port_8b", "port_32b"):
+        if not 1 <= int(getattr(args, port_name)) <= 65535:
+            parser.error(f"--{port_name.replace('_', '-')} must be in [1, 65535]")
+    return args
+
+
 ### Service Rates and Prefill Throughputs:
 def main():
+    args = parse_args()
     prompt_records = select_prompt_subset(
-        iter_random_bucketed_prompts(PROMPT_BUCKET_DIR, limit=NUM_REQUESTS, seed=DEFAULT_RANDOM_SEED, include_complete_record=True),
-        NUM_REQUESTS,
+        iter_random_bucketed_prompts(
+            PROMPT_BUCKET_DIR,
+            limit=args.num_requests,
+            seed=DEFAULT_RANDOM_SEED,
+            include_complete_record=True,
+        ),
+        args.num_requests,
     )
     
-    instance_0_6b, instance_8b, instance_32b = get_instance_clients()
+    instance_0_6b, instance_8b, instance_32b = get_instance_clients(
+        model_dir_0_6b=args.model_dir_0_6b,
+        model_dir_8b=args.model_dir_8b,
+        model_dir_32b=args.model_dir_32b,
+        port_0_6b=args.port_0_6b,
+        port_8b=args.port_8b,
+        port_32b=args.port_32b,
+    )
 
     model_clients = {
         "qwen3-0.6b": instance_0_6b,
@@ -302,8 +422,14 @@ def main():
         compute_metrics_for_models(
             model_clients,
             prompt_records,
-            request_rate_qps=REQUESTS_PER_SECOND,
-            output_path=EXPERIMENT_DIR / "model_metrics.json",
+            request_rate_qps=(
+                args.request_rate_qps
+                if args.request_rate_qps is not None
+                else float(args.num_requests)
+            ),
+            max_completion_tokens=args.max_completion_tokens,
+            output_path=args.output_path,
+            batch_fit_feature_set=args.batch_fit_feature_set,
         )
     )
     print(json.dumps(results_metrics, indent=2))

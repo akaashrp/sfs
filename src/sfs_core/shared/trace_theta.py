@@ -7,6 +7,7 @@ from typing import Any
 
 REQUEST_ID_PATTERN = re.compile(r"request_id=([^\s]+)")
 PREFILL_S_PATTERN = re.compile(r"prefill_s=([0-9.+-eE]+)")
+BATCH_STATS_MIN_COLUMNS = 9
 
 
 def snapshot_trace_file_offsets(
@@ -137,3 +138,64 @@ def estimate_prefill_theta_from_trace(
         result["batch_stats_rows_used"] = parsed_rows
 
     return result
+
+
+def estimate_score_proxy_metrics_from_batch_stats(
+    *,
+    batch_stats_csv_path: Path,
+    batch_stats_offset: int = 0,
+) -> dict[str, Any]:
+    """Estimate decode-side SCORE-proxy terms from pure-decode iterations.
+
+    The mean execution time of an iteration containing decode tokens and no
+    prefill tokens is the calibrated one-step decode latency. Restricting the
+    sample to pure-decode rows prevents prefill work from contaminating either
+    the decode throughput or latency term.
+    """
+    batch_lines = _read_new_lines(batch_stats_csv_path, batch_stats_offset)
+    total_decode_tokens = 0.0
+    total_decode_exec_s = 0.0
+    pure_decode_exec_s: list[float] = []
+    mixed_rows_ignored = 0
+    malformed_rows_ignored = 0
+
+    for line in batch_lines:
+        if line.startswith("ts,engine,prefill"):
+            continue
+        row = next(csv.reader([line]))
+        if len(row) < BATCH_STATS_MIN_COLUMNS:
+            malformed_rows_ignored += 1
+            continue
+        try:
+            prefill_tokens = float(row[2])
+            decode_tokens = float(row[4])
+            exec_s = float(row[8])
+        except (TypeError, ValueError):
+            malformed_rows_ignored += 1
+            continue
+        if decode_tokens <= 0 or exec_s <= 0:
+            continue
+        if prefill_tokens > 0:
+            mixed_rows_ignored += 1
+            continue
+        total_decode_tokens += decode_tokens
+        total_decode_exec_s += exec_s
+        pure_decode_exec_s.append(exec_s)
+
+    if not pure_decode_exec_s or total_decode_exec_s <= 0:
+        raise RuntimeError(
+            "No usable pure-decode batch-stats rows found after "
+            f"batch_stats_offset={batch_stats_offset}."
+        )
+
+    return {
+        "decode_tps": total_decode_tokens / total_decode_exec_s,
+        "mean_decode_batch_ms": (
+            sum(pure_decode_exec_s) / len(pure_decode_exec_s) * 1000.0
+        ),
+        "decode_batch_stats_rows_used": len(pure_decode_exec_s),
+        "decode_tokens_used": int(total_decode_tokens),
+        "decode_exec_s_used": total_decode_exec_s,
+        "mixed_prefill_decode_rows_ignored": mixed_rows_ignored,
+        "malformed_rows_ignored": malformed_rows_ignored,
+    }

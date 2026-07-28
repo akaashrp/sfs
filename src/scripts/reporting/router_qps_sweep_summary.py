@@ -19,6 +19,7 @@ from sfs_core.shared.router_sweep_summary_helpers import (
 DEFAULT_UTILITIES = [
     "hard",
     "hard_prefill_tps",
+    "hard_score_proxy",
     "shortest_queue",
     "latency_agnostic",
     "round_robin",

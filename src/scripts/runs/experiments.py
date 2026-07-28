@@ -36,6 +36,10 @@ from sfs_core.routing.wait_time_scheduler import (
     WaitTimeScheduler,
 )
 from sfs_core.routing.pending_dispatch_ledger import PendingDispatch
+from sfs_core.routing.score_proxy import (
+    estimate_ttft_ms as estimate_score_proxy_ttft_ms,
+    hard_slo_candidate_value,
+)
 from vllm.v1.engine.scheduler_simulator import SimulationStopMode
 
 from sfs_core.shared.shared_experiment_helpers import (
@@ -98,6 +102,7 @@ BUILTIN_UTILITIES = (
     "min_wait",
     "hard",
     "hard_prefill_tps",
+    "hard_score_proxy",
     "hard_pk_mg1",
     "slo_aware",
     "latency_agnostic",
@@ -116,6 +121,7 @@ BUILTIN_WAIT_ESTIMATORS = (
     "live",
     "pk_mg1",
     "prefill_tps_ttft",
+    "score_proxy_ttft",
 )
 EXPERIMENT_MODES = ("router", "wait_gof", "batch_fit", "all")
 ARRIVAL_PROCESSES = ("poisson", "deterministic", "mmpp2")
@@ -157,9 +163,19 @@ TTFT_BATCH_PARAM_KEYS = (
     "sum_sq_coeff",
 )
 TTFT_ESTIMATORS = {"live"}
-TTFT_TARGET_ESTIMATORS = {"live", "prefill_tps_ttft", "pk_mg1"}
+TTFT_TARGET_ESTIMATORS = {
+    "live",
+    "prefill_tps_ttft",
+    "score_proxy_ttft",
+    "pk_mg1",
+}
 PREFILL_TPS_TTFT_ESTIMATOR_NAME = "prefill_tps_ttft"
-SNAPSHOT_ONLY_WAIT_ESTIMATORS = {PREFILL_TPS_TTFT_ESTIMATOR_NAME, "pk_mg1"}
+SCORE_PROXY_TTFT_ESTIMATOR_NAME = "score_proxy_ttft"
+SNAPSHOT_ONLY_WAIT_ESTIMATORS = {
+    PREFILL_TPS_TTFT_ESTIMATOR_NAME,
+    SCORE_PROXY_TTFT_ESTIMATOR_NAME,
+    "pk_mg1",
+}
 DEFAULT_PREFILL_TPS: Dict[str, float] = {
     "qwen3-0.6b": 130313.18274213851,
     "qwen3-8b": 32954.46194008248,
@@ -1954,7 +1970,12 @@ def build_utility_fn(
                 )
             )
         )
-    if utility in {"hard", "hard_prefill_tps", "hard_pk_mg1"}:
+    if utility in {
+        "hard",
+        "hard_prefill_tps",
+        "hard_score_proxy",
+        "hard_pk_mg1",
+    }:
 
         def hard(
             instance_id: str,
@@ -1963,31 +1984,22 @@ def build_utility_fn(
             output_lengths: Dict[str, float],
             prompt_tokens: int,
         ) -> float:
-            slo_ms = utility_state.current_slo_ms
-            if slo_ms is None:
-                feasible_instance_ids = set(wait_results.keys())
-            else:
-                feasible_instance_ids = {
-                    candidate_id
+            return hard_slo_candidate_value(
+                instance_id=instance_id,
+                wait_ms_by_instance={
+                    candidate_id: float(wait_result.wait_ms)
                     for candidate_id, wait_result in wait_results.items()
-                    if float(wait_result.wait_ms) <= float(slo_ms)
-                }
-
-            if feasible_instance_ids:
-                if instance_id not in feasible_instance_ids:
-                    return float("-inf")
-                return float(accuracy_scores.get(instance_id, 0.0)) - (
-                    lambda_weight
-                    * _predicted_cost(
-                        instance_id,
-                        prompt_tokens=prompt_tokens,
-                        output_lengths=output_lengths,
-                        instance_costs=instance_costs,
-                    )
-                )
-
-            # If no instance meets the SLO, fall back to minimum predicted wait.
-            return -wait_results[instance_id].wait_ms
+                },
+                slo_ms=utility_state.current_slo_ms,
+                predicted_quality=float(accuracy_scores.get(instance_id, 0.0)),
+                predicted_cost=_predicted_cost(
+                    instance_id,
+                    prompt_tokens=prompt_tokens,
+                    output_lengths=output_lengths,
+                    instance_costs=instance_costs,
+                ),
+                lambda_weight=lambda_weight,
+            )
 
         return hard
     if utility == "slo_aware":
@@ -2680,14 +2692,99 @@ def _parse_prefill_tps_overrides(values: list[str]) -> Dict[str, float]:
     return parsed
 
 
+def _first_positive_metric(*values: Any) -> Optional[float]:
+    for value in values:
+        numeric = _as_nonnegative_float(value)
+        if numeric is not None and numeric > 0:
+            return float(numeric)
+    return None
+
+
+def _load_calibrated_service_metrics(
+    path: Optional[Path],
+) -> Dict[str, Dict[str, float]]:
+    if path is None:
+        return {}
+    resolved_path = path.expanduser().resolve()
+    try:
+        payload = json.loads(resolved_path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ValueError(
+            f"Service-metrics JSON does not exist: {resolved_path}"
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"Service-metrics JSON is invalid: {resolved_path}: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise ValueError(
+            f"Service-metrics JSON must contain an object: {resolved_path}"
+        )
+
+    model_rows = payload.get("models", payload)
+    if not isinstance(model_rows, dict):
+        raise ValueError(
+            f"Service-metrics JSON 'models' entry must be an object: {resolved_path}"
+        )
+
+    calibrated: Dict[str, Dict[str, float]] = {}
+    for raw_key, raw_row in model_rows.items():
+        if not isinstance(raw_row, dict):
+            continue
+        score_row = raw_row.get("score_proxy")
+        if not isinstance(score_row, dict):
+            score_row = {}
+        prefill_row = raw_row.get("prefill_theta")
+        if not isinstance(prefill_row, dict):
+            prefill_row = {}
+
+        prefill_tps = _first_positive_metric(
+            score_row.get("prefill_tps"),
+            raw_row.get("prefill_tps"),
+            prefill_row.get("theta_p_tps_from_wait_logs"),
+            prefill_row.get("theta_p_tps_from_batch_stats"),
+        )
+        decode_tps = _first_positive_metric(
+            score_row.get("decode_tps"),
+            raw_row.get("decode_tps"),
+        )
+        mean_decode_batch_ms = _first_positive_metric(
+            score_row.get("mean_decode_batch_ms"),
+            score_row.get("first_decode_batch_ms"),
+            raw_row.get("mean_decode_batch_ms"),
+            raw_row.get("first_decode_batch_ms"),
+        )
+
+        metrics: Dict[str, float] = {}
+        if prefill_tps is not None:
+            metrics["prefill_tps"] = prefill_tps
+        if decode_tps is not None:
+            metrics["decode_tps"] = decode_tps
+        if mean_decode_batch_ms is not None:
+            metrics["mean_decode_batch_ms"] = mean_decode_batch_ms
+        if metrics:
+            calibrated[_normalize_prefill_tps_key(raw_key)] = metrics
+
+    if not calibrated:
+        raise ValueError(
+            f"Service-metrics JSON contains no usable model metrics: {resolved_path}"
+        )
+    return calibrated
+
+
 def _build_prefill_tps_lookup(
     *,
     overrides: Optional[Dict[str, float]] = None,
+    calibrated_metrics: Optional[Dict[str, Dict[str, float]]] = None,
 ) -> Dict[str, float]:
     lookup: Dict[str, float] = {
         _normalize_prefill_tps_key(key): float(value)
         for key, value in DEFAULT_PREFILL_TPS.items()
     }
+    for key, metrics in (calibrated_metrics or {}).items():
+        numeric = _first_positive_metric(metrics.get("prefill_tps"))
+        if numeric is not None:
+            lookup[_normalize_prefill_tps_key(key)] = numeric
     if overrides:
         for key, value in overrides.items():
             normalized_key = _normalize_prefill_tps_key(key)
@@ -2724,8 +2821,12 @@ def _resolve_router_prefill_tps_by_instance(
     *,
     instances: Dict[str, InstanceClient],
     overrides: Optional[Dict[str, float]] = None,
+    calibrated_metrics: Optional[Dict[str, Dict[str, float]]] = None,
 ) -> tuple[Dict[str, float], Dict[str, Dict[str, Any]]]:
-    lookup = _build_prefill_tps_lookup(overrides=overrides)
+    lookup = _build_prefill_tps_lookup(
+        overrides=overrides,
+        calibrated_metrics=calibrated_metrics,
+    )
     resolved: Dict[str, float] = {}
     diagnostics: Dict[str, Dict[str, Any]] = {}
     missing: list[str] = []
@@ -2752,6 +2853,80 @@ def _resolve_router_prefill_tps_by_instance(
             + ". Supply overrides via --prefill-tps key=value."
         )
     return resolved, diagnostics
+
+
+def _resolve_score_proxy_metrics_by_instance(
+    *,
+    instances: Dict[str, InstanceClient],
+    calibrated_metrics: Dict[str, Dict[str, float]],
+) -> tuple[
+    Dict[str, float],
+    Dict[str, float],
+    Dict[str, Dict[str, Any]],
+]:
+    decode_tps_by_instance: Dict[str, float] = {}
+    mean_decode_batch_ms_by_instance: Dict[str, float] = {}
+    diagnostics: Dict[str, Dict[str, Any]] = {}
+    missing: list[str] = []
+
+    for instance_id, instance in instances.items():
+        candidates = (
+            instance_id,
+            getattr(instance, "model_id", None),
+            getattr(instance, "default_model", None),
+        )
+        candidate_keys: list[str] = []
+        matched_key: Optional[str] = None
+        metrics: Optional[Dict[str, float]] = None
+        for candidate in candidates:
+            key = _normalize_prefill_tps_key(candidate)
+            if not key or key in candidate_keys:
+                continue
+            candidate_keys.append(key)
+            candidate_metrics = calibrated_metrics.get(key)
+            if isinstance(candidate_metrics, dict):
+                matched_key = key
+                metrics = candidate_metrics
+                break
+
+        decode_tps = _first_positive_metric(
+            metrics.get("decode_tps") if metrics is not None else None
+        )
+        mean_decode_batch_ms = _first_positive_metric(
+            metrics.get("mean_decode_batch_ms") if metrics is not None else None
+        )
+        diagnostics[instance_id] = {
+            "matched_key": matched_key,
+            "candidate_keys": candidate_keys,
+            "decode_tps": decode_tps,
+            "mean_decode_batch_ms": mean_decode_batch_ms,
+        }
+        missing_fields: list[str] = []
+        if decode_tps is None:
+            missing_fields.append("decode_tps")
+        if mean_decode_batch_ms is None:
+            missing_fields.append("mean_decode_batch_ms")
+        if missing_fields:
+            missing.append(
+                f"{instance_id} missing={missing_fields} candidates={candidate_keys}"
+            )
+            continue
+        decode_tps_by_instance[instance_id] = decode_tps
+        mean_decode_batch_ms_by_instance[instance_id] = mean_decode_batch_ms
+
+    if missing:
+        raise ValueError(
+            "SCORE proxy requires calibrated decode TPS and mean decode-batch "
+            "latency for every instance. Missing mappings for: "
+            + "; ".join(missing)
+            + ". Supply --service-metrics-json from the matching hardware and "
+            "vLLM configuration."
+        )
+    return (
+        decode_tps_by_instance,
+        mean_decode_batch_ms_by_instance,
+        diagnostics,
+    )
 
 
 def _build_service_rate_lookup() -> Dict[str, float]:
@@ -2839,6 +3014,19 @@ def _prefill_backlog_tokens_from_wait_payload(payload: Dict[str, Any]) -> Option
     return None
 
 
+def _snapshot_metadata_from_wait_payload(
+    payload: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    reports = payload.get("reports")
+    if not isinstance(reports, list) or not reports:
+        return None
+    report0 = reports[0]
+    if not isinstance(report0, dict):
+        return None
+    metadata = report0.get("metadata")
+    return metadata if isinstance(metadata, dict) else None
+
+
 def _wait_estimator_prefill_tps_ttft(
     instance_id: str,
     instance: InstanceClient,
@@ -2906,6 +3094,130 @@ def _wait_estimator_prefill_tps_ttft(
         diagnostics=diagnostics,
     )
     return ttft_ms
+
+
+def _wait_estimator_score_proxy_ttft(
+    instance_id: str,
+    instance: InstanceClient,
+    live_wait_results: Dict[str, WaitTimeResult],
+    context: Dict[str, Any],
+) -> Optional[float]:
+    prefill_tps_by_instance = context.get("prefill_tps_by_instance")
+    decode_tps_by_instance = context.get("decode_tps_by_instance")
+    mean_decode_batch_ms_by_instance = context.get(
+        "mean_decode_batch_ms_by_instance"
+    )
+    prefill_tps = _first_positive_metric(
+        prefill_tps_by_instance.get(instance_id)
+        if isinstance(prefill_tps_by_instance, dict)
+        else None
+    )
+    decode_tps = _first_positive_metric(
+        decode_tps_by_instance.get(instance_id)
+        if isinstance(decode_tps_by_instance, dict)
+        else None
+    )
+    mean_decode_batch_ms = _first_positive_metric(
+        mean_decode_batch_ms_by_instance.get(instance_id)
+        if isinstance(mean_decode_batch_ms_by_instance, dict)
+        else None
+    )
+    if (
+        prefill_tps is None
+        or decode_tps is None
+        or mean_decode_batch_ms is None
+    ):
+        raise ValueError(
+            f"{SCORE_PROXY_TTFT_ESTIMATOR_NAME} requires positive prefill TPS, "
+            f"decode TPS, and mean decode-batch latency for instance "
+            f"'{instance_id}'."
+        )
+
+    prompt_tokens = _as_nonnegative_int(context.get("prompt_tokens"))
+    prompt_tokens_value = int(prompt_tokens) if prompt_tokens is not None else 0
+    diagnostics: Dict[str, Any] = {
+        "method": SCORE_PROXY_TTFT_ESTIMATOR_NAME,
+        "score_exact_reproduction": False,
+        "target": "ttft",
+        "estimated_prefill_ms": None,
+        "estimated_decode_interference_ms": None,
+        "estimated_first_decode_batch_ms": float(mean_decode_batch_ms),
+        "estimated_ttft_ms": None,
+        "estimated_fallback_reason": None,
+    }
+
+    wait_record = live_wait_results.get(instance_id) or instance.last_wait
+    if wait_record is None or not isinstance(wait_record.raw_payload, dict):
+        diagnostics["estimated_fallback_reason"] = "missing_wait_payload"
+        _record_wait_estimator_diagnostics(
+            context,
+            instance_id=instance_id,
+            diagnostics=diagnostics,
+        )
+        raise RuntimeError(
+            f"{SCORE_PROXY_TTFT_ESTIMATOR_NAME} requires snapshot metadata for "
+            f"instance '{instance_id}'; no wait payload was available."
+        )
+
+    metadata = _snapshot_metadata_from_wait_payload(wait_record.raw_payload)
+    prefill_backlog_tokens = (
+        _prefill_backlog_tokens_from_wait_payload(wait_record.raw_payload)
+    )
+    decode_backlog_tokens = (
+        _as_nonnegative_float(metadata.get("decode_backlog_total_tokens"))
+        if metadata is not None
+        else None
+    )
+    if prefill_backlog_tokens is None or decode_backlog_tokens is None:
+        diagnostics["estimated_fallback_reason"] = "missing_effective_backlog_tokens"
+        _record_wait_estimator_diagnostics(
+            context,
+            instance_id=instance_id,
+            diagnostics=diagnostics,
+        )
+        raise RuntimeError(
+            f"{SCORE_PROXY_TTFT_ESTIMATOR_NAME} requires effective prefill and "
+            f"decode backlog metadata for instance '{instance_id}'."
+        )
+
+    ttft_ms, terms = estimate_score_proxy_ttft_ms(
+        prompt_tokens=prompt_tokens_value,
+        prefill_backlog_tokens=float(prefill_backlog_tokens),
+        decode_backlog_tokens=float(decode_backlog_tokens),
+        prefill_tps=prefill_tps,
+        decode_tps=decode_tps,
+        mean_decode_batch_ms=mean_decode_batch_ms,
+    )
+    diagnostics.update(
+        {
+            "estimated_prefill_ms": float(terms["prefill_ms"]),
+            "estimated_decode_interference_ms": float(
+                terms["decode_interference_ms"]
+            ),
+            "estimated_ttft_ms": float(ttft_ms),
+            "details": {
+                "prefill_backlog_total_tokens": float(prefill_backlog_tokens),
+                "decode_backlog_total_tokens": float(decode_backlog_tokens),
+                "prompt_tokens": int(prompt_tokens_value),
+                "prefill_tps": float(prefill_tps),
+                "decode_tps": float(decode_tps),
+                "mean_decode_batch_ms": float(mean_decode_batch_ms),
+                "pending_overlay_count": (
+                    int(metadata["pending_overlay_count"])
+                    if metadata is not None
+                    and isinstance(metadata.get("pending_overlay_count"), int)
+                    else None
+                ),
+            },
+        }
+    )
+    _record_wait_estimator_diagnostics(
+        context,
+        instance_id=instance_id,
+        diagnostics=diagnostics,
+    )
+    return float(ttft_ms)
+
 
 def _wait_estimator_pk_mg1(
     instance_id: str,
@@ -2975,6 +3287,8 @@ def resolve_wait_estimator(spec: str) -> tuple[str, WaitEstimatorCallable]:
         return "zero", _wait_estimator_zero
     if key == PREFILL_TPS_TTFT_ESTIMATOR_NAME:
         return PREFILL_TPS_TTFT_ESTIMATOR_NAME, _wait_estimator_prefill_tps_ttft
+    if key == SCORE_PROXY_TTFT_ESTIMATOR_NAME:
+        return SCORE_PROXY_TTFT_ESTIMATOR_NAME, _wait_estimator_score_proxy_ttft
     if key == "pk_mg1":
         return "pk_mg1", _wait_estimator_pk_mg1
     if ":" not in spec:
@@ -4405,9 +4719,20 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help=(
             "Optional prefill TPS override(s) as key=value for prefill-TPS utilities "
-            "(hard_prefill_tps, soft_prefill_tps, hard_pk_mg1, soft_pk_mg1). "
-            "Keys can be instance_id/model_id "
+            "(hard_prefill_tps, hard_score_proxy, soft_prefill_tps, "
+            "hard_pk_mg1, soft_pk_mg1). Keys can be instance_id/model_id "
             "aliases (e.g., vllm-0.6b=120000)."
+        ),
+    )
+    parser.add_argument(
+        "--service-metrics-json",
+        type=Path,
+        default=None,
+        help=(
+            "Calibration JSON from compute_model_service_metrics.py. "
+            "hard_score_proxy requires per-model prefill TPS, decode TPS, and "
+            "mean decode-batch latency measured under the same hardware and "
+            "vLLM configuration."
         ),
     )
     parser.add_argument(
@@ -4501,6 +4826,9 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     try:
         args.prefill_tps_overrides = _parse_prefill_tps_overrides(args.prefill_tps)
+        args.calibrated_service_metrics = _load_calibrated_service_metrics(
+            args.service_metrics_json
+        )
     except ValueError as exc:
         parser.error(str(exc))
 
@@ -5088,6 +5416,15 @@ def _baseline_runtime_params(
             PREFILL_TPS_TTFT_ESTIMATOR_NAME,
             False,
         )
+    if utility == "hard_score_proxy":
+        return (
+            lambda_weight,
+            0.0,
+            "utility",
+            _wait_estimator_score_proxy_ttft,
+            SCORE_PROXY_TTFT_ESTIMATOR_NAME,
+            False,
+        )
     if utility == "hard_pk_mg1":
         return (
             lambda_weight,
@@ -5147,8 +5484,12 @@ async def run_router_experiment(
     prefill_tps_resolution: Optional[Dict[str, Dict[str, Any]]] = None
     service_rates_by_instance: Optional[Dict[str, float]] = None
     service_rates_resolution: Optional[Dict[str, Dict[str, Any]]] = None
+    decode_tps_by_instance: Optional[Dict[str, float]] = None
+    mean_decode_batch_ms_by_instance: Optional[Dict[str, float]] = None
+    score_proxy_metrics_resolution: Optional[Dict[str, Dict[str, Any]]] = None
     prefill_tps_utilities = {
         "hard_prefill_tps",
+        "hard_score_proxy",
         "soft_prefill_tps",
         "hard_pk_mg1",
         "soft_pk_mg1",
@@ -5157,6 +5498,20 @@ async def run_router_experiment(
         prefill_tps_by_instance, prefill_tps_resolution = _resolve_router_prefill_tps_by_instance(
             instances=instances,
             overrides=getattr(args, "prefill_tps_overrides", None),
+            calibrated_metrics=getattr(args, "calibrated_service_metrics", None),
+        )
+    if "hard_score_proxy" in normalized_utilities:
+        (
+            decode_tps_by_instance,
+            mean_decode_batch_ms_by_instance,
+            score_proxy_metrics_resolution,
+        ) = _resolve_score_proxy_metrics_by_instance(
+            instances=instances,
+            calibrated_metrics=getattr(
+                args,
+                "calibrated_service_metrics",
+                {},
+            ),
         )
     if any(name in {"hard_pk_mg1", "soft_pk_mg1"} for name in normalized_utilities):
         service_rates_by_instance, service_rates_resolution = (
@@ -5222,6 +5577,23 @@ async def run_router_experiment(
                 )
             wait_estimator_context = {
                 "prefill_tps_by_instance": dict(prefill_tps_by_instance),
+            }
+        elif wait_estimator_name == SCORE_PROXY_TTFT_ESTIMATOR_NAME:
+            if (
+                not prefill_tps_by_instance
+                or not decode_tps_by_instance
+                or not mean_decode_batch_ms_by_instance
+            ):
+                raise ValueError(
+                    "SCORE proxy selected but its calibrated service metrics "
+                    "were not resolved."
+                )
+            wait_estimator_context = {
+                "prefill_tps_by_instance": dict(prefill_tps_by_instance),
+                "decode_tps_by_instance": dict(decode_tps_by_instance),
+                "mean_decode_batch_ms_by_instance": dict(
+                    mean_decode_batch_ms_by_instance
+                ),
             }
         elif wait_estimator_name == "pk_mg1":
             if not prefill_tps_by_instance:
@@ -5357,6 +5729,21 @@ async def run_router_experiment(
     if service_rates_by_instance is not None:
         result["service_rates_rps_by_instance"] = dict(service_rates_by_instance)
         result["service_rates_rps_resolution"] = service_rates_resolution
+    if decode_tps_by_instance is not None:
+        result["score_proxy"] = {
+            "exact_score_reproduction": False,
+            "target": "ttft",
+            "formula": (
+                "(effective_prefill_backlog_tokens + prompt_tokens) / "
+                "prefill_tps + effective_decode_backlog_tokens / decode_tps + "
+                "mean_decode_batch_ms"
+            ),
+            "decode_tps_by_instance": dict(decode_tps_by_instance),
+            "mean_decode_batch_ms_by_instance": dict(
+                mean_decode_batch_ms_by_instance or {}
+            ),
+            "metrics_resolution": score_proxy_metrics_resolution,
+        }
     if affinity_calibration is not None:
         result["instance_affinity_calibration"] = {
             "scored_root": affinity_calibration.get("scored_root"),
@@ -5439,15 +5826,44 @@ async def run_wait_gof_experiment(
     prefill_tps_resolution: Optional[Dict[str, Dict[str, Any]]] = None
     service_rates_by_instance: Optional[Dict[str, float]] = None
     service_rates_resolution: Optional[Dict[str, Dict[str, Any]]] = None
+    decode_tps_by_instance: Optional[Dict[str, float]] = None
+    mean_decode_batch_ms_by_instance: Optional[Dict[str, float]] = None
+    score_proxy_metrics_resolution: Optional[Dict[str, Dict[str, Any]]] = None
     if any(
-        name in {PREFILL_TPS_TTFT_ESTIMATOR_NAME, "pk_mg1"}
+        name
+        in {
+            PREFILL_TPS_TTFT_ESTIMATOR_NAME,
+            SCORE_PROXY_TTFT_ESTIMATOR_NAME,
+            "pk_mg1",
+        }
         for name, _ in resolved_estimators
     ):
         prefill_tps_by_instance, prefill_tps_resolution = (
             _resolve_router_prefill_tps_by_instance(
                 instances=wait_instances,
                 overrides=getattr(args, "prefill_tps_overrides", None),
+                calibrated_metrics=getattr(
+                    args,
+                    "calibrated_service_metrics",
+                    None,
+                ),
             )
+        )
+    if any(
+        name == SCORE_PROXY_TTFT_ESTIMATOR_NAME
+        for name, _ in resolved_estimators
+    ):
+        (
+            decode_tps_by_instance,
+            mean_decode_batch_ms_by_instance,
+            score_proxy_metrics_resolution,
+        ) = _resolve_score_proxy_metrics_by_instance(
+            instances=wait_instances,
+            calibrated_metrics=getattr(
+                args,
+                "calibrated_service_metrics",
+                {},
+            ),
         )
     if any(name == "pk_mg1" for name, _ in resolved_estimators):
         service_rates_by_instance, service_rates_resolution = (
@@ -5482,6 +5898,25 @@ async def run_wait_gof_experiment(
                 )
             estimator_context["prefill_tps_by_instance"] = dict(
                 prefill_tps_by_instance
+            )
+        if estimator_name == SCORE_PROXY_TTFT_ESTIMATOR_NAME:
+            if (
+                not prefill_tps_by_instance
+                or not decode_tps_by_instance
+                or not mean_decode_batch_ms_by_instance
+            ):
+                raise ValueError(
+                    f"{SCORE_PROXY_TTFT_ESTIMATOR_NAME} selected but calibrated "
+                    "service metrics were not resolved."
+                )
+            estimator_context.update(
+                {
+                    "prefill_tps_by_instance": dict(prefill_tps_by_instance),
+                    "decode_tps_by_instance": dict(decode_tps_by_instance),
+                    "mean_decode_batch_ms_by_instance": dict(
+                        mean_decode_batch_ms_by_instance
+                    ),
+                }
             )
         if estimator_name == "pk_mg1":
             if not prefill_tps_by_instance:
@@ -5670,6 +6105,14 @@ async def run_wait_gof_experiment(
     if service_rates_by_instance is not None:
         result["service_rates_rps_by_instance"] = dict(service_rates_by_instance)
         result["service_rates_rps_resolution"] = service_rates_resolution
+    if decode_tps_by_instance is not None:
+        result["score_proxy_metrics"] = {
+            "decode_tps_by_instance": dict(decode_tps_by_instance),
+            "mean_decode_batch_ms_by_instance": dict(
+                mean_decode_batch_ms_by_instance or {}
+            ),
+            "metrics_resolution": score_proxy_metrics_resolution,
+        }
     return result
 
 async def async_main(args: argparse.Namespace) -> None:
@@ -5704,7 +6147,13 @@ async def async_main(args: argparse.Namespace) -> None:
         args.experiment in {"router", "all"}
         and any(
             str(name).strip().lower()
-            in {"hard_prefill_tps", "soft_prefill_tps", "hard_pk_mg1", "soft_pk_mg1"}
+            in {
+                "hard_prefill_tps",
+                "hard_score_proxy",
+                "soft_prefill_tps",
+                "hard_pk_mg1",
+                "soft_pk_mg1",
+            }
             for name in args.utilities
         )
     )
@@ -5723,6 +6172,11 @@ async def async_main(args: argparse.Namespace) -> None:
             "enable_wait_time_polling": bool(args.enable_wait_time_polling),
             "critical_wait_time_timeout_s": float(
                 args.critical_wait_time_timeout_s
+            ),
+            "service_metrics_json": (
+                str(args.service_metrics_json.expanduser().resolve())
+                if args.service_metrics_json is not None
+                else None
             ),
             "utilities": args.utilities,
             "wait_estimators": args.wait_estimators,

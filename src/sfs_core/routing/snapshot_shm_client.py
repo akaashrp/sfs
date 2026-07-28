@@ -137,8 +137,10 @@ class SnapshotShmClient:
                     snapshot_timestamp,
                     num_requests,
                     _parsed_build_latency_ms,
+                    native_metadata,
                     observed_ids,
                 ) = summary
+                metadata.update(dict(native_metadata))
                 observed_pending_request_ids = tuple(observed_ids)
 
             build_latency_ms = float(_parsed_build_latency_ms)

@@ -87,7 +87,12 @@ def _parse_wrapper_args(argv: Sequence[str]) -> tuple[argparse.Namespace, list[s
     parser.add_argument(
         "--qps-utilities",
         nargs="+",
-        default=["hard", "hard_prefill_tps", "shortest_queue"],
+        default=[
+            "hard",
+            "hard_prefill_tps",
+            "hard_score_proxy",
+            "shortest_queue",
+        ],
         help="Utilities used for every QPS point.",
     )
     parser.add_argument(

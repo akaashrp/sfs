@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import io
 from pathlib import Path
 from typing import Iterable
 
@@ -177,9 +178,26 @@ def fit_two_part(
     stall_percentile: float = 99.99,
     huber_epsilon: float = 1.35,
     feature_set: str = DEFAULT_FEATURE_SET,
+    start_offset: int = 0,
 ) -> tuple[TwoPartFitResult, pd.DataFrame]:
     path = _normalize_path(path)
-    df = pd.read_csv(path, header=0)
+    if start_offset < 0:
+        raise ValueError("start_offset must be nonnegative.")
+    if start_offset == 0:
+        df = pd.read_csv(path, header=0)
+    else:
+        with path.open("rb") as src:
+            header = src.readline().decode("utf-8")
+            src.seek(start_offset)
+            rows = src.read().decode("utf-8")
+        if not header.strip():
+            raise ValueError(f"Batch-stats file has no header: {path}")
+        if not rows.strip():
+            raise ValueError(
+                f"Batch-stats file has no rows after start_offset={start_offset}: "
+                f"{path}"
+            )
+        df = pd.read_csv(io.StringIO(header + rows), header=0)
     result = fit_two_part_from_df(
         df,
         stall_percentile=stall_percentile,

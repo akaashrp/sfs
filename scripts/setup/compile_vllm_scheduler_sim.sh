@@ -15,6 +15,7 @@ PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SFS_ROOT/.." && pwd)}"
 VLLM_DIR="${VLLM_DIR:-$SFS_ROOT/vllm}"
 VLLM_WHL="${VLLM_WHL:-$PROJECT_ROOT/vllm.whl}"
 CONDA_ENV="${CONDA_ENV:-vllm}"
+BUILD_TMP_ROOT="${BUILD_TMP_ROOT:-$SFS_ROOT/.build-tmp}"
 
 if [[ ! -d "$VLLM_DIR" ]]; then
   echo "[ERROR] vLLM directory not found: $VLLM_DIR" >&2
@@ -58,6 +59,8 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "$CONDA_ENV"
 
 export VLLM_TARGET_DEVICE=cuda
+mkdir -p "$BUILD_TMP_ROOT"
+export TMPDIR="$BUILD_TMP_ROOT"
 
 cd "$VLLM_DIR"
 
