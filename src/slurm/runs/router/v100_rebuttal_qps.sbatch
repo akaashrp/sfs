@@ -51,6 +51,9 @@ MAX_COMPLETION_TOKENS="${MAX_COMPLETION_TOKENS:-8192}"
 SIMULATION_BATCH_TIME_FEATURE_SET="${SIMULATION_BATCH_TIME_FEATURE_SET:-cross_term}"
 CALIBRATION_NUM_REQUESTS="${CALIBRATION_NUM_REQUESTS:-1000}"
 NUM_REQUESTS="${NUM_REQUESTS:-16000}"
+INFERENCE_SMOKE_ONLY="${INFERENCE_SMOKE_ONLY:-0}"
+SMOKE_MAX_COMPLETION_TOKENS="${SMOKE_MAX_COMPLETION_TOKENS:-4}"
+ENFORCE_EAGER="${ENFORCE_EAGER:-0}"
 WORKER_COUNT="${WORKER_COUNT:-1}"
 MAX_QUEUE_SIZE="${MAX_QUEUE_SIZE:-1}"
 LAMBDA_WEIGHT="${LAMBDA_WEIGHT:-5e-4}"
@@ -62,6 +65,18 @@ if (( MAX_NUM_BATCHED_TOKENS <= MAX_MODEL_LEN )); then
 fi
 if [[ "$SIMULATION_BATCH_TIME_FEATURE_SET" != "cross_term" ]]; then
   echo "[ERROR] The V100 rebuttal sweep requires cross_term batch features." >&2
+  exit 1
+fi
+if [[ "$INFERENCE_SMOKE_ONLY" != "0" && "$INFERENCE_SMOKE_ONLY" != "1" ]]; then
+  echo "[ERROR] INFERENCE_SMOKE_ONLY must be 0 or 1." >&2
+  exit 1
+fi
+if [[ "$ENFORCE_EAGER" != "0" && "$ENFORCE_EAGER" != "1" ]]; then
+  echo "[ERROR] ENFORCE_EAGER must be 0 or 1." >&2
+  exit 1
+fi
+if (( SMOKE_MAX_COMPLETION_TOKENS <= 0 )); then
+  echo "[ERROR] SMOKE_MAX_COMPLETION_TOKENS must be positive." >&2
   exit 1
 fi
 
@@ -245,7 +260,11 @@ start_server() {
   local snapshot_name="$8"
   shift 8
   local simulation_args=("$@")
+  local eager_args=()
   local server_log="$RUN_ROOT/vllm_${RUN_MODE}_${label}_${SLURM_JOB_ID}.log"
+  if [[ "$ENFORCE_EAGER" == "1" ]]; then
+    eager_args+=(--enforce-eager)
+  fi
 
   VLLM_PER_REQUEST_WAIT_LOG_PATH="$wait_log" \
   CUDA_VISIBLE_DEVICES="$visible_gpus" \
@@ -264,6 +283,7 @@ start_server() {
       --port "$port" \
       --no-enable-wait-time-simulation \
       --output-length-model-path "$OUTPUT_PREDICTOR" \
+      "${eager_args[@]}" \
       "${simulation_args[@]}" \
       >"$server_log" 2>&1 &
   LAST_SERVER_PID=$!
@@ -312,6 +332,8 @@ simulation_flags() {
   echo "vllm_commit=$(git -C "$SFS_ROOT/vllm" rev-parse HEAD)"
   echo "dtype=half"
   echo "attention_backend=$VLLM_ATTENTION_BACKEND"
+  echo "enforce_eager=$ENFORCE_EAGER"
+  echo "inference_smoke_only=$INFERENCE_SMOKE_ONLY"
   echo "chunked_prefill=false"
   echo "prefix_caching=false"
   echo "simulation_batch_time_feature_set=$SIMULATION_BATCH_TIME_FEATURE_SET"
@@ -371,6 +393,46 @@ if [[ "$RUN_MODE" == "calibrate" ]]; then
     "$RUN_ROOT/vllm_${RUN_MODE}_qwen3-8b_${SLURM_JOB_ID}.log"
   wait_for_server qwen3-0.6b "$PORT_06B" "$PID_06B" \
     "$RUN_ROOT/vllm_${RUN_MODE}_qwen3-0.6b_${SLURM_JOB_ID}.log"
+
+  if [[ "$INFERENCE_SMOKE_ONLY" == "1" ]]; then
+    smoke_request() {
+      local label="$1"
+      local port="$2"
+      local model_path="$3"
+      local response_path="$RUN_ROOT/inference_smoke_${label}_${SLURM_JOB_ID}.json"
+      curl -fsS --max-time 300 \
+        -H 'Content-Type: application/json' \
+        -d "{\"model\":\"$model_path\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with OK.\"}],\"temperature\":0,\"max_completion_tokens\":$SMOKE_MAX_COMPLETION_TOKENS}" \
+        "http://127.0.0.1:$port/v1/chat/completions" \
+        --output "$response_path"
+      python - "$response_path" "$label" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+response_path = Path(sys.argv[1])
+label = sys.argv[2]
+payload = json.loads(response_path.read_text(encoding="utf-8"))
+choices = payload.get("choices")
+if not isinstance(choices, list) or not choices:
+    raise RuntimeError(f"{label}: response has no choices: {payload}")
+usage = payload.get("usage") or {}
+completion_tokens = int(usage.get("completion_tokens") or 0)
+if completion_tokens <= 0:
+    raise RuntimeError(f"{label}: response generated no completion tokens: {payload}")
+print(
+    f"[SMOKE] {label} generated {completion_tokens} token(s); "
+    f"finish_reason={choices[0].get('finish_reason')}"
+)
+PY
+    }
+
+    smoke_request qwen3-0.6b "$PORT_06B" "$MODEL_06B"
+    smoke_request qwen3-8b "$PORT_8B" "$MODEL_8B"
+    smoke_request qwen3-32b "$PORT_32B" "$MODEL_32B"
+    echo "[DONE] V100 inference smoke passed for all three models."
+    exit 0
+  fi
 
   python -m scripts.runs.compute_model_service_metrics \
     --prompt-bucket-dir "$CALIBRATION_PROMPT_BUCKET_DIR" \
