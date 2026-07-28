@@ -43,7 +43,7 @@ MAX_NUM_BATCHED_TOKENS="${MAX_NUM_BATCHED_TOKENS:-49152}"
 MAX_NUM_SEQS="${MAX_NUM_SEQS:-64}"
 GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.90}"
 MAX_COMPLETION_TOKENS="${MAX_COMPLETION_TOKENS:-8192}"
-SIMULATION_BATCH_TIME_FEATURE_SET="${SIMULATION_BATCH_TIME_FEATURE_SET:-legacy}"
+SIMULATION_BATCH_TIME_FEATURE_SET="${SIMULATION_BATCH_TIME_FEATURE_SET:-cross_term}"
 CALIBRATION_NUM_REQUESTS="${CALIBRATION_NUM_REQUESTS:-1000}"
 NUM_REQUESTS="${NUM_REQUESTS:-16000}"
 WORKER_COUNT="${WORKER_COUNT:-1}"
@@ -55,9 +55,8 @@ if (( MAX_NUM_BATCHED_TOKENS <= MAX_MODEL_LEN )); then
   echo "[ERROR] Unchunked prefill requires MAX_NUM_BATCHED_TOKENS > MAX_MODEL_LEN." >&2
   exit 1
 fi
-if [[ "$SIMULATION_BATCH_TIME_FEATURE_SET" != "legacy" &&
-      "$SIMULATION_BATCH_TIME_FEATURE_SET" != "cross_term" ]]; then
-  echo "[ERROR] Invalid SIMULATION_BATCH_TIME_FEATURE_SET." >&2
+if [[ "$SIMULATION_BATCH_TIME_FEATURE_SET" != "cross_term" ]]; then
+  echo "[ERROR] The V100 rebuttal sweep requires cross_term batch features." >&2
   exit 1
 fi
 
@@ -78,6 +77,7 @@ mkdir -p \
   "$JOB_LOCAL/.cache/vllm" \
   "$JOB_LOCAL/.triton" \
   "$JOB_LOCAL/.nv" \
+  "$JOB_LOCAL/test-tmp" \
   "$CORRECTED_VLLM_RUNTIME/vllm"
 rsync -aL "$PROJECT_ROOT/.cache/vllm/" "$JOB_LOCAL/.cache/vllm/" \
   2>/dev/null || true
@@ -96,9 +96,31 @@ export PYTHONPATH="$CORRECTED_VLLM_RUNTIME:$SFS_ROOT/src:${PYTHONPATH:-}"
 export XDG_CACHE_HOME="$JOB_LOCAL/.cache"
 export TRITON_CACHE_DIR="$JOB_LOCAL/.triton"
 export CUDA_CACHE_PATH="$JOB_LOCAL/.nv"
+export TMPDIR="$JOB_LOCAL/test-tmp"
 
 cd "$RUN_ROOT"
-python -c 'import os; from pathlib import Path; import sfs_core, vllm; from vllm.v1.engine import _scheduler_sim; runtime = Path(os.environ["CORRECTED_VLLM_RUNTIME"]).resolve(); sfs_src = (Path(os.environ["SFS_ROOT"]) / "src").resolve(); assert Path(vllm.__file__).resolve().is_relative_to(runtime), vllm.__file__; assert Path(_scheduler_sim.__file__).resolve().is_relative_to(runtime), _scheduler_sim.__file__; assert Path(sfs_core.__file__).resolve().is_relative_to(sfs_src), sfs_core.__file__; print("V100 SCORE runtime preflight:", vllm.__file__, _scheduler_sim.__file__)'
+run_native_preflight() {
+  python -c 'import os; from pathlib import Path; import sfs_core, vllm; from vllm.v1.engine import _scheduler_sim; runtime = Path(os.environ["CORRECTED_VLLM_RUNTIME"]).resolve(); sfs_src = (Path(os.environ["SFS_ROOT"]) / "src").resolve(); assert Path(vllm.__file__).resolve().is_relative_to(runtime), vllm.__file__; assert Path(_scheduler_sim.__file__).resolve().is_relative_to(runtime), _scheduler_sim.__file__; assert Path(sfs_core.__file__).resolve().is_relative_to(sfs_src), sfs_core.__file__; print("V100 SCORE runtime preflight:", vllm.__file__, _scheduler_sim.__file__)' &&
+    PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q -p no:cacheprovider \
+      --confcutdir="$SFS_ROOT/vllm/tests/v1/engine" \
+      "$SFS_ROOT/vllm/tests/v1/engine/test_scheduler_simulator_native.py::test_native_run_simulation_matches_python_drain" \
+      "$SFS_ROOT/vllm/tests/v1/engine/test_scheduler_simulator_native.py::test_native_cross_term_prices_processed_prefill_context"
+}
+
+if ! run_native_preflight; then
+  echo "[WARN] Native preflight failed; rebuilding _scheduler_sim on the allocated V100 node." >&2
+  (
+    unset PYTHONPATH
+    PROJECT_ROOT="$PROJECT_ROOT" \
+      VLLM_DIR="$SFS_ROOT/vllm" \
+      VLLM_WHL="$PROJECT_ROOT/vllm.whl" \
+      BUILD_TMP_ROOT="$JOB_LOCAL/vllm-build" \
+      bash "$SFS_ROOT/scripts/setup/compile_vllm_scheduler_sim.sh"
+  )
+  rsync -aL --exclude=__pycache__ --exclude='*.pyc' \
+    "$SFS_ROOT/vllm/vllm/" "$CORRECTED_VLLM_RUNTIME/vllm/"
+  run_native_preflight
+fi
 
 IFS=',' read -r -a GPU_IDS <<< "${CUDA_VISIBLE_DEVICES:-}"
 if (( ${#GPU_IDS[@]} < 8 )); then
@@ -262,6 +284,7 @@ simulation_flags() {
   echo "attention_backend=$VLLM_ATTENTION_BACKEND"
   echo "chunked_prefill=false"
   echo "prefix_caching=false"
+  echo "simulation_batch_time_feature_set=$SIMULATION_BATCH_TIME_FEATURE_SET"
   echo "max_model_len=$MAX_MODEL_LEN"
   echo "max_num_batched_tokens=$MAX_NUM_BATCHED_TOKENS"
   echo "max_num_seqs=$MAX_NUM_SEQS"
@@ -333,6 +356,10 @@ if [[ "$RUN_MODE" == "calibrate" ]]; then
     --path "$CALIBRATION_OUTPUT_PATH" \
     --expected-feature-set "$SIMULATION_BATCH_TIME_FEATURE_SET" \
     validate
+  python -m scripts.runs.service_metrics_config \
+    --path "$CALIBRATION_OUTPUT_PATH" \
+    --expected-feature-set "$SIMULATION_BATCH_TIME_FEATURE_SET" \
+    capacity-summary | tee "$RUN_ROOT/capacity_estimate.json"
   echo "[DONE] V100 calibration: $CALIBRATION_OUTPUT_PATH"
   exit 0
 fi

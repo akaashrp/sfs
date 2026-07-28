@@ -1314,6 +1314,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
         probe_ready_delay_ms_by_instance: Dict[str, float] = {}
         shortest_queue_routing: Optional[Dict[str, Any]] = None
         affinity_routing: Optional[Dict[str, Any]] = None
+        score_candidate_terms: Optional[Dict[str, Any]] = None
 
         try:
             prompt_text = self._extract_prompt_text(queued.payload)
@@ -1404,6 +1405,22 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                             accuracy_scores,
                             output_lengths,
                             prompt_tokens,
+                        )
+                    if (
+                        self._wait_estimator_name
+                        == SCORE_PROXY_TTFT_ESTIMATOR_NAME
+                    ):
+                        score_candidate_terms = (
+                            _build_compact_score_candidate_terms(
+                                wait_results=wait_results,
+                                selected_instance_id=target_id,
+                                slo_ms=request_slo_ms,
+                                prompt_tokens=prompt_tokens,
+                                accuracy_scores=accuracy_scores,
+                                output_lengths=output_lengths,
+                                instance_costs=self._instance_costs,
+                                lambda_weight=self._lambda,
+                            )
                         )
                 finally:
                     self._utility_state.current_slo_ms = None
@@ -1505,6 +1522,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                         ),
                         "wait_estimator": self._wait_estimator_name,
                         "wait_estimates_ms": estimator_waits_ms,
+                        "score_candidate_terms": score_candidate_terms,
                         "route_strategy": self._route_strategy,
                         "predicted_accuracy": (
                             float(selected_accuracy)
@@ -1920,6 +1938,210 @@ def _predicted_cost(
     output_rate = float(cost_info.get("output", 0.0))
     predicted_output = float(output_lengths.get(instance_id, 0.0))
     return (prompt_rate * prompt_tokens) + (output_rate * predicted_output)
+
+
+def _build_compact_score_candidate_terms(
+    *,
+    wait_results: Dict[str, WaitTimeResult],
+    selected_instance_id: str,
+    slo_ms: Optional[float],
+    prompt_tokens: int,
+    accuracy_scores: Dict[str, float],
+    output_lengths: Dict[str, float],
+    instance_costs: Dict[str, Dict[str, float]],
+    lambda_weight: float,
+) -> Dict[str, Any]:
+    """Build auditable SCORE terms without duplicating calibration constants."""
+    wait_ms_by_instance = {
+        instance_id: float(wait_result.wait_ms)
+        for instance_id, wait_result in wait_results.items()
+    }
+    if selected_instance_id not in wait_ms_by_instance:
+        raise ValueError(
+            "Selected SCORE instance is missing from candidate wait results: "
+            f"{selected_instance_id!r}"
+        )
+    any_slo_feasible = (
+        True
+        if slo_ms is None
+        else any(wait_ms <= float(slo_ms) for wait_ms in wait_ms_by_instance.values())
+    )
+
+    candidates: Dict[str, Dict[str, Any]] = {}
+    for instance_id, wait_result in wait_results.items():
+        diagnostics = wait_result.raw_payload.get(
+            "_wait_estimator_diagnostics"
+        )
+        if not isinstance(diagnostics, dict) or diagnostics.get(
+            "method"
+        ) != SCORE_PROXY_TTFT_ESTIMATOR_NAME:
+            raise ValueError(
+                "SCORE candidate logging requires estimator diagnostics for "
+                f"instance {instance_id!r}"
+            )
+        details = diagnostics.get("details")
+        if not isinstance(details, dict):
+            raise ValueError(
+                "SCORE candidate logging requires diagnostic details for "
+                f"instance {instance_id!r}"
+            )
+
+        def _required_float(mapping: Dict[str, Any], key: str) -> float:
+            value = mapping.get(key)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ValueError(
+                    f"SCORE diagnostics for {instance_id!r} are missing {key!r}"
+                )
+            numeric = float(value)
+            if not math.isfinite(numeric):
+                raise ValueError(
+                    f"SCORE diagnostic {instance_id!r}.{key} must be finite"
+                )
+            return numeric
+
+        estimated_ttft_ms = _required_float(
+            diagnostics,
+            "estimated_ttft_ms",
+        )
+        selected_wait_ms = float(wait_result.wait_ms)
+        if not math.isclose(
+            estimated_ttft_ms,
+            selected_wait_ms,
+            rel_tol=1e-9,
+            abs_tol=1e-9,
+        ):
+            raise ValueError(
+                "SCORE diagnostic TTFT differs from the value used for routing "
+                f"on {instance_id!r}: diagnostics={estimated_ttft_ms}, "
+                f"routing={selected_wait_ms}"
+            )
+
+        predicted_quality = float(accuracy_scores.get(instance_id, 0.0))
+        predicted_output_tokens = float(output_lengths.get(instance_id, 0.0))
+        if not math.isfinite(predicted_quality):
+            raise ValueError(
+                f"SCORE predicted quality must be finite for {instance_id!r}"
+            )
+        if (
+            not math.isfinite(predicted_output_tokens)
+            or predicted_output_tokens < 0.0
+        ):
+            raise ValueError(
+                "SCORE predicted output tokens must be finite and nonnegative "
+                f"for {instance_id!r}"
+            )
+        predicted_cost = _predicted_cost(
+            instance_id,
+            prompt_tokens=prompt_tokens,
+            output_lengths=output_lengths,
+            instance_costs=instance_costs,
+        )
+        if not math.isfinite(predicted_cost):
+            raise ValueError(
+                f"SCORE predicted cost must be finite for {instance_id!r}"
+            )
+        candidate_value = hard_slo_candidate_value(
+            instance_id=instance_id,
+            wait_ms_by_instance=wait_ms_by_instance,
+            slo_ms=slo_ms,
+            predicted_quality=predicted_quality,
+            predicted_cost=predicted_cost,
+            lambda_weight=lambda_weight,
+        )
+        if math.isnan(candidate_value) or candidate_value == float("inf"):
+            raise ValueError(
+                f"SCORE hard candidate value is invalid for {instance_id!r}"
+            )
+        pending_overlay_count = details.get("pending_overlay_count")
+        if pending_overlay_count is not None and (
+            isinstance(pending_overlay_count, bool)
+            or not isinstance(pending_overlay_count, int)
+            or pending_overlay_count < 0
+        ):
+            raise ValueError(
+                "SCORE pending_overlay_count must be a nonnegative integer or null "
+                f"for instance {instance_id!r}"
+            )
+
+        prefill_backlog_tokens = _required_float(
+            details,
+            "prefill_backlog_total_tokens",
+        )
+        decode_backlog_tokens = _required_float(
+            details,
+            "decode_backlog_total_tokens",
+        )
+        prefill_ms = _required_float(
+            diagnostics,
+            "estimated_prefill_ms",
+        )
+        decode_interference_ms = _required_float(
+            diagnostics,
+            "estimated_decode_interference_ms",
+        )
+        first_decode_batch_ms = _required_float(
+            diagnostics,
+            "estimated_first_decode_batch_ms",
+        )
+        if any(
+            value < 0.0
+            for value in (
+                prefill_backlog_tokens,
+                decode_backlog_tokens,
+                prefill_ms,
+                decode_interference_ms,
+                first_decode_batch_ms,
+            )
+        ):
+            raise ValueError(
+                f"SCORE latency terms must be nonnegative for {instance_id!r}"
+            )
+        logged_term_sum_ms = (
+            prefill_ms + decode_interference_ms + first_decode_batch_ms
+        )
+        if not math.isclose(
+            logged_term_sum_ms,
+            selected_wait_ms,
+            rel_tol=1e-9,
+            abs_tol=1e-9,
+        ):
+            raise ValueError(
+                "SCORE logged terms do not sum to the routed TTFT for "
+                f"{instance_id!r}: terms={logged_term_sum_ms}, "
+                f"routing={selected_wait_ms}"
+            )
+
+        candidates[instance_id] = {
+            "prefill_backlog_tokens": prefill_backlog_tokens,
+            "decode_backlog_tokens": decode_backlog_tokens,
+            "pending_overlay_count": pending_overlay_count,
+            "prefill_ms": prefill_ms,
+            "decode_interference_ms": decode_interference_ms,
+            "first_decode_batch_ms": first_decode_batch_ms,
+            "predicted_ttft_ms": selected_wait_ms,
+            "slo_feasible": (
+                True
+                if slo_ms is None
+                else selected_wait_ms <= float(slo_ms)
+            ),
+            "predicted_quality": predicted_quality,
+            "predicted_output_tokens": predicted_output_tokens,
+            "predicted_cost": float(predicted_cost),
+            # JSON has no portable infinity. Null denotes a candidate excluded
+            # by the common hard-SLO gate while another candidate is feasible.
+            "hard_candidate_value": (
+                None
+                if candidate_value == float("-inf")
+                else float(candidate_value)
+            ),
+        }
+
+    return {
+        "selected_instance_id": selected_instance_id,
+        "slo_ms": float(slo_ms) if slo_ms is not None else None,
+        "any_slo_feasible": bool(any_slo_feasible),
+        "candidates": candidates,
+    }
 
 
 def build_utility_fn(
@@ -4266,6 +4488,7 @@ async def run_policy(
             "wait_time_ms": item.get("wait_time_ms"),
             "live_wait_time_ms": item.get("live_wait_time_ms"),
             "wait_estimates_ms": item.get("wait_estimates_ms"),
+            "score_candidate_terms": item.get("score_candidate_terms"),
             "wait_estimator": item.get("wait_estimator", wait_estimator_name),
             "route_strategy": item.get("route_strategy", route_strategy),
             "feasible_slo_mode": resolved_feasible_slo_mode,

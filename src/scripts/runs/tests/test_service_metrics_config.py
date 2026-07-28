@@ -8,6 +8,7 @@ from scripts.runs.service_metrics_config import (
     MODEL_KEYS,
     SFS_COEFFICIENT_KEYS,
     load_and_validate,
+    summarize_capacity,
 )
 
 
@@ -76,3 +77,24 @@ def test_validate_rejects_incomplete_request_or_trace_coverage(tmp_path):
 
     with pytest.raises(ValueError, match="match every successful request"):
         load_and_validate(path, expected_feature_set="legacy")
+
+
+def test_capacity_summary_is_explicit_sum_of_standalone_rates():
+    rows = {
+        model: _row(service_rate_qps=float(index))
+        for index, model in enumerate(MODEL_KEYS, start=1)
+    }
+
+    summary = summarize_capacity(rows)
+
+    assert summary == {
+        "method": "sum_of_standalone_saturated_service_rates",
+        "per_model_qps": {
+            "qwen3-0.6b": 1.0,
+            "qwen3-8b": 2.0,
+            "qwen3-32b": 3.0,
+        },
+        "aggregate_capacity_qps": 6.0,
+        "workload_specific": True,
+        "concurrent_contention_validated": False,
+    }

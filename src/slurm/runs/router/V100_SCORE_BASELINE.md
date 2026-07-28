@@ -28,6 +28,13 @@ Thus `hard`, `hard_prefill_tps`, and `hard_score_proxy` differ only in their
 latency estimate. They use the same prompts, arrivals, SLOs, quality
 predictor, output-length predictor, cost model, and random seed.
 
+Each `hard_score_proxy` request stores a compact `score_candidate_terms`
+record for every candidate. It includes the effective prefill/decode
+backlogs, the three latency terms, predicted TTFT, SLO feasibility,
+quality/cost inputs, the hard candidate value, and the selected instance.
+Calibration constants stay in the run-level calibration JSON instead of
+being duplicated in every request.
+
 ## Required calibration
 
 The calibration job records, per model and under the exact V100 serving
@@ -43,6 +50,13 @@ non-finite, mismatched-feature-set, or incomplete metrics fail the sweep
 closed. Warm-up and prior-file rows are excluded consistently from the
 prefill, decode, and SFS-regression fits.
 
+The calibration also measures successful requests per second for each model
+under a standalone saturated stream. The automatic QPS scale is the sum of
+those three rates and is written to `capacity_estimate.json`. This is a
+workload-specific normalization, not a claim of exact concurrent cluster
+capacity: it does not measure CPU/interconnect contention when all three
+servers are busy simultaneously.
+
 ## V100 configuration
 
 - one exclusive eight-GPU `GPU` partition node;
@@ -51,6 +65,7 @@ prefill, decode, and SFS-regression fits.
 - Qwen3-32B: TP4 on four V100-32 GPUs;
 - two GPUs reserved but unused;
 - FP16, XFormers, V1, prefix caching off, chunked prefills off;
+- `cross_term` batch-time regression and simulation features;
 - max model length 40,960, max batched tokens 49,152, max sequences 64.
 
 The V1 change in this worktree preserves an explicit
@@ -64,6 +79,12 @@ First build this worktree's native scheduler-simulator extension:
 ```bash
 scripts/setup/compile_vllm_scheduler_sim.sh
 ```
+
+The batch job then imports the staged extension and runs two native
+simulation smoke tests, including the `cross_term` path, on the allocated
+V100 node before staging models. This catches a host-ISA mismatch before the
+expensive part of the run. If that preflight fails, the job rebuilds the
+extension on the allocated node, restages it, and reruns the preflight.
 
 Preview without submitting:
 

@@ -21,6 +21,22 @@ SFS_COEFFICIENT_KEYS = (
 )
 
 
+def summarize_capacity(
+    rows: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    per_model_qps = {
+        model: float(rows[model]["service_rate_qps"])
+        for model in MODEL_KEYS
+    }
+    return {
+        "method": "sum_of_standalone_saturated_service_rates",
+        "per_model_qps": per_model_qps,
+        "aggregate_capacity_qps": sum(per_model_qps.values()),
+        "workload_specific": True,
+        "concurrent_contention_validated": False,
+    }
+
+
 def _positive(value: Any, *, label: str) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"{label} must be numeric")
@@ -158,6 +174,7 @@ def parse_args() -> argparse.Namespace:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("validate")
+    subparsers.add_parser("capacity-summary")
 
     coefficients = subparsers.add_parser("coefficients")
     coefficients.add_argument("--model", choices=MODEL_KEYS, required=True)
@@ -195,10 +212,11 @@ def main() -> None:
         for key in SFS_COEFFICIENT_KEYS:
             print(f"{float(sfs[key]):.17g}")
         return
+    if args.command == "capacity-summary":
+        print(json.dumps(summarize_capacity(rows), sort_keys=True))
+        return
     if args.command == "qps-values":
-        capacity_qps = sum(
-            float(rows[model]["service_rate_qps"]) for model in MODEL_KEYS
-        )
+        capacity_qps = float(summarize_capacity(rows)["aggregate_capacity_qps"])
         values: list[float] = []
         for fraction in args.fractions:
             if not math.isfinite(fraction) or fraction <= 0:
