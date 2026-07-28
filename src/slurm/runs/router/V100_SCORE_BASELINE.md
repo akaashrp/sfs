@@ -64,7 +64,7 @@ servers are busy simultaneously.
 - Qwen3-8B: TP1 on one V100-32;
 - Qwen3-32B: TP4 on four V100-32 GPUs;
 - two GPUs reserved but unused;
-- FP16, XFormers, V1, prefix caching off, chunked prefills off;
+- FP16, Triton attention, V1, prefix caching off, chunked prefills off;
 - `cross_term` batch-time regression and simulation features;
 - max model length 40,960, max batched tokens 49,152, max sequences 64.
 

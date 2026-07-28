@@ -111,7 +111,7 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate vllm
 
 export VLLM_USE_V1=1
-export VLLM_ATTENTION_BACKEND="${VLLM_ATTENTION_BACKEND:-XFORMERS}"
+export VLLM_ATTENTION_BACKEND="${VLLM_ATTENTION_BACKEND:-TRITON_ATTN}"
 export VLLM_USE_FLASHINFER_SAMPLER=0
 export VLLM_LOGGING_LEVEL=WARNING
 
@@ -340,6 +340,12 @@ simulation_flags() {
   echo "max_model_len=$MAX_MODEL_LEN"
   echo "max_num_batched_tokens=$MAX_NUM_BATCHED_TOKENS"
   echo "max_num_seqs=$MAX_NUM_SEQS"
+  echo "gpu_memory_utilization=$GPU_MEMORY_UTILIZATION"
+  echo "max_completion_tokens=$MAX_COMPLETION_TOKENS"
+  echo "calibration_num_requests=$CALIBRATION_NUM_REQUESTS"
+  echo "num_requests=$NUM_REQUESTS"
+  echo "auto_qps_fractions=$AUTO_QPS_FRACTIONS"
+  echo "explicit_qps_values=${QPS_VALUES:-}"
   echo "tp_qwen3_0.6b=1"
   echo "tp_qwen3_8b=1"
   echo "tp_qwen3_32b=4"
