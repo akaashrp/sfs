@@ -1,7 +1,28 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Any, Iterable
+
+from sfs_core.shared.shared_experiment_helpers import _metric_summary
+
+
+SYSTEM_ENTRY_E2E_COMPLETION_METRIC_DEFINITION = {
+    "unit": "ms",
+    "start": "system entry (system_entry_perf)",
+    "end": "terminal completion of the non-streaming request (completed_perf)",
+    "per_request_formula": (
+        "latency_ms + system_entry_to_dispatch_ms - arrival_to_dispatch_ms"
+    ),
+    "equivalent_formula": "(completed_perf - system_entry_perf) * 1000",
+    "aggregation": (
+        "computed per request before calculating the mean and percentiles"
+    ),
+    "role": (
+        "supplementary full-response latency; system_entry_e2e_ttft_ms remains "
+        "the primary paper latency metric"
+    ),
+}
 
 
 def _nested_get(data: dict[str, Any], *keys: str) -> Any:
@@ -48,6 +69,58 @@ def _compute_actual_slo_gated_utility_mean(
     return gated_utility_sum / total_queries
 
 
+def _finite_numeric_value(value: Any) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    numeric = float(value)
+    return numeric if math.isfinite(numeric) else None
+
+
+def _system_entry_e2e_completion_metrics(run: dict[str, Any]) -> dict[str, Any]:
+    per_request = run.get("per_request")
+    if not isinstance(per_request, list):
+        per_request = []
+
+    values: list[float] = []
+    for item in per_request:
+        if not isinstance(item, dict):
+            continue
+        latency_ms = _finite_numeric_value(item.get("latency_ms"))
+        system_entry_to_dispatch_ms = _finite_numeric_value(
+            item.get("system_entry_to_dispatch_ms")
+        )
+        arrival_to_dispatch_ms = _finite_numeric_value(
+            item.get("arrival_to_dispatch_ms")
+        )
+        if (
+            latency_ms is None
+            or system_entry_to_dispatch_ms is None
+            or arrival_to_dispatch_ms is None
+        ):
+            continue
+
+        value = (
+            latency_ms
+            + system_entry_to_dispatch_ms
+            - arrival_to_dispatch_ms
+        )
+        if math.isfinite(value) and value >= 0.0:
+            values.append(value)
+
+    metric_summary = _metric_summary(values)
+    total_records = len(per_request)
+    coverage_pct = (
+        100.0 * len(values) / total_records if total_records > 0 else 0.0
+    )
+    return {
+        "average_system_entry_e2e_completion_ms": metric_summary["mean"],
+        "p50_system_entry_e2e_completion_ms": metric_summary["p50"],
+        "p90_system_entry_e2e_completion_ms": metric_summary["p90"],
+        "system_entry_e2e_completion_ms_count": metric_summary["count"],
+        "system_entry_e2e_completion_ms_coverage_pct": coverage_pct,
+    }
+
+
 def _extract_metrics(
     run: dict[str, Any],
     summary: dict[str, Any],
@@ -55,6 +128,7 @@ def _extract_metrics(
     *,
     ttft_slo_key: str = "ttft_ms_slo_attainment_pct",
     system_entry_e2e_ttft_slo_key: str = "system_entry_e2e_ttft_ms_slo_attainment_pct",
+    include_system_entry_e2e_completion_metrics: bool = False,
 ) -> dict[str, Any]:
     predicted_accuracy_mean = _nested_get(summary, "predicted_accuracy", "mean")
     predicted_cost_mean = _nested_get(summary, "predicted_cost", "mean")
@@ -90,7 +164,7 @@ def _extract_metrics(
         run, lambda_weight
     )
 
-    return {
+    metrics = {
         ttft_slo_key: summary.get("ttft_slo_attainment_pct"),
         system_entry_e2e_ttft_slo_key: summary.get("system_entry_e2e_ttft_slo_attainment_pct"),
         "system_entry_to_dispatch_ms_mean": _nested_get(
@@ -115,6 +189,9 @@ def _extract_metrics(
         "throughput_qps_all": summary.get("throughput_qps_all"),
         "throughput_rpm_all": summary.get("throughput_rpm_all"),
     }
+    if include_system_entry_e2e_completion_metrics:
+        metrics.update(_system_entry_e2e_completion_metrics(run))
+    return metrics
 
 
 def _ordered_utilities(
@@ -142,6 +219,7 @@ def _collect_run_metrics_for_group(
     duplicate_scope: str,
     ttft_slo_key: str = "ttft_ms_slo_attainment_pct",
     system_entry_e2e_ttft_slo_key: str = "system_entry_e2e_ttft_ms_slo_attainment_pct",
+    include_system_entry_e2e_completion_metrics: bool = False,
     resolve_source_path: bool = False,
     include_existing_source_on_duplicate: bool = True,
 ) -> None:
@@ -159,6 +237,9 @@ def _collect_run_metrics_for_group(
         lambda_weight,
         ttft_slo_key=ttft_slo_key,
         system_entry_e2e_ttft_slo_key=system_entry_e2e_ttft_slo_key,
+        include_system_entry_e2e_completion_metrics=(
+            include_system_entry_e2e_completion_metrics
+        ),
     )
     existing = per_group_metrics.get(utility)
     if existing is not None:

@@ -10,6 +10,7 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 from sfs_core.shared.router_sweep_summary_helpers import (
+    SYSTEM_ENTRY_E2E_COMPLETION_METRIC_DEFINITION,
     _collect_run_metrics_for_group,
     _nested_get,
     _ordered_utilities,
@@ -18,6 +19,7 @@ from sfs_core.shared.router_sweep_summary_helpers import (
 
 DEFAULT_UTILITIES = [
     "hard",
+    "hard_pk_mg1",
     "hard_prefill_tps",
     "hard_score_proxy",
     "shortest_queue",
@@ -70,6 +72,7 @@ def aggregate_jsons(input_dirs: list[Path]) -> tuple[dict[str, Any], list[str]]:
                     discovered_utilities=discovered_utilities,
                     duplicate_policy="error",
                     duplicate_scope=f"qps={qps_key}",
+                    include_system_entry_e2e_completion_metrics=True,
                     include_existing_source_on_duplicate=False,
                 )
 
@@ -83,6 +86,11 @@ def aggregate_jsons(input_dirs: list[Path]) -> tuple[dict[str, Any], list[str]]:
         }
 
     summary = {
+        "metric_definitions": {
+            "system_entry_e2e_completion_ms": (
+                SYSTEM_ENTRY_E2E_COMPLETION_METRIC_DEFINITION.copy()
+            ),
+        },
         "utilities": utility_order,
         "qps": normalized_qps_map,
     }
