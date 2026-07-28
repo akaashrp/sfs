@@ -96,7 +96,7 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate vllm
 
 export VLLM_USE_V1=1
-export VLLM_ATTENTION_BACKEND=XFORMERS
+export VLLM_ATTENTION_BACKEND="${VLLM_ATTENTION_BACKEND:-XFORMERS}"
 export VLLM_USE_FLASHINFER_SAMPLER=0
 export VLLM_LOGGING_LEVEL=WARNING
 
