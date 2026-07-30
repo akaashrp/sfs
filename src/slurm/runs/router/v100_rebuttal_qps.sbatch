@@ -343,6 +343,7 @@ simulation_flags() {
   echo "gpu_memory_utilization=$GPU_MEMORY_UTILIZATION"
   echo "max_completion_tokens=$MAX_COMPLETION_TOKENS"
   echo "qwen_enable_thinking=false"
+  echo "calibration_execution=concurrent_all_models"
   echo "calibration_num_requests=$CALIBRATION_NUM_REQUESTS"
   echo "num_requests=$NUM_REQUESTS"
   echo "auto_qps_fractions=$AUTO_QPS_FRACTIONS"

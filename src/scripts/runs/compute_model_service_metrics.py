@@ -28,10 +28,7 @@ from sfs_core.shared.shared_experiment_helpers import (
     DEFAULT_RANDOM_SEED,
     get_prompt_bucket_files,
     _metric_summary,
-    iter_bucketed_prompts,
-    iter_mixed_bucketed_prompts,
     iter_mixed_then_random_bucketed_prompts,
-    iter_random_bucketed_prompts,
     resolve_max_completion_tokens,
     resolve_prompt_bucket_dir,
     select_prompt_subset,
@@ -347,33 +344,51 @@ async def compute_metrics_for_models(
     """
     Convenience wrapper to compute service rates and prefill throughputs for different models.
 
-    Start all model servers before calling this function. Each model will be routed to independently.
+    Start all model servers before calling this function. Each model is routed
+    to independently, and all per-model calibration streams run concurrently.
     """
-    results: dict[str, dict[str, Any]] = {}
-    for model_name, client in model_clients.items():    
-        scheduler_for_model = build_single_model_wait_time_scheduler(
+    schedulers = {
+        model_name: build_single_model_wait_time_scheduler(
             model_name, model_clients, enable_wait_time_polling=False,
         )
-        try:
-            await warm_up_instances([client])
-            # Let warm-up telemetry reach disk before the measured interval's
-            # byte offsets are captured.
-            await asyncio.sleep(BATCH_STATS_FLUSH_GRACE_S)
-            results[model_name] = await _compute_single_model_metrics(
-                client,
-                prompt_records,
-                request_rate_qps=request_rate_qps,
-                model_name=model_name,
-                model_id=getattr(client, "default_model", None),
-                max_completion_tokens=max_completion_tokens,
-                context_length=context_length,
-                scheduler=scheduler_for_model,
-                request_id_prefix=f"model-metrics-{_sanitize_for_filename(model_name)}",
-                batch_fit_feature_set=batch_fit_feature_set,
+        for model_name in model_clients
+    }
+    results: dict[str, dict[str, Any]] = {}
+    try:
+        # Warm every server together, then give telemetry a common flush
+        # interval before each measured task snapshots its trace offsets.
+        await warm_up_instances(list(model_clients.values()))
+        await asyncio.sleep(BATCH_STATS_FLUSH_GRACE_S)
+
+        model_names = list(model_clients)
+        model_results = await asyncio.gather(
+            *(
+                _compute_single_model_metrics(
+                    model_clients[model_name],
+                    prompt_records,
+                    request_rate_qps=request_rate_qps,
+                    model_name=model_name,
+                    model_id=getattr(
+                        model_clients[model_name], "default_model", None
+                    ),
+                    max_completion_tokens=max_completion_tokens,
+                    context_length=context_length,
+                    scheduler=schedulers[model_name],
+                    request_id_prefix=(
+                        f"model-metrics-{_sanitize_for_filename(model_name)}"
+                    ),
+                    batch_fit_feature_set=batch_fit_feature_set,
+                )
+                for model_name in model_names
             )
-        finally:
-            await scheduler_for_model.stop()
-    
+        )
+        results.update(zip(model_names, model_results))
+    finally:
+        await asyncio.gather(
+            *(scheduler.stop() for scheduler in schedulers.values()),
+            return_exceptions=True,
+        )
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(results, indent=2), encoding="utf-8")
             
@@ -438,9 +453,14 @@ def main():
         args.prompt_bucket_dir,
         label="Calibration prompt-bucket",
     )
+    prompt_bucket_files = get_prompt_bucket_files(prompt_bucket_dir)
+    per_bucket_limit = (
+        args.num_requests + len(prompt_bucket_files) - 1
+    ) // len(prompt_bucket_files)
     prompt_records = select_prompt_subset(
-        iter_random_bucketed_prompts(
+        iter_mixed_then_random_bucketed_prompts(
             prompt_bucket_dir,
+            per_bucket_limit=per_bucket_limit,
             limit=args.num_requests,
             seed=DEFAULT_RANDOM_SEED,
             include_complete_record=True,
