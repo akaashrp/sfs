@@ -140,6 +140,26 @@ def _single_model_paths(model_name: str) -> tuple[Path, Path, Path, Path]:
         EXPERIMENT_DIR / f"batch_stats_{safe_model_name}.csv",
     )
 
+
+def _build_calibration_payload(
+    *,
+    prompt: str,
+    max_completion_tokens: int,
+    model_id: str | None,
+) -> dict[str, Any]:
+    """Build a calibration request with the same Qwen mode as sweep traffic."""
+    return {
+        "messages": build_messages(prompt, system_prompt=DEFAULT_SYSTEM_PROMPT),
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "max_completion_tokens": max_completion_tokens,
+        "model": model_id,
+        "extra_body": {
+            "chat_template_kwargs": {"enable_thinking": False},
+        },
+    }
+
+
 def build_single_model_wait_time_scheduler(
     model_name: str,
     model_clients: dict[str, InstanceClient],
@@ -216,14 +236,12 @@ async def _compute_single_model_metrics(
             context_length=context_length,
             record_max_completion_tokens=prompt_record.get("max_completion_tokens"),
         )
-        
-        payload = {
-            "messages": build_messages(prompt, system_prompt=DEFAULT_SYSTEM_PROMPT),
-            "temperature": 0.0,
-            "top_p": 1.0,
-            "max_completion_tokens": request_max_completion_tokens,
-            "model": model_id,
-        }
+
+        payload = _build_calibration_payload(
+            prompt=prompt,
+            max_completion_tokens=request_max_completion_tokens,
+            model_id=model_id,
+        )
 
         dispatch_tasks.append(
             asyncio.create_task(
