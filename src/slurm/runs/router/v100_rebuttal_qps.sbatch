@@ -175,20 +175,9 @@ run_native_preflight() {
       "$SFS_ROOT/vllm/tests/v1/engine/test_scheduler_simulator_native.py::test_native_cross_term_prices_processed_prefill_context"
 }
 
-if ! run_native_preflight; then
-  echo "[WARN] Native preflight failed; rebuilding _scheduler_sim on the allocated V100 node." >&2
-  (
-    unset PYTHONPATH
-    PROJECT_ROOT="$PROJECT_ROOT" \
-      VLLM_DIR="$SFS_ROOT/vllm" \
-      VLLM_WHL="$PROJECT_ROOT/vllm.whl" \
-      BUILD_TMP_ROOT="$JOB_LOCAL/vllm-build" \
-      bash "$SFS_ROOT/scripts/setup/compile_vllm_scheduler_sim.sh"
-  )
-  rsync -aL --exclude=__pycache__ --exclude='*.pyc' \
-    "$SFS_ROOT/vllm/vllm/" "$CORRECTED_VLLM_RUNTIME/vllm/"
-  run_native_preflight
-fi
+# Validate the frozen native runtime, but never rebuild or install packages from
+# inside a submitted experiment.
+run_native_preflight
 
 IFS=',' read -r -a GPU_IDS <<< "${CUDA_VISIBLE_DEVICES:-}"
 if (( ${#GPU_IDS[@]} < 8 )); then
@@ -559,95 +548,13 @@ wait_for_server qwen3-0.6b "$PORT_06B" "$PID_06B" \
   "$RUN_ROOT/vllm_${RUN_MODE}_qwen3-0.6b_${SLURM_JOB_ID}.log"
 
 if [[ "$SWEEP_STARTUP_GATE" == "1" ]]; then
+  # Keep this gate at the public HTTP boundary. A short-lived Python process
+  # must not attach to server-owned snapshot SHM because its resource tracker
+  # can unlink the segments when that process exits.
   smoke_request qwen3-0.6b "$PORT_06B" "$MODEL_06B"
   smoke_request qwen3-8b "$PORT_8B" "$MODEL_8B"
   smoke_request qwen3-32b "$PORT_32B" "$MODEL_32B"
-  python - "$CALIBRATION_OUTPUT_PATH" \
-    "$SNAPSHOT_06B:qwen3-0.6b" \
-    "$SNAPSHOT_8B:qwen3-8b" \
-    "$SNAPSHOT_32B:qwen3-32b" <<'PY'
-import json
-from multiprocessing import shared_memory
-from pathlib import Path
-import sys
-import time
-
-from sfs_core.routing.snapshot_shm_client import SnapshotShmClient
-from vllm.v1.engine.snapshot_shm import read_snapshot_shm_header_once
-
-payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-rows = payload.get("models", payload)
-for spec in sys.argv[2:]:
-    shm_name, model_key = spec.split(":", 1)
-    sfs = rows[model_key]["sfs_simulation"]
-    expected = (
-        float(sfs["intercept"]),
-        float(sfs["prefill_coeff"]),
-        float(sfs["prefill_sq_coeff"]),
-        float(sfs["decode_coeff"]),
-        float(sfs["sum_coeff"]),
-        float(sfs["sum_sq_coeff"]),
-    )
-    deadline = time.monotonic() + 30.0
-    last_error = None
-    while time.monotonic() < deadline:
-        shm = None
-        try:
-            shm = shared_memory.SharedMemory(name=shm_name)
-            header = read_snapshot_shm_header_once(shm)
-            if header is None:
-                raise RuntimeError("no consistent header")
-            observed = (
-                float(header.simulation_intercept),
-                float(header.simulation_prefill_coeff),
-                float(header.simulation_prefill_sq_coeff),
-                float(header.simulation_decode_coeff),
-                float(header.simulation_sum_coeff),
-                float(header.simulation_sum_sq_coeff),
-            )
-            if observed != expected:
-                raise RuntimeError(
-                    f"coefficient mismatch: expected={expected}, observed={observed}"
-                )
-            break
-        except (FileNotFoundError, RuntimeError) as exc:
-            last_error = exc
-            time.sleep(0.1)
-        finally:
-            if shm is not None:
-                shm.close()
-    else:
-        raise RuntimeError(f"{model_key}: SHM header validation failed: {last_error}")
-
-    client = SnapshotShmClient(
-        shm_name=shm_name,
-        shm_size_bytes=8 * 1024 * 1024,
-    )
-    try:
-        def eventually_estimate(prompt_tokens):
-            estimate_deadline = time.monotonic() + 30.0
-            estimate_error = None
-            while time.monotonic() < estimate_deadline:
-                try:
-                    return client.estimate(prompt_tokens=prompt_tokens)
-                except RuntimeError as exc:
-                    estimate_error = exc
-                    time.sleep(0.1)
-            raise RuntimeError(
-                f"{model_key}: native snapshot estimate failed: {estimate_error}"
-            )
-
-        summary = eventually_estimate(None)
-        prompt_estimate = eventually_estimate(32)
-        if not summary.payload["reports"][0].get("ready"):
-            raise RuntimeError(f"{model_key}: snapshot summary is not ready")
-        if not prompt_estimate.payload["reports"][0].get("ready"):
-            raise RuntimeError(f"{model_key}: prompt simulation is not ready")
-    finally:
-        client.close()
-    print(f"[SMOKE] {model_key} SHM header and native simulation passed")
-PY
-  echo "[DONE] In-job sweep startup gate passed for all three model instances."
+  echo "[DONE] In-job inference smoke passed for all three model instances."
 fi
 
 INSTANCES_CONFIG="$RUN_ROOT/instances_qps_${SLURM_JOB_ID}.json"
