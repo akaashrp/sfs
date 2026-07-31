@@ -37,6 +37,7 @@ HOLDOUT_TOKENIZER_ID="${HOLDOUT_TOKENIZER_ID:-$PROJECT_ROOT/.cache/huggingface/h
 EXPERIMENT_TAG="${EXPERIMENT_TAG:-v100_score_proxy}"
 RUN_ROOT="${RUN_ROOT:-$SFS_ROOT/experiments/$EXPERIMENT_TAG}"
 CALIBRATION_OUTPUT_PATH="${CALIBRATION_OUTPUT_PATH:-$RUN_ROOT/calibration.json}"
+CALIBRATION_SHA256="${CALIBRATION_SHA256:-}"
 CALIBRATION_TRACE_DIR="$RUN_ROOT/calibration_traces"
 QPS_OUTPUT_DIR="$RUN_ROOT/qps_sweep"
 CHAT_TEMPLATE="$SFS_ROOT/src/assets/templates/chat_template_qwen3.jinja"
@@ -52,6 +53,7 @@ SIMULATION_BATCH_TIME_FEATURE_SET="${SIMULATION_BATCH_TIME_FEATURE_SET:-cross_te
 CALIBRATION_NUM_REQUESTS="${CALIBRATION_NUM_REQUESTS:-1000}"
 NUM_REQUESTS="${NUM_REQUESTS:-16000}"
 INFERENCE_SMOKE_ONLY="${INFERENCE_SMOKE_ONLY:-0}"
+SWEEP_STARTUP_GATE="${SWEEP_STARTUP_GATE:-1}"
 SMOKE_MAX_COMPLETION_TOKENS="${SMOKE_MAX_COMPLETION_TOKENS:-4}"
 ENFORCE_EAGER="${ENFORCE_EAGER:-0}"
 WORKER_COUNT="${WORKER_COUNT:-1}"
@@ -69,6 +71,10 @@ if [[ "$SIMULATION_BATCH_TIME_FEATURE_SET" != "cross_term" ]]; then
 fi
 if [[ "$INFERENCE_SMOKE_ONLY" != "0" && "$INFERENCE_SMOKE_ONLY" != "1" ]]; then
   echo "[ERROR] INFERENCE_SMOKE_ONLY must be 0 or 1." >&2
+  exit 1
+fi
+if [[ "$SWEEP_STARTUP_GATE" != "0" && "$SWEEP_STARTUP_GATE" != "1" ]]; then
+  echo "[ERROR] SWEEP_STARTUP_GATE must be 0 or 1." >&2
   exit 1
 fi
 if [[ "$ENFORCE_EAGER" != "0" && "$ENFORCE_EAGER" != "1" ]]; then
@@ -101,6 +107,23 @@ else
   require_prompt_bucket_dir holdout "$HOLDOUT_BUCKET_DIR"
   if [[ ! -d "$HOLDOUT_TOKENIZER_ID" ]]; then
     echo "[ERROR] Missing stable holdout tokenizer snapshot: $HOLDOUT_TOKENIZER_ID" >&2
+    exit 1
+  fi
+  if [[ ! -f "$CALIBRATION_OUTPUT_PATH" ]]; then
+    echo "[ERROR] Missing calibration JSON: $CALIBRATION_OUTPUT_PATH" >&2
+    exit 1
+  fi
+  if [[ -z "$CALIBRATION_SHA256" &&
+      -f "${CALIBRATION_OUTPUT_PATH}.sha256" ]]; then
+    read -r CALIBRATION_SHA256 _ <"${CALIBRATION_OUTPUT_PATH}.sha256"
+  fi
+  if [[ ! "$CALIBRATION_SHA256" =~ ^[[:xdigit:]]{64}$ ]]; then
+    echo "[ERROR] Sweep requires CALIBRATION_SHA256 or a valid sidecar." >&2
+    exit 1
+  fi
+  ACTUAL_CALIBRATION_SHA256="$(sha256sum "$CALIBRATION_OUTPUT_PATH" | cut -d' ' -f1)"
+  if [[ "${ACTUAL_CALIBRATION_SHA256,,}" != "${CALIBRATION_SHA256,,}" ]]; then
+    echo "[ERROR] Calibration SHA256 mismatch: expected=$CALIBRATION_SHA256 actual=$ACTUAL_CALIBRATION_SHA256" >&2
     exit 1
   fi
 fi
@@ -291,37 +314,51 @@ start_server() {
   echo "[INFO] Started $label PID=$LAST_SERVER_PID log=$server_log"
 }
 
-read_coefficients() {
-  local model_key="$1"
-  local -n output_array="$2"
-  mapfile -t output_array < <(
-    python -m scripts.runs.service_metrics_config \
-      --path "$CALIBRATION_OUTPUT_PATH" \
-      --expected-feature-set "$SIMULATION_BATCH_TIME_FEATURE_SET" \
-      coefficients --model "$model_key"
-  )
-  if (( ${#output_array[@]} != 6 )); then
-    echo "[ERROR] Expected six SFS coefficients for $model_key." >&2
-    return 1
-  fi
+smoke_request() {
+  local label="$1"
+  local port="$2"
+  local model_path="$3"
+  local response_path="$RUN_ROOT/inference_smoke_${RUN_MODE}_${label}_${SLURM_JOB_ID}.json"
+  curl -fsS --max-time 300 \
+    -H 'Content-Type: application/json' \
+    -d "{\"model\":\"$model_path\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with OK.\"}],\"temperature\":0,\"max_completion_tokens\":$SMOKE_MAX_COMPLETION_TOKENS,\"chat_template_kwargs\":{\"enable_thinking\":false}}" \
+    "http://127.0.0.1:$port/v1/chat/completions" \
+    --output "$response_path"
+  python - "$response_path" "$label" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+response_path = Path(sys.argv[1])
+label = sys.argv[2]
+payload = json.loads(response_path.read_text(encoding="utf-8"))
+choices = payload.get("choices")
+if not isinstance(choices, list) or not choices:
+    raise RuntimeError(f"{label}: response has no choices: {payload}")
+usage = payload.get("usage") or {}
+completion_tokens = int(usage.get("completion_tokens") or 0)
+if completion_tokens <= 0:
+    raise RuntimeError(f"{label}: response generated no completion tokens: {payload}")
+print(
+    f"[SMOKE] {label} generated {completion_tokens} token(s); "
+    f"finish_reason={choices[0].get('finish_reason')}"
+)
+PY
 }
 
 simulation_flags() {
   local snapshot_name="$1"
-  shift
-  local coefficients=("$@")
+  local model_key="$2"
   printf '%s\n' \
     --enable-snapshot-shm-publishing \
-    --snapshot-shm-name "$snapshot_name" \
-    --snapshot-shm-size-bytes "$((8 * 1024 * 1024))" \
-    --snapshot-shm-publish-interval-ms 0 \
-    --simulation-batch-time-feature-set "$SIMULATION_BATCH_TIME_FEATURE_SET" \
-    --simulation-intercept "${coefficients[0]}" \
-    --simulation-prefill-coeff "${coefficients[1]}" \
-    --simulation-prefill-sq-coeff "${coefficients[2]}" \
-    --simulation-decode-coeff "${coefficients[3]}" \
-    --simulation-sum-coeff "${coefficients[4]}" \
-    --simulation-sum-sq-coeff "${coefficients[5]}"
+    "--snapshot-shm-name=$snapshot_name" \
+    "--snapshot-shm-size-bytes=$((8 * 1024 * 1024))" \
+    --snapshot-shm-publish-interval-ms=0
+  python -m scripts.runs.service_metrics_config \
+    --path "$CALIBRATION_OUTPUT_PATH" \
+    --expected-feature-set "$SIMULATION_BATCH_TIME_FEATURE_SET" \
+    --require-nonnegative-sfs \
+    simulation-args --model "$model_key"
 }
 
 {
@@ -334,6 +371,7 @@ simulation_flags() {
   echo "attention_backend=$VLLM_ATTENTION_BACKEND"
   echo "enforce_eager=$ENFORCE_EAGER"
   echo "inference_smoke_only=$INFERENCE_SMOKE_ONLY"
+  echo "sweep_startup_gate=$SWEEP_STARTUP_GATE"
   echo "chunked_prefill=false"
   echo "prefix_caching=false"
   echo "simulation_batch_time_feature_set=$SIMULATION_BATCH_TIME_FEATURE_SET"
@@ -356,6 +394,7 @@ simulation_flags() {
   echo "holdout_cache_dir=$HOLDOUT_CACHE_DIR"
   echo "holdout_tokenizer_id=$HOLDOUT_TOKENIZER_ID"
   echo "calibration_json=$CALIBRATION_OUTPUT_PATH"
+  echo "calibration_sha256=${ACTUAL_CALIBRATION_SHA256:-}"
 } | tee "$RUN_ROOT/provenance_${RUN_MODE}_${SLURM_JOB_ID}.txt"
 
 if [[ "$RUN_MODE" == "calibrate" ]]; then
@@ -403,38 +442,6 @@ if [[ "$RUN_MODE" == "calibrate" ]]; then
     "$RUN_ROOT/vllm_${RUN_MODE}_qwen3-0.6b_${SLURM_JOB_ID}.log"
 
   if [[ "$INFERENCE_SMOKE_ONLY" == "1" ]]; then
-    smoke_request() {
-      local label="$1"
-      local port="$2"
-      local model_path="$3"
-      local response_path="$RUN_ROOT/inference_smoke_${label}_${SLURM_JOB_ID}.json"
-      curl -fsS --max-time 300 \
-        -H 'Content-Type: application/json' \
-        -d "{\"model\":\"$model_path\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with OK.\"}],\"temperature\":0,\"max_completion_tokens\":$SMOKE_MAX_COMPLETION_TOKENS}" \
-        "http://127.0.0.1:$port/v1/chat/completions" \
-        --output "$response_path"
-      python - "$response_path" "$label" <<'PY'
-import json
-from pathlib import Path
-import sys
-
-response_path = Path(sys.argv[1])
-label = sys.argv[2]
-payload = json.loads(response_path.read_text(encoding="utf-8"))
-choices = payload.get("choices")
-if not isinstance(choices, list) or not choices:
-    raise RuntimeError(f"{label}: response has no choices: {payload}")
-usage = payload.get("usage") or {}
-completion_tokens = int(usage.get("completion_tokens") or 0)
-if completion_tokens <= 0:
-    raise RuntimeError(f"{label}: response generated no completion tokens: {payload}")
-print(
-    f"[SMOKE] {label} generated {completion_tokens} token(s); "
-    f"finish_reason={choices[0].get('finish_reason')}"
-)
-PY
-    }
-
     smoke_request qwen3-0.6b "$PORT_06B" "$MODEL_06B"
     smoke_request qwen3-8b "$PORT_8B" "$MODEL_8B"
     smoke_request qwen3-32b "$PORT_32B" "$MODEL_32B"
@@ -449,6 +456,7 @@ PY
     --max-completion-tokens "$MAX_COMPLETION_TOKENS" \
     --context-length "$MAX_MODEL_LEN" \
     --batch-fit-feature-set "$SIMULATION_BATCH_TIME_FEATURE_SET" \
+    --batch-fit-nonnegative \
     --output-path "$CALIBRATION_OUTPUT_PATH" \
     --model-dir-0-6b "$MODEL_06B" \
     --model-dir-8b "$MODEL_8B" \
@@ -461,11 +469,13 @@ PY
   python -m scripts.runs.service_metrics_config \
     --path "$CALIBRATION_OUTPUT_PATH" \
     --expected-feature-set "$SIMULATION_BATCH_TIME_FEATURE_SET" \
+    --require-nonnegative-sfs \
     validate
   python -m scripts.runs.service_metrics_config \
     --path "$CALIBRATION_OUTPUT_PATH" \
     --expected-feature-set "$SIMULATION_BATCH_TIME_FEATURE_SET" \
     capacity-summary | tee "$RUN_ROOT/capacity_estimate.json"
+  sha256sum "$CALIBRATION_OUTPUT_PATH" >"${CALIBRATION_OUTPUT_PATH}.sha256"
   echo "[DONE] V100 calibration: $CALIBRATION_OUTPUT_PATH"
   exit 0
 fi
@@ -473,21 +483,53 @@ fi
 python -m scripts.runs.service_metrics_config \
   --path "$CALIBRATION_OUTPUT_PATH" \
   --expected-feature-set "$SIMULATION_BATCH_TIME_FEATURE_SET" \
+  --require-nonnegative-sfs \
   validate
-
-COEFF_06B=()
-COEFF_8B=()
-COEFF_32B=()
-read_coefficients qwen3-0.6b COEFF_06B
-read_coefficients qwen3-8b COEFF_8B
-read_coefficients qwen3-32b COEFF_32B
 
 SNAPSHOT_06B="vllm_snapshot_${SLURM_JOB_ID}_qwen3_0p6b"
 SNAPSHOT_8B="vllm_snapshot_${SLURM_JOB_ID}_qwen3_8b"
 SNAPSHOT_32B="vllm_snapshot_${SLURM_JOB_ID}_qwen3_32b"
-mapfile -t FLAGS_06B < <(simulation_flags "$SNAPSHOT_06B" "${COEFF_06B[@]}")
-mapfile -t FLAGS_8B < <(simulation_flags "$SNAPSHOT_8B" "${COEFF_8B[@]}")
-mapfile -t FLAGS_32B < <(simulation_flags "$SNAPSHOT_32B" "${COEFF_32B[@]}")
+mapfile -t FLAGS_06B < <(simulation_flags "$SNAPSHOT_06B" qwen3-0.6b)
+mapfile -t FLAGS_8B < <(simulation_flags "$SNAPSHOT_8B" qwen3-8b)
+mapfile -t FLAGS_32B < <(simulation_flags "$SNAPSHOT_32B" qwen3-32b)
+
+validate_simulation_flags() {
+  local label="$1"
+  shift
+  python - "$label" "$@" <<'PY'
+import math
+import sys
+
+from vllm.engine.arg_utils import EngineArgs
+from vllm.utils import FlexibleArgumentParser
+
+label = sys.argv[1]
+flags = sys.argv[2:]
+parser = EngineArgs.add_cli_args(FlexibleArgumentParser())
+args = parser.parse_args(flags)
+if args.simulation_batch_time_feature_set != "cross_term":
+    raise RuntimeError(
+        f"{label}: unexpected feature set "
+        f"{args.simulation_batch_time_feature_set!r}"
+    )
+if args.simulation_sum_sq_coeff != 0:
+    raise RuntimeError(f"{label}: legacy sum-squared coefficient was populated")
+values = (
+    args.simulation_intercept,
+    args.simulation_prefill_coeff,
+    args.simulation_prefill_sq_coeff,
+    args.simulation_decode_coeff,
+    args.simulation_sum_coeff,
+    args.simulation_prefill_x_context_coeff,
+)
+if any(not math.isfinite(value) or value < 0 for value in values):
+    raise RuntimeError(f"{label}: invalid parsed coefficients: {values}")
+print(f"[PREFLIGHT] {label} exact vLLM simulation argv parsed: {values}")
+PY
+}
+validate_simulation_flags qwen3-0.6b "${FLAGS_06B[@]}"
+validate_simulation_flags qwen3-8b "${FLAGS_8B[@]}"
+validate_simulation_flags qwen3-32b "${FLAGS_32B[@]}"
 
 WAIT_06B="$RUN_ROOT/actual_wait_times_qwen3-0_6b_qps_${SLURM_JOB_ID}.log"
 WAIT_8B="$RUN_ROOT/actual_wait_times_qwen3-8b_qps_${SLURM_JOB_ID}.log"
@@ -515,6 +557,98 @@ wait_for_server qwen3-8b "$PORT_8B" "$PID_8B" \
   "$RUN_ROOT/vllm_${RUN_MODE}_qwen3-8b_${SLURM_JOB_ID}.log"
 wait_for_server qwen3-0.6b "$PORT_06B" "$PID_06B" \
   "$RUN_ROOT/vllm_${RUN_MODE}_qwen3-0.6b_${SLURM_JOB_ID}.log"
+
+if [[ "$SWEEP_STARTUP_GATE" == "1" ]]; then
+  smoke_request qwen3-0.6b "$PORT_06B" "$MODEL_06B"
+  smoke_request qwen3-8b "$PORT_8B" "$MODEL_8B"
+  smoke_request qwen3-32b "$PORT_32B" "$MODEL_32B"
+  python - "$CALIBRATION_OUTPUT_PATH" \
+    "$SNAPSHOT_06B:qwen3-0.6b" \
+    "$SNAPSHOT_8B:qwen3-8b" \
+    "$SNAPSHOT_32B:qwen3-32b" <<'PY'
+import json
+from multiprocessing import shared_memory
+from pathlib import Path
+import sys
+import time
+
+from sfs_core.routing.snapshot_shm_client import SnapshotShmClient
+from vllm.v1.engine.snapshot_shm import read_snapshot_shm_header_once
+
+payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+rows = payload.get("models", payload)
+for spec in sys.argv[2:]:
+    shm_name, model_key = spec.split(":", 1)
+    sfs = rows[model_key]["sfs_simulation"]
+    expected = (
+        float(sfs["intercept"]),
+        float(sfs["prefill_coeff"]),
+        float(sfs["prefill_sq_coeff"]),
+        float(sfs["decode_coeff"]),
+        float(sfs["sum_coeff"]),
+        float(sfs["sum_sq_coeff"]),
+    )
+    deadline = time.monotonic() + 30.0
+    last_error = None
+    while time.monotonic() < deadline:
+        shm = None
+        try:
+            shm = shared_memory.SharedMemory(name=shm_name)
+            header = read_snapshot_shm_header_once(shm)
+            if header is None:
+                raise RuntimeError("no consistent header")
+            observed = (
+                float(header.simulation_intercept),
+                float(header.simulation_prefill_coeff),
+                float(header.simulation_prefill_sq_coeff),
+                float(header.simulation_decode_coeff),
+                float(header.simulation_sum_coeff),
+                float(header.simulation_sum_sq_coeff),
+            )
+            if observed != expected:
+                raise RuntimeError(
+                    f"coefficient mismatch: expected={expected}, observed={observed}"
+                )
+            break
+        except (FileNotFoundError, RuntimeError) as exc:
+            last_error = exc
+            time.sleep(0.1)
+        finally:
+            if shm is not None:
+                shm.close()
+    else:
+        raise RuntimeError(f"{model_key}: SHM header validation failed: {last_error}")
+
+    client = SnapshotShmClient(
+        shm_name=shm_name,
+        shm_size_bytes=8 * 1024 * 1024,
+    )
+    try:
+        def eventually_estimate(prompt_tokens):
+            estimate_deadline = time.monotonic() + 30.0
+            estimate_error = None
+            while time.monotonic() < estimate_deadline:
+                try:
+                    return client.estimate(prompt_tokens=prompt_tokens)
+                except RuntimeError as exc:
+                    estimate_error = exc
+                    time.sleep(0.1)
+            raise RuntimeError(
+                f"{model_key}: native snapshot estimate failed: {estimate_error}"
+            )
+
+        summary = eventually_estimate(None)
+        prompt_estimate = eventually_estimate(32)
+        if not summary.payload["reports"][0].get("ready"):
+            raise RuntimeError(f"{model_key}: snapshot summary is not ready")
+        if not prompt_estimate.payload["reports"][0].get("ready"):
+            raise RuntimeError(f"{model_key}: prompt simulation is not ready")
+    finally:
+        client.close()
+    print(f"[SMOKE] {model_key} SHM header and native simulation passed")
+PY
+  echo "[DONE] In-job sweep startup gate passed for all three model instances."
+fi
 
 INSTANCES_CONFIG="$RUN_ROOT/instances_qps_${SLURM_JOB_ID}.json"
 cat >"$INSTANCES_CONFIG" <<EOF

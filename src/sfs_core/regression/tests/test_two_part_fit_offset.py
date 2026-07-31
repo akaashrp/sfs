@@ -2,9 +2,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
-from sfs_core.regression.two_part_fit import DEFAULT_COLS, fit_two_part
+from sfs_core.regression.two_part_fit import (
+    DEFAULT_COLS,
+    fit_two_part,
+    fit_two_part_from_df,
+)
 
 
 def _row(index: int, *, exec_s: float) -> dict[str, float | int]:
@@ -58,3 +63,45 @@ def test_fit_two_part_start_offset_excludes_prior_rows(tmp_path: Path):
     assert len(fitted_df) == len(current)
     assert fitted_df["ts"].tolist() == current["ts"].tolist()
     assert float(fitted_df["exec"].max()) < 1.0
+
+
+def test_nonnegative_fit_cannot_predict_negative_or_decreasing_latency():
+    rng = np.random.default_rng(7)
+    rows = []
+    for index in range(200):
+        prefill = int(rng.integers(0, 512))
+        decode = int(rng.integers(1, 65))
+        sum_tokens = int(rng.integers(decode, 4096))
+        prefill_sq_sum = prefill**2
+        cross_term = prefill * max(sum_tokens - prefill, 0)
+        exec_s = max(
+            0.001,
+            0.002
+            + 2e-6 * prefill
+            + 3e-4 * decode
+            + 1e-7 * sum_tokens
+            + rng.normal(0, 0.001),
+        )
+        row = _row(index, exec_s=exec_s)
+        row.update(
+            {
+                "prefill": prefill,
+                "prefill_sq_sum": prefill_sq_sum,
+                "decode": decode,
+                "sum_tokens": sum_tokens,
+                "sum_sq_tokens": sum_tokens**2,
+                "prefill_x_processed_ctx_sum": cross_term,
+            }
+        )
+        rows.append(row)
+
+    fit = fit_two_part_from_df(
+        pd.DataFrame(rows, columns=DEFAULT_COLS),
+        feature_set="cross_term",
+        nonnegative_coefficients=True,
+    )
+
+    assert fit.coefficient_constraint == "nonnegative_intercept_and_slopes"
+    assert fit.base_model.intercept_ >= 0
+    assert np.all(fit.base_model.coef_ >= 0)
+    assert np.all(fit.predict_typical(np.zeros((1, 5))) >= 0)

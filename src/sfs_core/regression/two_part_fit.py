@@ -7,6 +7,7 @@ from typing import Iterable
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import nnls
 from sklearn.linear_model import HuberRegressor, LinearRegression
 
 
@@ -48,6 +49,7 @@ class TwoPartFitResult:
     base_model: LinearRegression
     feature_set: str
     feature_names: list[str]
+    coefficient_constraint: str
     inlier_mask: np.ndarray
     residual_threshold: float
     stall_probability: float
@@ -124,12 +126,36 @@ def _r2(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     return 1.0 - ss_res / ss_tot
 
 
+def _fit_base_model(
+    x: np.ndarray,
+    y: np.ndarray,
+    *,
+    nonnegative_coefficients: bool,
+) -> LinearRegression:
+    if not nonnegative_coefficients:
+        model = LinearRegression()
+        model.fit(x, y)
+        return model
+
+    # Batch latency and every feature are nonnegative physical quantities.
+    # Constrain both the intercept and slopes so the fitted latency cannot
+    # become negative or decrease as work is added.
+    design = np.column_stack([np.ones(len(x), dtype=x.dtype), x])
+    parameters, _ = nnls(design, y)
+    model = LinearRegression()
+    model.intercept_ = float(parameters[0])
+    model.coef_ = np.asarray(parameters[1:], dtype=float)
+    model.n_features_in_ = int(x.shape[1])
+    return model
+
+
 def fit_two_part_from_df(
     df: pd.DataFrame,
     *,
     stall_percentile: float = 99.9,
     huber_epsilon: float = 1.35,
     feature_set: str = DEFAULT_FEATURE_SET,
+    nonnegative_coefficients: bool = False,
 ) -> TwoPartFitResult:
     if not 0.0 < stall_percentile < 100.0:
         raise ValueError("stall_percentile must be in (0, 100).")
@@ -150,8 +176,11 @@ def fit_two_part_from_df(
             "Lower stall_percentile or inspect data quality."
         )
 
-    base_model = LinearRegression()
-    base_model.fit(x[inlier_mask], y[inlier_mask])
+    base_model = _fit_base_model(
+        x[inlier_mask],
+        y[inlier_mask],
+        nonnegative_coefficients=nonnegative_coefficients,
+    )
 
     typical_pred = base_model.predict(x)
     stall_mask = robust_residuals > residual_threshold
@@ -164,6 +193,11 @@ def fit_two_part_from_df(
         base_model=base_model,
         feature_set=feature_set,
         feature_names=feature_names,
+        coefficient_constraint=(
+            "nonnegative_intercept_and_slopes"
+            if nonnegative_coefficients
+            else "unconstrained"
+        ),
         inlier_mask=inlier_mask,
         residual_threshold=float(residual_threshold),
         stall_probability=stall_probability,
@@ -179,6 +213,7 @@ def fit_two_part(
     huber_epsilon: float = 1.35,
     feature_set: str = DEFAULT_FEATURE_SET,
     start_offset: int = 0,
+    nonnegative_coefficients: bool = False,
 ) -> tuple[TwoPartFitResult, pd.DataFrame]:
     path = _normalize_path(path)
     if start_offset < 0:
@@ -203,6 +238,7 @@ def fit_two_part(
         stall_percentile=stall_percentile,
         huber_epsilon=huber_epsilon,
         feature_set=feature_set,
+        nonnegative_coefficients=nonnegative_coefficients,
     )
     return result, df
 
@@ -218,6 +254,7 @@ def summarize_two_part_fit(result: TwoPartFitResult, df: pd.DataFrame) -> str:
     lines = [
         "Two-part fit summary:",
         f"feature_set={result.feature_set}",
+        f"coefficient_constraint={result.coefficient_constraint}",
         f"stall_residual_threshold={result.residual_threshold}",
         f"stall_probability={result.stall_probability}",
         f"mean_stall_delay={result.mean_stall_delay}",
@@ -241,6 +278,7 @@ def run_two_part_fit(
     stall_percentile: float = 99.9,
     huber_epsilon: float = 1.35,
     feature_set: str = DEFAULT_FEATURE_SET,
+    nonnegative_coefficients: bool = False,
 ) -> str:
     result, df = fit_two_part(
         path,
@@ -248,6 +286,7 @@ def run_two_part_fit(
         stall_percentile=stall_percentile,
         huber_epsilon=huber_epsilon,
         feature_set=feature_set,
+        nonnegative_coefficients=nonnegative_coefficients,
     )
     out = summarize_two_part_fit(result, df)
     out_path = f"{output_prefix}_two_part_coefficients.txt"

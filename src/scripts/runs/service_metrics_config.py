@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import copy
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -19,6 +21,8 @@ SFS_COEFFICIENT_KEYS = (
     "sum_coeff",
     "sum_sq_coeff",
 )
+NONNEGATIVE_COEFFICIENT_CONSTRAINT = "nonnegative_intercept_and_slopes"
+MINIMUM_SFS_FIT_R2 = 0.95
 
 
 def summarize_capacity(
@@ -55,6 +59,13 @@ def _finite(value: Any, *, label: str) -> float:
     return numeric
 
 
+def _nonnegative(value: Any, *, label: str) -> float:
+    numeric = _finite(value, label=label)
+    if numeric < 0:
+        raise ValueError(f"{label} must be nonnegative")
+    return numeric
+
+
 def _nonnegative_int(value: Any, *, label: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(f"{label} must be an integer")
@@ -67,6 +78,7 @@ def load_and_validate(
     path: Path,
     *,
     expected_feature_set: str,
+    require_nonnegative_sfs: bool = False,
 ) -> dict[str, dict[str, Any]]:
     resolved_path = path.expanduser().resolve()
     try:
@@ -141,10 +153,90 @@ def load_and_validate(
                 f"expected {expected_feature_set!r}"
             )
         for coefficient in SFS_COEFFICIENT_KEYS:
-            _finite(
+            validate_coefficient = (
+                _nonnegative if require_nonnegative_sfs else _finite
+            )
+            validate_coefficient(
                 sfs.get(coefficient),
                 label=f"{model_key}.sfs_simulation.{coefficient}",
             )
+        if require_nonnegative_sfs:
+            constraint = str(sfs.get("coefficient_constraint", "")).strip()
+            if constraint != NONNEGATIVE_COEFFICIENT_CONSTRAINT:
+                raise ValueError(
+                    f"{model_key}.sfs_simulation.coefficient_constraint="
+                    f"{constraint!r}; expected "
+                    f"{NONNEGATIVE_COEFFICIENT_CONSTRAINT!r}"
+                )
+            diagnostics = sfs.get("fit_prediction_diagnostics")
+            if not isinstance(diagnostics, dict):
+                raise ValueError(
+                    f"{model_key}.sfs_simulation.fit_prediction_diagnostics "
+                    "must be an object"
+                )
+            minimum_s = _nonnegative(
+                diagnostics.get("minimum_s"),
+                label=(
+                    f"{model_key}.sfs_simulation."
+                    "fit_prediction_diagnostics.minimum_s"
+                ),
+            )
+            negative_rows = _nonnegative_int(
+                diagnostics.get("negative_rows"),
+                label=(
+                    f"{model_key}.sfs_simulation."
+                    "fit_prediction_diagnostics.negative_rows"
+                ),
+            )
+            if negative_rows != 0:
+                raise ValueError(
+                    f"{model_key} has {negative_rows} negative fitted batch "
+                    "latencies"
+                )
+            _positive(
+                diagnostics.get("minimum_nonempty_s"),
+                label=(
+                    f"{model_key}.sfs_simulation."
+                    "fit_prediction_diagnostics.minimum_nonempty_s"
+                ),
+            )
+            negative_nonempty_rows = _nonnegative_int(
+                diagnostics.get("negative_nonempty_rows"),
+                label=(
+                    f"{model_key}.sfs_simulation."
+                    "fit_prediction_diagnostics.negative_nonempty_rows"
+                ),
+            )
+            if negative_nonempty_rows != 0:
+                raise ValueError(
+                    f"{model_key} has {negative_nonempty_rows} negative "
+                    "nonempty fitted batch latencies"
+                )
+            r2_all_rows = _finite(
+                diagnostics.get("r2_all_rows"),
+                label=(
+                    f"{model_key}.sfs_simulation."
+                    "fit_prediction_diagnostics.r2_all_rows"
+                ),
+            )
+            if r2_all_rows < MINIMUM_SFS_FIT_R2:
+                raise ValueError(
+                    f"{model_key} SFS fit R^2={r2_all_rows:.6f} is below "
+                    f"{MINIMUM_SFS_FIT_R2:.2f}"
+                )
+            _nonnegative(
+                diagnostics.get("mae_s_all_rows"),
+                label=(
+                    f"{model_key}.sfs_simulation."
+                    "fit_prediction_diagnostics.mae_s_all_rows"
+                ),
+            )
+            if minimum_s == 0 and all(
+                float(sfs[key]) == 0 for key in SFS_COEFFICIENT_KEYS
+            ):
+                raise ValueError(
+                    f"{model_key} has an all-zero SFS batch-latency model"
+                )
         fit_rows = _nonnegative_int(
             sfs.get("fit_rows"),
             label=f"{model_key}.sfs_simulation.fit_rows",
@@ -164,6 +256,203 @@ def load_and_validate(
     return validated
 
 
+def build_simulation_args(row: dict[str, Any]) -> list[str]:
+    """Return parser-safe vLLM simulation arguments for one model row."""
+    sfs = row["sfs_simulation"]
+    feature_set = str(sfs["feature_set"])
+    final_option = (
+        "simulation-prefill-x-context-coeff"
+        if feature_set == "cross_term"
+        else "simulation-sum-sq-coeff"
+    )
+    values = (
+        ("simulation-intercept", sfs["intercept"]),
+        ("simulation-prefill-coeff", sfs["prefill_coeff"]),
+        ("simulation-prefill-sq-coeff", sfs["prefill_sq_coeff"]),
+        ("simulation-decode-coeff", sfs["decode_coeff"]),
+        ("simulation-sum-coeff", sfs["sum_coeff"]),
+        (final_option, sfs["sum_sq_coeff"]),
+    )
+    # Keep each floating-point option and value in one argv token. vLLM's
+    # FlexibleArgumentParser otherwise mistakes a standalone negative decimal
+    # for a dotted JSON option.
+    return [
+        f"--simulation-batch-time-feature-set={feature_set}",
+        *(f"--{option}={float(value):.17g}" for option, value in values),
+    ]
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as src:
+        for chunk in iter(lambda: src.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _fit_coefficients(fit: Any) -> dict[str, float]:
+    coefficient_by_name = {
+        str(name): float(coefficient)
+        for name, coefficient in zip(fit.feature_names, fit.base_model.coef_)
+    }
+    final_feature_name = "s_sq" if fit.feature_set == "legacy" else "p_x_ctx"
+    return {
+        "intercept": float(fit.base_model.intercept_),
+        "prefill_coeff": coefficient_by_name["p"],
+        "decode_coeff": coefficient_by_name["d"],
+        "sum_coeff": coefficient_by_name["s"],
+        "prefill_sq_coeff": coefficient_by_name["p_sq_sum"],
+        "sum_sq_coeff": coefficient_by_name[final_feature_name],
+    }
+
+
+def _fit_prediction_diagnostics(
+    batch_df: Any,
+    predictions: Any,
+) -> dict[str, float | int]:
+    observed = batch_df["exec"].to_numpy()
+    total_variation = float(((observed - observed.mean()) ** 2).sum())
+    residual_variation = float(((observed - predictions) ** 2).sum())
+    nonempty = (
+        batch_df["prefill"].to_numpy() + batch_df["decode"].to_numpy()
+    ) > 0
+    if not nonempty.any():
+        raise ValueError("Batch-latency fit contains no nonempty batches")
+    return {
+        "minimum_s": float(predictions.min()),
+        "negative_rows": int((predictions < 0).sum()),
+        "minimum_nonempty_s": float(predictions[nonempty].min()),
+        "negative_nonempty_rows": int((predictions[nonempty] < 0).sum()),
+        "r2_all_rows": float(
+            1.0 - residual_variation / total_variation
+            if total_variation > 0
+            else 1.0
+        ),
+        "mae_s_all_rows": float(abs(observed - predictions).mean()),
+    }
+
+
+def derive_nonnegative_calibration(
+    source_path: Path,
+    output_path: Path,
+    *,
+    expected_feature_set: str,
+) -> Path:
+    """Refit only the SFS latency coefficients from an existing calibration."""
+    import pandas as pd
+
+    from sfs_core.regression.two_part_fit import (
+        build_feature_matrix,
+        fit_two_part_from_df,
+    )
+
+    source_path = source_path.expanduser().resolve()
+    output_path = output_path.expanduser().resolve()
+    if output_path.exists():
+        raise ValueError(f"Refusing to overwrite existing output: {output_path}")
+    source_rows = load_and_validate(
+        source_path,
+        expected_feature_set=expected_feature_set,
+    )
+    derived_rows = copy.deepcopy(source_rows)
+    source_sha256 = _sha256(source_path)
+
+    for model_key in MODEL_KEYS:
+        source_row = source_rows[model_key]
+        source_sfs = source_row["sfs_simulation"]
+        batch_path = (
+            Path(str(source_row["batch_stats_csv_path"]))
+            .expanduser()
+            .resolve()
+        )
+        if not batch_path.is_file():
+            raise ValueError(
+                f"{model_key} batch-stats trace does not exist: {batch_path}"
+            )
+        fit_rows = int(source_sfs["fit_rows"])
+        batch_df = pd.read_csv(batch_path)
+        if len(batch_df) < fit_rows:
+            raise ValueError(
+                f"{model_key} batch-stats trace has {len(batch_df)} rows, "
+                f"fewer than fit_rows={fit_rows}"
+            )
+        # The calibration snapshots the byte offset after warmup, then fits all
+        # rows appended after it. Those are exactly the final fit_rows rows.
+        fit_df = batch_df.tail(fit_rows).reset_index(drop=True)
+        reproduced_fit = fit_two_part_from_df(
+            fit_df,
+            stall_percentile=99.9,
+            feature_set=expected_feature_set,
+        )
+        reproduced = _fit_coefficients(reproduced_fit)
+        max_abs_error = max(
+            abs(float(reproduced[key]) - float(source_sfs[key]))
+            for key in SFS_COEFFICIENT_KEYS
+        )
+        if max_abs_error > 1e-9 or int(reproduced_fit.inlier_mask.sum()) != int(
+            source_sfs["fit_inlier_rows"]
+        ):
+            raise ValueError(
+                f"{model_key} source fit could not be reproduced exactly; "
+                f"max_abs_error={max_abs_error:.3g}, "
+                f"inliers={int(reproduced_fit.inlier_mask.sum())}, "
+                f"expected_inliers={int(source_sfs['fit_inlier_rows'])}"
+            )
+
+        constrained_fit = fit_two_part_from_df(
+            fit_df,
+            stall_percentile=99.9,
+            feature_set=expected_feature_set,
+            nonnegative_coefficients=True,
+        )
+        constrained = _fit_coefficients(constrained_fit)
+        features, _ = build_feature_matrix(
+            fit_df,
+            feature_set=expected_feature_set,
+        )
+        predictions = constrained_fit.predict_typical(features)
+        updated_sfs = derived_rows[model_key]["sfs_simulation"]
+        updated_sfs.update(constrained)
+        updated_sfs.update(
+            {
+                "coefficient_constraint": constrained_fit.coefficient_constraint,
+                "fit_prediction_diagnostics": _fit_prediction_diagnostics(
+                    fit_df,
+                    predictions,
+                ),
+                "source_unconstrained_fit_reproduced": True,
+                "source_unconstrained_fit_max_abs_error": float(max_abs_error),
+                "source_batch_stats_sha256": _sha256(batch_path),
+            }
+        )
+
+    payload = {
+        "models": derived_rows,
+        "derivation": {
+            "method": "nnls_on_original_huber_inliers",
+            "source_calibration_path": str(source_path),
+            "source_calibration_sha256": source_sha256,
+            "preserved_metrics": [
+                "service_rate_qps",
+                "prefill_theta",
+                "score_proxy",
+            ],
+        },
+    }
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    output_path.with_name(f"{output_path.name}.sha256").write_text(
+        f"{_sha256(output_path)}  {output_path.name}\n",
+        encoding="utf-8",
+    )
+    load_and_validate(
+        output_path,
+        expected_feature_set=expected_feature_set,
+        require_nonnegative_sfs=True,
+    )
+    return output_path
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--path", type=Path, required=True)
@@ -172,12 +461,26 @@ def parse_args() -> argparse.Namespace:
         choices=("legacy", "cross_term"),
         default="legacy",
     )
+    parser.add_argument(
+        "--require-nonnegative-sfs",
+        action="store_true",
+        help=(
+            "Require a nonnegative SFS latency fit and its prediction "
+            "diagnostics."
+        ),
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("validate")
     subparsers.add_parser("capacity-summary")
 
     coefficients = subparsers.add_parser("coefficients")
     coefficients.add_argument("--model", choices=MODEL_KEYS, required=True)
+
+    simulation_args = subparsers.add_parser("simulation-args")
+    simulation_args.add_argument("--model", choices=MODEL_KEYS, required=True)
+
+    refit = subparsers.add_parser("refit-nonnegative")
+    refit.add_argument("--output-path", type=Path, required=True)
 
     qps = subparsers.add_parser("qps-values")
     qps.add_argument(
@@ -194,6 +497,7 @@ def main() -> None:
     rows = load_and_validate(
         args.path,
         expected_feature_set=args.expected_feature_set,
+        require_nonnegative_sfs=args.require_nonnegative_sfs,
     )
     if args.command == "validate":
         print(
@@ -211,6 +515,17 @@ def main() -> None:
         sfs = rows[args.model]["sfs_simulation"]
         for key in SFS_COEFFICIENT_KEYS:
             print(f"{float(sfs[key]):.17g}")
+        return
+    if args.command == "simulation-args":
+        print("\n".join(build_simulation_args(rows[args.model])))
+        return
+    if args.command == "refit-nonnegative":
+        output_path = derive_nonnegative_calibration(
+            args.path,
+            args.output_path,
+            expected_feature_set=args.expected_feature_set,
+        )
+        print(output_path)
         return
     if args.command == "capacity-summary":
         print(json.dumps(summarize_capacity(rows), sort_keys=True))

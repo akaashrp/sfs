@@ -6,7 +6,9 @@ import pytest
 
 from scripts.runs.service_metrics_config import (
     MODEL_KEYS,
+    NONNEGATIVE_COEFFICIENT_CONSTRAINT,
     SFS_COEFFICIENT_KEYS,
+    build_simulation_args,
     load_and_validate,
     summarize_capacity,
 )
@@ -98,3 +100,60 @@ def test_capacity_summary_is_explicit_sum_of_standalone_rates():
         "workload_specific": True,
         "concurrent_contention_validated": False,
     }
+
+
+def test_cross_term_simulation_args_are_parser_safe_and_use_cross_term_option():
+    row = _row()
+    sfs = row["sfs_simulation"]
+    sfs["feature_set"] = "cross_term"
+    sfs["intercept"] = -0.0615
+    sfs["sum_coeff"] = -9.68e-7
+    sfs["sum_sq_coeff"] = 2.5e-9
+
+    args = build_simulation_args(row)
+
+    by_option = dict(arg.split("=", 1) for arg in args)
+    assert float(by_option["--simulation-intercept"]) == -0.0615
+    assert float(by_option["--simulation-sum-coeff"]) == -9.68e-7
+    assert (
+        float(by_option["--simulation-prefill-x-context-coeff"])
+        == 2.5e-9
+    )
+    assert not any(arg.startswith("--simulation-sum-sq-coeff") for arg in args)
+    assert all(
+        "=" in arg
+        for arg in args
+        if arg.startswith("--simulation-")
+    )
+
+
+def test_validate_can_require_physical_nonnegative_sfs_fit(tmp_path):
+    payload = {model: _row() for model in MODEL_KEYS}
+    for row in payload.values():
+        sfs = row["sfs_simulation"]
+        sfs["coefficient_constraint"] = NONNEGATIVE_COEFFICIENT_CONSTRAINT
+        sfs["fit_prediction_diagnostics"] = {
+            "minimum_s": 0.001,
+            "negative_rows": 0,
+            "minimum_nonempty_s": 0.001,
+            "negative_nonempty_rows": 0,
+            "r2_all_rows": 0.99,
+            "mae_s_all_rows": 0.001,
+        }
+    path = tmp_path / "calibration.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    load_and_validate(
+        path,
+        expected_feature_set="legacy",
+        require_nonnegative_sfs=True,
+    )
+
+    payload["qwen3-0.6b"]["sfs_simulation"]["intercept"] = -0.01
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="intercept must be nonnegative"):
+        load_and_validate(
+            path,
+            expected_feature_set="legacy",
+            require_nonnegative_sfs=True,
+        )

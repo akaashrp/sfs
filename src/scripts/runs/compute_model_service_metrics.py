@@ -7,6 +7,8 @@ import sys
 import time
 from typing import Any
 
+import numpy as np
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -19,6 +21,7 @@ from sfs_core.paths import (
 )
 from sfs_core.regression.two_part_fit import (
     FEATURE_SET_CHOICES,
+    build_feature_matrix,
     fit_two_part,
 )
 
@@ -204,6 +207,7 @@ async def _compute_single_model_metrics(
     scheduler: WaitTimeScheduler,
     request_id_prefix: str,
     batch_fit_feature_set: str = "legacy",
+    batch_fit_nonnegative: bool = False,
 ) -> dict[str, Any]:
     """
     Submit a subset of requests to a single running model and return serving rate and prefill throughput.
@@ -288,7 +292,30 @@ async def _compute_single_model_metrics(
         stall_percentile=99.9,
         feature_set=batch_fit_feature_set,
         start_offset=offsets.get("batch_stats_offset", 0),
+        nonnegative_coefficients=batch_fit_nonnegative,
     )
+    batch_features, _ = build_feature_matrix(
+        batch_df,
+        feature_set=batch_fit_feature_set,
+    )
+    fitted_batch_times = batch_fit.predict_typical(batch_features)
+    observed_batch_times = batch_df["exec"].to_numpy()
+    total_variation = float(
+        np.sum((observed_batch_times - observed_batch_times.mean()) ** 2)
+    )
+    residual_variation = float(
+        np.sum((observed_batch_times - fitted_batch_times) ** 2)
+    )
+    r2_all_rows = (
+        1.0 - residual_variation / total_variation
+        if total_variation > 0
+        else 1.0
+    )
+    nonempty_batches = (
+        batch_df["prefill"].to_numpy() + batch_df["decode"].to_numpy()
+    ) > 0
+    if not nonempty_batches.any():
+        raise RuntimeError("Batch-latency fit contains no nonempty batches")
     coefficient_by_name = {
         str(name): float(coefficient)
         for name, coefficient in zip(
@@ -307,8 +334,23 @@ async def _compute_single_model_metrics(
         "sum_coeff": coefficient_by_name["s"],
         "prefill_sq_coeff": coefficient_by_name["p_sq_sum"],
         "sum_sq_coeff": coefficient_by_name[final_feature_name],
+        "coefficient_constraint": batch_fit.coefficient_constraint,
         "fit_rows": int(len(batch_df)),
         "fit_inlier_rows": int(batch_fit.inlier_mask.sum()),
+        "fit_prediction_diagnostics": {
+            "minimum_s": float(fitted_batch_times.min()),
+            "negative_rows": int((fitted_batch_times < 0).sum()),
+            "minimum_nonempty_s": float(
+                fitted_batch_times[nonempty_batches].min()
+            ),
+            "negative_nonempty_rows": int(
+                (fitted_batch_times[nonempty_batches] < 0).sum()
+            ),
+            "r2_all_rows": float(r2_all_rows),
+            "mae_s_all_rows": float(
+                np.mean(np.abs(observed_batch_times - fitted_batch_times))
+            ),
+        },
         "stall_probability": float(batch_fit.stall_probability),
         "mean_stall_delay_s": float(batch_fit.mean_stall_delay),
     }
@@ -340,6 +382,7 @@ async def compute_metrics_for_models(
     context_length: int | None = None,
     output_path: Path,
     batch_fit_feature_set: str = "legacy",
+    batch_fit_nonnegative: bool = False,
 ) -> dict[str, dict[str, Any]]:
     """
     Convenience wrapper to compute service rates and prefill throughputs for different models.
@@ -378,6 +421,7 @@ async def compute_metrics_for_models(
                         f"model-metrics-{_sanitize_for_filename(model_name)}"
                     ),
                     batch_fit_feature_set=batch_fit_feature_set,
+                    batch_fit_nonnegative=batch_fit_nonnegative,
                 )
                 for model_name in model_names
             )
@@ -419,6 +463,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--batch-fit-feature-set",
         choices=FEATURE_SET_CHOICES,
         default="legacy",
+    )
+    parser.add_argument(
+        "--batch-fit-nonnegative",
+        action="store_true",
+        help=(
+            "Constrain the SFS batch-latency intercept and slopes to be "
+            "nonnegative."
+        ),
     )
     parser.add_argument(
         "--output-path",
@@ -496,6 +548,7 @@ def main():
             context_length=args.context_length,
             output_path=args.output_path,
             batch_fit_feature_set=args.batch_fit_feature_set,
+            batch_fit_nonnegative=args.batch_fit_nonnegative,
         )
     )
     print(json.dumps(results_metrics, indent=2))
