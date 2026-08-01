@@ -285,7 +285,7 @@ async def _compute_single_model_metrics(
         batch_stats_offset=offsets.get("batch_stats_offset", 0),
     )
     score_proxy_metrics["prefill_tps"] = float(
-        theta["theta_p_tps_from_wait_logs"]
+        theta["theta_p_tps_from_batch_stats"]
     )
     batch_fit, batch_df = fit_two_part(
         batch_stats_csv_path,

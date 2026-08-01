@@ -283,8 +283,10 @@ def test_service_metrics_json_maps_aliases_and_requires_decode_terms(tmp_path):
                 "qwen3-8b": {
                     "prefill_theta": {
                         "theta_p_tps_from_wait_logs": 2000.0,
+                        "theta_p_tps_from_batch_stats": 6000.0,
                     },
                     "score_proxy": {
+                        "prefill_tps": 1000.0,
                         "decode_tps": 1000.0,
                         "mean_decode_batch_ms": 5.0,
                     },
@@ -312,7 +314,7 @@ def test_service_metrics_json_maps_aliases_and_requires_decode_terms(tmp_path):
         )
     )
 
-    assert prefill == {"vllm-8b": 2000.0}
+    assert prefill == {"vllm-8b": 6000.0}
     assert decode == {"vllm-8b": 1000.0}
     assert decode_batch_ms == {"vllm-8b": 5.0}
     assert diagnostics["vllm-8b"]["matched_key"] == "qwen3-8b"

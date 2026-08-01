@@ -2960,11 +2960,14 @@ def _load_calibrated_service_metrics(
         if not isinstance(prefill_row, dict):
             prefill_row = {}
 
+        # Router backlog is an aggregate token count, so its service rate must
+        # be the aggregate batch-stat throughput. Per-request prefill durations
+        # repeat shared batch time and are not additive under batching.
         prefill_tps = _first_positive_metric(
+            prefill_row.get("theta_p_tps_from_batch_stats"),
             score_row.get("prefill_tps"),
             raw_row.get("prefill_tps"),
             prefill_row.get("theta_p_tps_from_wait_logs"),
-            prefill_row.get("theta_p_tps_from_batch_stats"),
         )
         decode_tps = _first_positive_metric(
             score_row.get("decode_tps"),

@@ -60,6 +60,31 @@ WORKER_COUNT="${WORKER_COUNT:-1}"
 MAX_QUEUE_SIZE="${MAX_QUEUE_SIZE:-1}"
 LAMBDA_WEIGHT="${LAMBDA_WEIGHT:-5e-4}"
 AUTO_QPS_FRACTIONS="${AUTO_QPS_FRACTIONS:-0.4 0.6 0.8 1.0 1.1}"
+QPS_UTILITIES="${QPS_UTILITIES:-hard hard_prefill_tps hard_score_proxy shortest_queue}"
+PREFILL_TPS_OVERRIDES="${PREFILL_TPS_OVERRIDES:-}"
+
+read -r -a QPS_UTILITY_ARGS <<< "$QPS_UTILITIES"
+if (( ${#QPS_UTILITY_ARGS[@]} == 0 )); then
+  echo "[ERROR] QPS_UTILITIES must contain at least one policy." >&2
+  exit 1
+fi
+for utility in "${QPS_UTILITY_ARGS[@]}"; do
+  case "$utility" in
+    hard|hard_prefill_tps|hard_score_proxy|shortest_queue) ;;
+    *)
+      echo "[ERROR] Unsupported V100 rebuttal policy: $utility" >&2
+      exit 1
+      ;;
+  esac
+done
+
+PREFILL_TPS_OVERRIDE_ARGS=()
+if [[ -n "$PREFILL_TPS_OVERRIDES" ]]; then
+  read -r -a PREFILL_TPS_OVERRIDE_VALUES <<< "$PREFILL_TPS_OVERRIDES"
+  for override in "${PREFILL_TPS_OVERRIDE_VALUES[@]}"; do
+    PREFILL_TPS_OVERRIDE_ARGS+=(--prefill-tps "$override")
+  done
+fi
 
 if (( MAX_NUM_BATCHED_TOKENS <= MAX_MODEL_LEN )); then
   echo "[ERROR] Unchunked prefill requires MAX_NUM_BATCHED_TOKENS > MAX_MODEL_LEN." >&2
@@ -375,6 +400,8 @@ simulation_flags() {
   echo "num_requests=$NUM_REQUESTS"
   echo "auto_qps_fractions=$AUTO_QPS_FRACTIONS"
   echo "explicit_qps_values=${QPS_VALUES:-}"
+  echo "qps_utilities=${QPS_UTILITY_ARGS[*]}"
+  echo "prefill_tps_overrides=${PREFILL_TPS_OVERRIDE_VALUES[*]:-}"
   echo "tp_qwen3_0.6b=1"
   echo "tp_qwen3_8b=1"
   echo "tp_qwen3_32b=4"
@@ -611,12 +638,13 @@ mkdir -p "$QPS_OUTPUT_DIR"
 python -m scripts.runs.experiments_sweep \
   --sweep qps \
   --qps-values "${QPS_SWEEP[@]}" \
-  --qps-utilities hard hard_prefill_tps hard_score_proxy shortest_queue \
+  --qps-utilities "${QPS_UTILITY_ARGS[@]}" \
   --output-dir "$QPS_OUTPUT_DIR" \
   --output-prefix "router_qps_qwen3_v100_fp16_unchunked" \
   --experiment router \
   --instances-config "$INSTANCES_CONFIG" \
   --service-metrics-json "$CALIBRATION_OUTPUT_PATH" \
+  "${PREFILL_TPS_OVERRIDE_ARGS[@]}" \
   --arrival-process poisson \
   --num-requests "$NUM_REQUESTS" \
   --worker-count "$WORKER_COUNT" \
