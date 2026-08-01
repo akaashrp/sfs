@@ -62,6 +62,14 @@ LAMBDA_WEIGHT="${LAMBDA_WEIGHT:-5e-4}"
 AUTO_QPS_FRACTIONS="${AUTO_QPS_FRACTIONS:-0.4 0.6 0.8 1.0 1.1}"
 QPS_UTILITIES="${QPS_UTILITIES:-hard hard_prefill_tps hard_score_proxy shortest_queue}"
 PREFILL_TPS_OVERRIDES="${PREFILL_TPS_OVERRIDES:-}"
+QUEUE_SLO_MIN_MS="${QUEUE_SLO_MIN_MS:-1}"
+QUEUE_SLO_MAX_MS="${QUEUE_SLO_MAX_MS:-5}"
+TTFT_SLO_MIN_MS="${TTFT_SLO_MIN_MS:-150}"
+TTFT_SLO_MAX_MS="${TTFT_SLO_MAX_MS:-1120}"
+TTFT_SLO_BASE_MS="${TTFT_SLO_BASE_MS:-155}"
+TTFT_SLO_PER_PROMPT_TOKEN_MS="${TTFT_SLO_PER_PROMPT_TOKEN_MS:-0.035}"
+TTFT_SLO_JITTER_MIN="${TTFT_SLO_JITTER_MIN:-0.98}"
+TTFT_SLO_JITTER_MAX="${TTFT_SLO_JITTER_MAX:-1.02}"
 
 read -r -a QPS_UTILITY_ARGS <<< "$QPS_UTILITIES"
 if (( ${#QPS_UTILITY_ARGS[@]} == 0 )); then
@@ -402,6 +410,14 @@ simulation_flags() {
   echo "explicit_qps_values=${QPS_VALUES:-}"
   echo "qps_utilities=${QPS_UTILITY_ARGS[*]}"
   echo "prefill_tps_overrides=${PREFILL_TPS_OVERRIDE_VALUES[*]:-}"
+  echo "queue_slo_min_ms=$QUEUE_SLO_MIN_MS"
+  echo "queue_slo_max_ms=$QUEUE_SLO_MAX_MS"
+  echo "ttft_slo_min_ms=$TTFT_SLO_MIN_MS"
+  echo "ttft_slo_max_ms=$TTFT_SLO_MAX_MS"
+  echo "ttft_slo_base_ms=$TTFT_SLO_BASE_MS"
+  echo "ttft_slo_per_prompt_token_ms=$TTFT_SLO_PER_PROMPT_TOKEN_MS"
+  echo "ttft_slo_jitter_min=$TTFT_SLO_JITTER_MIN"
+  echo "ttft_slo_jitter_max=$TTFT_SLO_JITTER_MAX"
   echo "tp_qwen3_0.6b=1"
   echo "tp_qwen3_8b=1"
   echo "tp_qwen3_32b=4"
@@ -651,14 +667,14 @@ python -m scripts.runs.experiments_sweep \
   --max-queue-size "$MAX_QUEUE_SIZE" \
   --max-completion-tokens "$MAX_COMPLETION_TOKENS" \
   --temperature 0 \
-  --queue-slo-min-ms 1 \
-  --queue-slo-max-ms 5 \
-  --ttft-slo-min-ms 150 \
-  --ttft-slo-max-ms 1120 \
-  --ttft-slo-base-ms 155 \
-  --ttft-slo-per-prompt-token-ms 0.035 \
-  --ttft-slo-jitter-min 0.98 \
-  --ttft-slo-jitter-max 1.02 \
+  --queue-slo-min-ms "$QUEUE_SLO_MIN_MS" \
+  --queue-slo-max-ms "$QUEUE_SLO_MAX_MS" \
+  --ttft-slo-min-ms "$TTFT_SLO_MIN_MS" \
+  --ttft-slo-max-ms "$TTFT_SLO_MAX_MS" \
+  --ttft-slo-base-ms "$TTFT_SLO_BASE_MS" \
+  --ttft-slo-per-prompt-token-ms "$TTFT_SLO_PER_PROMPT_TOKEN_MS" \
+  --ttft-slo-jitter-min "$TTFT_SLO_JITTER_MIN" \
+  --ttft-slo-jitter-max "$TTFT_SLO_JITTER_MAX" \
   --feasible-slo-mode ttft \
   --lambda-weight "$LAMBDA_WEIGHT" \
   --delta-weight 0 \

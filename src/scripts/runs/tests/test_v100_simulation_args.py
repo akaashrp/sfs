@@ -68,3 +68,25 @@ def test_v100_batch_job_does_not_rebuild_or_install_its_runtime():
 
     assert "compile_vllm_scheduler_sim.sh" not in script
     assert "pip install" not in script
+
+
+def test_v100_batch_job_accepts_and_records_slo_overrides():
+    script = V100_BATCH_SCRIPT.read_text(encoding="utf-8")
+    settings = {
+        "QUEUE_SLO_MIN_MS": ("1", "queue-slo-min-ms"),
+        "QUEUE_SLO_MAX_MS": ("5", "queue-slo-max-ms"),
+        "TTFT_SLO_MIN_MS": ("150", "ttft-slo-min-ms"),
+        "TTFT_SLO_MAX_MS": ("1120", "ttft-slo-max-ms"),
+        "TTFT_SLO_BASE_MS": ("155", "ttft-slo-base-ms"),
+        "TTFT_SLO_PER_PROMPT_TOKEN_MS": (
+            "0.035",
+            "ttft-slo-per-prompt-token-ms",
+        ),
+        "TTFT_SLO_JITTER_MIN": ("0.98", "ttft-slo-jitter-min"),
+        "TTFT_SLO_JITTER_MAX": ("1.02", "ttft-slo-jitter-max"),
+    }
+
+    for variable, (default, flag) in settings.items():
+        assert f'{variable}="${{{variable}:-{default}}}"' in script
+        assert f'--{flag} "${variable}"' in script
+        assert f'echo "{variable.lower()}=${variable}"' in script
