@@ -29,6 +29,7 @@ if [[ "$RUN_MODE" != "calibrate" && "$RUN_MODE" != "sweep" ]]; then
 fi
 
 PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SFS_ROOT/.." && pwd)}"
+SFS_VLLM_ROOT="${SFS_VLLM_ROOT:-$SFS_ROOT/vllm}"
 SHARED_PROMPT_ROOT="${SHARED_PROMPT_ROOT:-$PROJECT_ROOT/vllm_utils}"
 CALIBRATION_PROMPT_BUCKET_DIR="${CALIBRATION_PROMPT_BUCKET_DIR:-$SHARED_PROMPT_ROOT/bucketed_prompt_outputs/holdout_cache_4000}"
 HOLDOUT_BUCKET_DIR="${HOLDOUT_BUCKET_DIR:-$SHARED_PROMPT_ROOT/bucketed_prompts_0.6B}"
@@ -59,6 +60,9 @@ ENFORCE_EAGER="${ENFORCE_EAGER:-0}"
 WORKER_COUNT="${WORKER_COUNT:-1}"
 MAX_QUEUE_SIZE="${MAX_QUEUE_SIZE:-1}"
 LAMBDA_WEIGHT="${LAMBDA_WEIGHT:-5e-4}"
+SCORE_COST_WEIGHT="${SCORE_COST_WEIGHT:-1.0}"
+SCORE_LATENCY_WEIGHT="${SCORE_LATENCY_WEIGHT:-1.0}"
+SCORE_TOTAL_COST_BUDGET="${SCORE_TOTAL_COST_BUDGET:-}"
 AUTO_QPS_FRACTIONS="${AUTO_QPS_FRACTIONS:-0.4 0.6 0.8 1.0 1.1}"
 QPS_UTILITIES="${QPS_UTILITIES:-hard hard_prefill_tps hard_score_proxy shortest_queue}"
 PREFILL_TPS_OVERRIDES="${PREFILL_TPS_OVERRIDES:-}"
@@ -78,7 +82,7 @@ if (( ${#QPS_UTILITY_ARGS[@]} == 0 )); then
 fi
 for utility in "${QPS_UTILITY_ARGS[@]}"; do
   case "$utility" in
-    hard|hard_prefill_tps|hard_score_proxy|shortest_queue) ;;
+    hard|hard_prefill_tps|hard_score_proxy|score|shortest_queue) ;;
     *)
       echo "[ERROR] Unsupported V100 rebuttal policy: $utility" >&2
       exit 1
@@ -94,8 +98,20 @@ if [[ -n "$PREFILL_TPS_OVERRIDES" ]]; then
   done
 fi
 
+SCORE_POLICY_ARGS=(
+  --score-cost-weight "$SCORE_COST_WEIGHT"
+  --score-latency-weight "$SCORE_LATENCY_WEIGHT"
+)
+if [[ -n "$SCORE_TOTAL_COST_BUDGET" ]]; then
+  SCORE_POLICY_ARGS+=(--score-total-cost-budget "$SCORE_TOTAL_COST_BUDGET")
+fi
+
 if (( MAX_NUM_BATCHED_TOKENS <= MAX_MODEL_LEN )); then
   echo "[ERROR] Unchunked prefill requires MAX_NUM_BATCHED_TOKENS > MAX_MODEL_LEN." >&2
+  exit 1
+fi
+if [[ ! -d "$SFS_VLLM_ROOT/vllm" || ! -d "$SFS_VLLM_ROOT/tests" ]]; then
+  echo "[ERROR] Missing vLLM source/runtime tree: $SFS_VLLM_ROOT" >&2
   exit 1
 fi
 if [[ "$SIMULATION_BATCH_TIME_FEATURE_SET" != "cross_term" ]]; then
@@ -192,7 +208,7 @@ rsync -aL "$PROJECT_ROOT/.nv/" "$JOB_LOCAL/.nv/" \
 rsync -aL --exclude=__pycache__ --exclude='*.pyc' \
   "$PROJECT_ROOT/vllm/vllm/" "$CORRECTED_VLLM_RUNTIME/vllm/"
 rsync -aL --exclude=__pycache__ --exclude='*.pyc' \
-  "$SFS_ROOT/vllm/vllm/" "$CORRECTED_VLLM_RUNTIME/vllm/"
+  "$SFS_VLLM_ROOT/vllm/" "$CORRECTED_VLLM_RUNTIME/vllm/"
 export PYTHONPATH="$CORRECTED_VLLM_RUNTIME:$SFS_ROOT/src:${PYTHONPATH:-}"
 export XDG_CACHE_HOME="$JOB_LOCAL/.cache"
 export TRITON_CACHE_DIR="$JOB_LOCAL/.triton"
@@ -203,9 +219,9 @@ cd "$RUN_ROOT"
 run_native_preflight() {
   python -c 'import os; from pathlib import Path; import sfs_core, vllm; from vllm.v1.engine import _scheduler_sim; runtime = Path(os.environ["CORRECTED_VLLM_RUNTIME"]).resolve(); sfs_src = (Path(os.environ["SFS_ROOT"]) / "src").resolve(); assert Path(vllm.__file__).resolve().is_relative_to(runtime), vllm.__file__; assert Path(_scheduler_sim.__file__).resolve().is_relative_to(runtime), _scheduler_sim.__file__; assert Path(sfs_core.__file__).resolve().is_relative_to(sfs_src), sfs_core.__file__; print("V100 SCORE runtime preflight:", vllm.__file__, _scheduler_sim.__file__)' &&
     PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q -p no:cacheprovider \
-      --confcutdir="$SFS_ROOT/vllm/tests/v1/engine" \
-      "$SFS_ROOT/vllm/tests/v1/engine/test_scheduler_simulator_native.py::test_native_run_simulation_matches_python_drain" \
-      "$SFS_ROOT/vllm/tests/v1/engine/test_scheduler_simulator_native.py::test_native_cross_term_prices_processed_prefill_context"
+      --confcutdir="$SFS_VLLM_ROOT/tests/v1/engine" \
+      "$SFS_VLLM_ROOT/tests/v1/engine/test_scheduler_simulator_native.py::test_native_run_simulation_matches_python_drain" \
+      "$SFS_VLLM_ROOT/tests/v1/engine/test_scheduler_simulator_native.py::test_native_cross_term_prices_processed_prefill_context"
 }
 
 # Validate the frozen native runtime, but never rebuild or install packages from
@@ -387,8 +403,9 @@ simulation_flags() {
   echo "slurm_job_id=$SLURM_JOB_ID"
   echo "run_mode=$RUN_MODE"
   echo "sfs_root=$SFS_ROOT"
+  echo "sfs_vllm_root=$SFS_VLLM_ROOT"
   echo "sfs_commit=$(git -C "$SFS_ROOT" rev-parse HEAD)"
-  echo "vllm_commit=$(git -C "$SFS_ROOT/vllm" rev-parse HEAD)"
+  echo "vllm_commit=$(git -C "$SFS_VLLM_ROOT" rev-parse HEAD)"
   echo "dtype=half"
   echo "attention_backend=$VLLM_ATTENTION_BACKEND"
   echo "enforce_eager=$ENFORCE_EAGER"
@@ -409,6 +426,9 @@ simulation_flags() {
   echo "auto_qps_fractions=$AUTO_QPS_FRACTIONS"
   echo "explicit_qps_values=${QPS_VALUES:-}"
   echo "qps_utilities=${QPS_UTILITY_ARGS[*]}"
+  echo "score_cost_weight=$SCORE_COST_WEIGHT"
+  echo "score_latency_weight=$SCORE_LATENCY_WEIGHT"
+  echo "score_total_cost_budget=${SCORE_TOTAL_COST_BUDGET:-none}"
   echo "prefill_tps_overrides=${PREFILL_TPS_OVERRIDE_VALUES[*]:-}"
   echo "queue_slo_min_ms=$QUEUE_SLO_MIN_MS"
   echo "queue_slo_max_ms=$QUEUE_SLO_MAX_MS"
@@ -677,6 +697,7 @@ python -m scripts.runs.experiments_sweep \
   --ttft-slo-jitter-max "$TTFT_SLO_JITTER_MAX" \
   --feasible-slo-mode ttft \
   --lambda-weight "$LAMBDA_WEIGHT" \
+  "${SCORE_POLICY_ARGS[@]}" \
   --delta-weight 0 \
   --holdout-prompts-per-bucket 4000 \
   --holdout-bucket-dir "$HOLDOUT_BUCKET_DIR" \

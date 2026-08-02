@@ -40,6 +40,11 @@ from sfs_core.routing.score_proxy import (
     estimate_ttft_ms as estimate_score_proxy_ttft_ms,
     hard_slo_candidate_value,
 )
+from sfs_core.routing.score_policy import (
+    ScorePolicyState,
+    estimate_total_response_latency_ms as estimate_score_total_latency_ms,
+    score_candidate_terms as published_score_candidate_terms,
+)
 from vllm.v1.engine.scheduler_simulator import SimulationStopMode
 
 from sfs_core.shared.shared_experiment_helpers import (
@@ -103,6 +108,7 @@ BUILTIN_UTILITIES = (
     "hard",
     "hard_prefill_tps",
     "hard_score_proxy",
+    "score",
     "hard_pk_mg1",
     "slo_aware",
     "latency_agnostic",
@@ -171,9 +177,11 @@ TTFT_TARGET_ESTIMATORS = {
 }
 PREFILL_TPS_TTFT_ESTIMATOR_NAME = "prefill_tps_ttft"
 SCORE_PROXY_TTFT_ESTIMATOR_NAME = "score_proxy_ttft"
+SCORE_TOTAL_LATENCY_ESTIMATOR_NAME = "score_total_latency"
 SNAPSHOT_ONLY_WAIT_ESTIMATORS = {
     PREFILL_TPS_TTFT_ESTIMATOR_NAME,
     SCORE_PROXY_TTFT_ESTIMATOR_NAME,
+    SCORE_TOTAL_LATENCY_ESTIMATOR_NAME,
     "pk_mg1",
 }
 DEFAULT_PREFILL_TPS: Dict[str, float] = {
@@ -229,6 +237,8 @@ def _extract_usage_tokens(response: Any) -> Dict[str, Optional[int]]:
 class UtilityState:
     current_slo_ms: Optional[float] = None
     round_robin_cursor: int = 0
+    score_latency_limit_ms: Optional[float] = None
+    score_policy_state: Optional[ScorePolicyState] = None
 
 
 @dataclass(slots=True)
@@ -671,6 +681,8 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
         affinity_bucket_to_instances: Optional[Dict[str, list[str]]] = None,
         affinity_global_fallback_instances: Optional[list[str]] = None,
         affinity_upgrade_margin: float = DEFAULT_AFFINITY_UPGRADE_MARGIN,
+        score_cost_weight: float = 1.0,
+        score_latency_weight: float = 1.0,
         skip_wait_result_build: bool = False,
         include_unconditional_live_fetch: bool = True,
         readiness_diagnostics: bool = False,
@@ -710,6 +722,8 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
             dict.fromkeys(self._affinity_global_fallback_instances)
         )
         self._affinity_upgrade_margin = max(float(affinity_upgrade_margin), 0.0)
+        self._score_cost_weight = float(score_cost_weight)
+        self._score_latency_weight = float(score_latency_weight)
 
         if wait_estimators:
             for estimator_name, estimator_fn in wait_estimators:
@@ -1303,6 +1317,16 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
         )
         started_perf = float(queued.payload.pop("_started_perf", time.perf_counter()))
         request_slo_ms = float(queued.payload.pop("_request_slo_ms", 0.0))
+        score_latency_limit_ms_raw = queued.payload.pop(
+            "_score_latency_limit_ms",
+            None,
+        )
+        score_latency_limit_ms = (
+            float(score_latency_limit_ms_raw)
+            if isinstance(score_latency_limit_ms_raw, (int, float))
+            and not isinstance(score_latency_limit_ms_raw, bool)
+            else None
+        )
         request_bucket = _normalize_bucket_name(
             queued.payload.pop("_request_bucket", "unknown")
         )
@@ -1315,6 +1339,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
         shortest_queue_routing: Optional[Dict[str, Any]] = None
         affinity_routing: Optional[Dict[str, Any]] = None
         score_candidate_terms: Optional[Dict[str, Any]] = None
+        score_policy_terms: Optional[Dict[str, Any]] = None
 
         try:
             prompt_text = self._extract_prompt_text(queued.payload)
@@ -1381,6 +1406,9 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                     )
 
                 self._utility_state.current_slo_ms = request_slo_ms
+                self._utility_state.score_latency_limit_ms = (
+                    score_latency_limit_ms
+                )
                 try:
                     if self._route_strategy == "round_robin":
                         target_id = self._select_round_robin_instance()
@@ -1422,8 +1450,40 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                                 lambda_weight=self._lambda,
                             )
                         )
+                    score_state = self._utility_state.score_policy_state
+                    if score_state is not None:
+                        if score_latency_limit_ms is None:
+                            raise ValueError(
+                                "Published SCORE requires a total-latency limit"
+                            )
+                        score_policy_terms = (
+                            _build_compact_published_score_candidate_terms(
+                                wait_results=wait_results,
+                                selected_instance_id=target_id,
+                                latency_limit_ms=score_latency_limit_ms,
+                                accuracy_scores=accuracy_scores,
+                                output_lengths=output_lengths,
+                                instance_costs=self._instance_costs,
+                                lambda_weight=self._lambda,
+                                cost_weight=self._score_cost_weight,
+                                latency_weight=self._score_latency_weight,
+                                state=score_state,
+                            )
+                        )
+                        selected_predicted_cost = (
+                            _score_predicted_response_cost(
+                                target_id,
+                                output_lengths=output_lengths,
+                                instance_costs=self._instance_costs,
+                            )
+                        )
+                        score_state.record_selection(selected_predicted_cost)
+                        score_policy_terms["cumulative_predicted_cost_after"] = (
+                            score_state.cumulative_predicted_cost
+                        )
                 finally:
                     self._utility_state.current_slo_ms = None
+                    self._utility_state.score_latency_limit_ms = None
                 self._reserve_pending_dispatch(
                     instance_id=target_id,
                     engine_request_id=engine_request_id,
@@ -1523,6 +1583,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                         "wait_estimator": self._wait_estimator_name,
                         "wait_estimates_ms": estimator_waits_ms,
                         "score_candidate_terms": score_candidate_terms,
+                        "score_policy_terms": score_policy_terms,
                         "route_strategy": self._route_strategy,
                         "predicted_accuracy": (
                             float(selected_accuracy)
@@ -1616,6 +1677,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                 exc,
             )
             self._utility_state.current_slo_ms = None
+            self._utility_state.score_latency_limit_ms = None
             if completion_future is not None and not completion_future.done():
                 completed_perf = time.perf_counter()
                 completion_future.set_result(
@@ -1940,6 +2002,20 @@ def _predicted_cost(
     return (prompt_rate * prompt_tokens) + (output_rate * predicted_output)
 
 
+def _score_predicted_response_cost(
+    instance_id: str,
+    *,
+    output_lengths: Dict[str, float],
+    instance_costs: Dict[str, Dict[str, float]],
+) -> float:
+    """SCORE paper cost term: per-output-token cost times predicted length."""
+
+    cost_info = instance_costs.get(instance_id) or {}
+    output_rate = float(cost_info.get("output", 0.0))
+    predicted_output = float(output_lengths.get(instance_id, 0.0))
+    return output_rate * predicted_output
+
+
 def _build_compact_score_candidate_terms(
     *,
     wait_results: Dict[str, WaitTimeResult],
@@ -2144,6 +2220,139 @@ def _build_compact_score_candidate_terms(
     }
 
 
+def _build_compact_published_score_candidate_terms(
+    *,
+    wait_results: Dict[str, WaitTimeResult],
+    selected_instance_id: str,
+    latency_limit_ms: float,
+    accuracy_scores: Dict[str, float],
+    output_lengths: Dict[str, float],
+    instance_costs: Dict[str, Dict[str, float]],
+    lambda_weight: float,
+    cost_weight: float,
+    latency_weight: float,
+    state: ScorePolicyState,
+) -> Dict[str, Any]:
+    """Build auditable terms for the published SCORE decision equation."""
+
+    if selected_instance_id not in wait_results:
+        raise ValueError(
+            "Selected published-SCORE instance is missing from candidate "
+            f"latency results: {selected_instance_id!r}"
+        )
+
+    candidates: Dict[str, Dict[str, Any]] = {}
+    for instance_id, wait_result in wait_results.items():
+        diagnostics = wait_result.raw_payload.get("_wait_estimator_diagnostics")
+        if not isinstance(diagnostics, dict) or diagnostics.get(
+            "method"
+        ) != SCORE_TOTAL_LATENCY_ESTIMATOR_NAME:
+            raise ValueError(
+                "Published SCORE logging requires total-latency diagnostics "
+                f"for instance {instance_id!r}"
+            )
+        details = diagnostics.get("details")
+        if not isinstance(details, dict):
+            raise ValueError(
+                "Published SCORE logging requires diagnostic details for "
+                f"instance {instance_id!r}"
+            )
+
+        estimated_total_latency_ms = _as_nonnegative_float(
+            diagnostics.get("estimated_total_latency_ms")
+        )
+        if estimated_total_latency_ms is None or not math.isclose(
+            float(estimated_total_latency_ms),
+            float(wait_result.wait_ms),
+            rel_tol=1e-9,
+            abs_tol=1e-9,
+        ):
+            raise ValueError(
+                "Published SCORE total-latency diagnostic differs from the "
+                f"routing value for {instance_id!r}"
+            )
+
+        predicted_quality = float(accuracy_scores.get(instance_id, 0.0))
+        predicted_output_tokens = _as_nonnegative_float(
+            output_lengths.get(instance_id)
+        )
+        if not math.isfinite(predicted_quality):
+            raise ValueError(
+                f"Published SCORE quality must be finite for {instance_id!r}"
+            )
+        if predicted_output_tokens is None:
+            raise ValueError(
+                "Published SCORE requires a predicted output length for "
+                f"{instance_id!r}"
+            )
+        predicted_response_cost = _score_predicted_response_cost(
+            instance_id,
+            output_lengths=output_lengths,
+            instance_costs=instance_costs,
+        )
+        objective_terms = published_score_candidate_terms(
+            predicted_quality=predicted_quality,
+            predicted_response_cost=predicted_response_cost,
+            predicted_total_latency_ms=float(estimated_total_latency_ms),
+            latency_limit_ms=float(latency_limit_ms),
+            lambda_weight=float(lambda_weight),
+            cost_weight=float(cost_weight),
+            latency_weight=float(latency_weight),
+            state=state,
+        )
+        candidates[instance_id] = {
+            "prefill_backlog_tokens": details.get(
+                "prefill_backlog_total_tokens"
+            ),
+            "decode_backlog_tokens": details.get(
+                "decode_backlog_total_tokens"
+            ),
+            "pending_overlay_count": details.get("pending_overlay_count"),
+            "prefill_wait_ms": details.get("prefill_wait_ms"),
+            "decode_backlog_wait_ms": details.get("decode_backlog_wait_ms"),
+            "waiting_time_ms": diagnostics.get("estimated_waiting_time_ms"),
+            "predicted_runtime_ms": diagnostics.get("estimated_runtime_ms"),
+            "predicted_total_latency_ms": float(estimated_total_latency_ms),
+            "predicted_quality": predicted_quality,
+            "predicted_output_tokens": float(predicted_output_tokens),
+            "predicted_response_cost": float(predicted_response_cost),
+            **objective_terms,
+        }
+
+    max_value = max(
+        float(candidate["score_candidate_value"])
+        for candidate in candidates.values()
+    )
+    selected_value = float(
+        candidates[selected_instance_id]["score_candidate_value"]
+    )
+    if not math.isclose(
+        selected_value,
+        max_value,
+        rel_tol=1e-12,
+        abs_tol=1e-12,
+    ):
+        raise ValueError(
+            "Published SCORE selected a non-maximal candidate: "
+            f"selected={selected_instance_id!r} value={selected_value} "
+            f"max={max_value}"
+        )
+
+    return {
+        "policy": "score",
+        "published_fixed_lambda_argmax": True,
+        "selected_instance_id": selected_instance_id,
+        "request_index": state.next_request_index,
+        "lambda_weight": float(lambda_weight),
+        "cost_weight": float(cost_weight),
+        "latency_weight": float(latency_weight),
+        "latency_limit_ms": float(latency_limit_ms),
+        "total_cost_budget": state.total_cost_budget,
+        "cumulative_predicted_cost_before": state.cumulative_predicted_cost,
+        "candidates": candidates,
+    }
+
+
 def build_utility_fn(
     utility_name: str,
     *,
@@ -2151,6 +2360,8 @@ def build_utility_fn(
     delta_weight: float,
     instance_costs: Dict[str, Dict[str, float]],
     utility_state: UtilityState,
+    score_cost_weight: float = 1.0,
+    score_latency_weight: float = 1.0,
 ) -> UtilityCallable:
     utility = utility_name.strip().lower()
 
@@ -2192,6 +2403,45 @@ def build_utility_fn(
                 )
             )
         )
+    if utility == "score":
+        score_state = utility_state.score_policy_state
+        if score_state is None:
+            raise ValueError("score utility requires ScorePolicyState")
+
+        def score(
+            instance_id: str,
+            wait_results: Dict[str, WaitTimeResult],
+            accuracy_scores: Dict[str, float],
+            output_lengths: Dict[str, float],
+            _prompt_tokens: int,
+        ) -> float:
+            latency_limit_ms = utility_state.score_latency_limit_ms
+            if latency_limit_ms is None:
+                raise ValueError(
+                    "score utility requires the current total-latency limit"
+                )
+            predicted_response_cost = _score_predicted_response_cost(
+                instance_id,
+                output_lengths=output_lengths,
+                instance_costs=instance_costs,
+            )
+            terms = published_score_candidate_terms(
+                predicted_quality=float(
+                    accuracy_scores.get(instance_id, 0.0)
+                ),
+                predicted_response_cost=predicted_response_cost,
+                predicted_total_latency_ms=float(
+                    wait_results[instance_id].wait_ms
+                ),
+                latency_limit_ms=float(latency_limit_ms),
+                lambda_weight=float(lambda_weight),
+                cost_weight=float(score_cost_weight),
+                latency_weight=float(score_latency_weight),
+                state=score_state,
+            )
+            return float(terms["score_candidate_value"])
+
+        return score
     if utility in {
         "hard",
         "hard_prefill_tps",
@@ -3444,6 +3694,141 @@ def _wait_estimator_score_proxy_ttft(
     return float(ttft_ms)
 
 
+def _wait_estimator_score_total_latency(
+    instance_id: str,
+    instance: InstanceClient,
+    live_wait_results: Dict[str, WaitTimeResult],
+    context: Dict[str, Any],
+) -> Optional[float]:
+    """Estimate SCORE's predicted total response latency for one candidate."""
+
+    prefill_tps_by_instance = context.get("prefill_tps_by_instance")
+    decode_tps_by_instance = context.get("decode_tps_by_instance")
+    mean_decode_batch_ms_by_instance = context.get(
+        "mean_decode_batch_ms_by_instance"
+    )
+    output_lengths = context.get("output_lengths")
+    prefill_tps = _first_positive_metric(
+        prefill_tps_by_instance.get(instance_id)
+        if isinstance(prefill_tps_by_instance, dict)
+        else None
+    )
+    decode_tps = _first_positive_metric(
+        decode_tps_by_instance.get(instance_id)
+        if isinstance(decode_tps_by_instance, dict)
+        else None
+    )
+    mean_decode_batch_ms = _first_positive_metric(
+        mean_decode_batch_ms_by_instance.get(instance_id)
+        if isinstance(mean_decode_batch_ms_by_instance, dict)
+        else None
+    )
+    predicted_output_tokens = _as_nonnegative_float(
+        output_lengths.get(instance_id)
+        if isinstance(output_lengths, dict)
+        else None
+    )
+    if (
+        prefill_tps is None
+        or decode_tps is None
+        or mean_decode_batch_ms is None
+        or predicted_output_tokens is None
+    ):
+        raise ValueError(
+            f"{SCORE_TOTAL_LATENCY_ESTIMATOR_NAME} requires positive prefill TPS, "
+            "decode TPS, mean decode-batch latency, and a predicted output "
+            f"length for instance '{instance_id}'."
+        )
+
+    prompt_tokens = _as_nonnegative_int(context.get("prompt_tokens"))
+    prompt_tokens_value = int(prompt_tokens) if prompt_tokens is not None else 0
+    diagnostics: Dict[str, Any] = {
+        "method": SCORE_TOTAL_LATENCY_ESTIMATOR_NAME,
+        "published_score_formula": True,
+        "target": "total_response_latency",
+        "estimated_waiting_time_ms": None,
+        "estimated_runtime_ms": None,
+        "estimated_total_latency_ms": None,
+        "estimated_fallback_reason": None,
+    }
+
+    wait_record = live_wait_results.get(instance_id) or instance.last_wait
+    if wait_record is None or not isinstance(wait_record.raw_payload, dict):
+        diagnostics["estimated_fallback_reason"] = "missing_wait_payload"
+        _record_wait_estimator_diagnostics(
+            context,
+            instance_id=instance_id,
+            diagnostics=diagnostics,
+        )
+        raise RuntimeError(
+            f"{SCORE_TOTAL_LATENCY_ESTIMATOR_NAME} requires snapshot metadata "
+            f"for instance '{instance_id}'; no wait payload was available."
+        )
+
+    metadata = _snapshot_metadata_from_wait_payload(wait_record.raw_payload)
+    prefill_backlog_tokens = _prefill_backlog_tokens_from_wait_payload(
+        wait_record.raw_payload
+    )
+    decode_backlog_tokens = (
+        _as_nonnegative_float(metadata.get("decode_backlog_total_tokens"))
+        if metadata is not None
+        else None
+    )
+    if prefill_backlog_tokens is None or decode_backlog_tokens is None:
+        diagnostics["estimated_fallback_reason"] = "missing_effective_backlog_tokens"
+        _record_wait_estimator_diagnostics(
+            context,
+            instance_id=instance_id,
+            diagnostics=diagnostics,
+        )
+        raise RuntimeError(
+            f"{SCORE_TOTAL_LATENCY_ESTIMATOR_NAME} requires effective prefill "
+            f"and decode backlog metadata for instance '{instance_id}'."
+        )
+
+    total_latency_ms, terms = estimate_score_total_latency_ms(
+        prompt_tokens=prompt_tokens_value,
+        predicted_output_tokens=float(predicted_output_tokens),
+        prefill_backlog_tokens=float(prefill_backlog_tokens),
+        decode_backlog_tokens=float(decode_backlog_tokens),
+        prefill_tps=float(prefill_tps),
+        decode_tps=float(decode_tps),
+        mean_decode_batch_ms=float(mean_decode_batch_ms),
+    )
+    diagnostics.update(
+        {
+            "estimated_waiting_time_ms": float(terms["waiting_time_ms"]),
+            "estimated_runtime_ms": float(terms["predicted_runtime_ms"]),
+            "estimated_total_latency_ms": float(total_latency_ms),
+            "details": {
+                "prefill_backlog_total_tokens": float(prefill_backlog_tokens),
+                "decode_backlog_total_tokens": float(decode_backlog_tokens),
+                "prompt_tokens": int(prompt_tokens_value),
+                "predicted_output_tokens": float(predicted_output_tokens),
+                "prefill_tps": float(prefill_tps),
+                "decode_tps": float(decode_tps),
+                "mean_decode_batch_ms": float(mean_decode_batch_ms),
+                "prefill_wait_ms": float(terms["prefill_wait_ms"]),
+                "decode_backlog_wait_ms": float(
+                    terms["decode_backlog_wait_ms"]
+                ),
+                "pending_overlay_count": (
+                    int(metadata["pending_overlay_count"])
+                    if metadata is not None
+                    and isinstance(metadata.get("pending_overlay_count"), int)
+                    else None
+                ),
+            },
+        }
+    )
+    _record_wait_estimator_diagnostics(
+        context,
+        instance_id=instance_id,
+        diagnostics=diagnostics,
+    )
+    return float(total_latency_ms)
+
+
 def _wait_estimator_pk_mg1(
     instance_id: str,
     instance: InstanceClient,
@@ -3514,6 +3899,8 @@ def resolve_wait_estimator(spec: str) -> tuple[str, WaitEstimatorCallable]:
         return PREFILL_TPS_TTFT_ESTIMATOR_NAME, _wait_estimator_prefill_tps_ttft
     if key == SCORE_PROXY_TTFT_ESTIMATOR_NAME:
         return SCORE_PROXY_TTFT_ESTIMATOR_NAME, _wait_estimator_score_proxy_ttft
+    if key == SCORE_TOTAL_LATENCY_ESTIMATOR_NAME:
+        return SCORE_TOTAL_LATENCY_ESTIMATOR_NAME, _wait_estimator_score_total_latency
     if key == "pk_mg1":
         return "pk_mg1", _wait_estimator_pk_mg1
     if ":" not in spec:
@@ -3981,6 +4368,9 @@ async def run_policy(
     affinity_bucket_to_instances: Optional[Dict[str, list[str]]] = None,
     affinity_global_fallback_instances: Optional[list[str]] = None,
     affinity_upgrade_margin: float = DEFAULT_AFFINITY_UPGRADE_MARGIN,
+    score_cost_weight: float = 1.0,
+    score_latency_weight: float = 1.0,
+    score_total_cost_budget: Optional[float] = None,
     close_instances_on_stop: bool = True,
     decouple_arrivals: bool = True,
 ) -> Dict[str, Any]:
@@ -3991,13 +4381,23 @@ async def run_policy(
             f"Choose from: {', '.join(FEASIBLE_SLO_MODES)}."
         )
 
-    utility_state = UtilityState()
+    score_policy_state = (
+        ScorePolicyState(
+            total_requests=len(requests),
+            total_cost_budget=score_total_cost_budget,
+        )
+        if utility_name.strip().lower() == "score"
+        else None
+    )
+    utility_state = UtilityState(score_policy_state=score_policy_state)
     utility_fn = build_utility_fn(
         utility_name,
         lambda_weight=lambda_weight,
         delta_weight=delta_weight,
         instance_costs=instance_costs,
         utility_state=utility_state,
+        score_cost_weight=score_cost_weight,
+        score_latency_weight=score_latency_weight,
     )
     scheduler = CollectingWaitTimeScheduler(
         instances,
@@ -4018,6 +4418,8 @@ async def run_policy(
         affinity_bucket_to_instances=affinity_bucket_to_instances,
         affinity_global_fallback_instances=affinity_global_fallback_instances,
         affinity_upgrade_margin=affinity_upgrade_margin,
+        score_cost_weight=score_cost_weight,
+        score_latency_weight=score_latency_weight,
         wait_estimator=wait_estimator,
         wait_estimator_name=wait_estimator_name,
         wait_estimator_context=wait_estimator_context,
@@ -4088,6 +4490,8 @@ async def run_policy(
             "_request_bucket": req.bucket,
             "_prompt_tokens": int(req.prompt_tokens),
         }
+        if score_policy_state is not None:
+            payload["_score_latency_limit_ms"] = float(req.latency_slo_ms)
         payload["extra_body"] = {
             "chat_template_kwargs": {"enable_thinking": False}
         }
@@ -4492,6 +4896,7 @@ async def run_policy(
             "live_wait_time_ms": item.get("live_wait_time_ms"),
             "wait_estimates_ms": item.get("wait_estimates_ms"),
             "score_candidate_terms": item.get("score_candidate_terms"),
+            "score_policy_terms": item.get("score_policy_terms"),
             "wait_estimator": item.get("wait_estimator", wait_estimator_name),
             "route_strategy": item.get("route_strategy", route_strategy),
             "feasible_slo_mode": resolved_feasible_slo_mode,
@@ -4532,7 +4937,7 @@ async def run_policy(
     e2e_ttft_missing_count = max(total - e2e_ttft_available, 0)
     system_entry_e2e_ttft_missing_count = max(total - system_entry_e2e_ttft_available, 0)
 
-    return {
+    run_result: Dict[str, Any] = {
         "label": run_label or utility_name,
         "utility": utility_name,
         "arrival_process": resolved_arrival_process,
@@ -4610,6 +5015,9 @@ async def run_policy(
         },
         "per_request": per_request,
     }
+    if score_policy_state is not None:
+        run_result["score_policy_state"] = score_policy_state.as_dict()
+    return run_result
 
 
 def parse_args() -> argparse.Namespace:
@@ -4945,7 +5353,7 @@ def parse_args() -> argparse.Namespace:
         default=[],
         help=(
             "Optional prefill TPS override(s) as key=value for prefill-TPS utilities "
-            "(hard_prefill_tps, hard_score_proxy, soft_prefill_tps, "
+            "(hard_prefill_tps, hard_score_proxy, score, soft_prefill_tps, "
             "hard_pk_mg1, soft_pk_mg1). Keys can be instance_id/model_id "
             "aliases (e.g., vllm-0.6b=120000)."
         ),
@@ -4956,9 +5364,9 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "Calibration JSON from compute_model_service_metrics.py. "
-            "hard_score_proxy requires per-model prefill TPS, decode TPS, and "
-            "mean decode-batch latency measured under the same hardware and "
-            "vLLM configuration."
+            "hard_score_proxy and score require per-model prefill TPS, decode "
+            "TPS, and mean decode-batch latency measured under the same "
+            "hardware and vLLM configuration."
         ),
     )
     parser.add_argument(
@@ -4982,6 +5390,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-length-model-path", type=str, default=None)
     parser.add_argument("--lambda-weight", type=float, default=0.3)
     parser.add_argument("--delta-weight", type=float, default=0.5)
+    parser.add_argument(
+        "--score-cost-weight",
+        type=float,
+        default=1.0,
+        help="Published SCORE cost-constraint weight w_C.",
+    )
+    parser.add_argument(
+        "--score-latency-weight",
+        type=float,
+        default=1.0,
+        help="Published SCORE latency-constraint weight w_L.",
+    )
+    parser.add_argument(
+        "--score-total-cost-budget",
+        type=float,
+        default=None,
+        help=(
+            "Optional SCORE total predicted response-token cost budget C_max. "
+            "It is retained in the published cumulative Lagrangian expression; "
+            "the paper does not specify an online lambda-update controller."
+        ),
+    )
     parser.add_argument("--worker-count", type=int, default=4)
     parser.add_argument("--max-queue-size", type=int, default=0)
     parser.add_argument("--max-completion-tokens", type=int, default=8192)
@@ -5082,6 +5512,18 @@ def parse_args() -> argparse.Namespace:
         parser.error("--affinity-quality-epsilon must be >= 0.")
     if args.affinity_upgrade_margin < 0:
         parser.error("--affinity-upgrade-margin must be >= 0.")
+    if not math.isfinite(args.score_cost_weight) or args.score_cost_weight < 0:
+        parser.error("--score-cost-weight must be finite and >= 0.")
+    if (
+        not math.isfinite(args.score_latency_weight)
+        or args.score_latency_weight < 0
+    ):
+        parser.error("--score-latency-weight must be finite and >= 0.")
+    if args.score_total_cost_budget is not None and (
+        not math.isfinite(args.score_total_cost_budget)
+        or args.score_total_cost_budget < 0
+    ):
+        parser.error("--score-total-cost-budget must be finite and >= 0.")
     if args.arrival_process == "mmpp2":
         try:
             _derive_mmpp2_params(
@@ -5651,6 +6093,15 @@ def _baseline_runtime_params(
             SCORE_PROXY_TTFT_ESTIMATOR_NAME,
             False,
         )
+    if utility == "score":
+        return (
+            lambda_weight,
+            0.0,
+            "utility",
+            _wait_estimator_score_total_latency,
+            SCORE_TOTAL_LATENCY_ESTIMATOR_NAME,
+            False,
+        )
     if utility == "hard_pk_mg1":
         return (
             lambda_weight,
@@ -5716,6 +6167,7 @@ async def run_router_experiment(
     prefill_tps_utilities = {
         "hard_prefill_tps",
         "hard_score_proxy",
+        "score",
         "soft_prefill_tps",
         "hard_pk_mg1",
         "soft_pk_mg1",
@@ -5726,7 +6178,10 @@ async def run_router_experiment(
             overrides=getattr(args, "prefill_tps_overrides", None),
             calibrated_metrics=getattr(args, "calibrated_service_metrics", None),
         )
-    if "hard_score_proxy" in normalized_utilities:
+    if any(
+        name in {"hard_score_proxy", "score"}
+        for name in normalized_utilities
+    ):
         (
             decode_tps_by_instance,
             mean_decode_batch_ms_by_instance,
@@ -5821,6 +6276,23 @@ async def run_router_experiment(
                     mean_decode_batch_ms_by_instance
                 ),
             }
+        elif wait_estimator_name == SCORE_TOTAL_LATENCY_ESTIMATOR_NAME:
+            if (
+                not prefill_tps_by_instance
+                or not decode_tps_by_instance
+                or not mean_decode_batch_ms_by_instance
+            ):
+                raise ValueError(
+                    "Published SCORE selected but its calibrated service "
+                    "metrics were not resolved."
+                )
+            wait_estimator_context = {
+                "prefill_tps_by_instance": dict(prefill_tps_by_instance),
+                "decode_tps_by_instance": dict(decode_tps_by_instance),
+                "mean_decode_batch_ms_by_instance": dict(
+                    mean_decode_batch_ms_by_instance
+                ),
+            }
         elif wait_estimator_name == "pk_mg1":
             if not prefill_tps_by_instance:
                 raise ValueError(
@@ -5905,6 +6377,9 @@ async def run_router_experiment(
             affinity_bucket_to_instances=affinity_bucket_to_instances,
             affinity_global_fallback_instances=affinity_global_fallback_instances,
             affinity_upgrade_margin=float(args.affinity_upgrade_margin),
+            score_cost_weight=float(args.score_cost_weight),
+            score_latency_weight=float(args.score_latency_weight),
+            score_total_cost_budget=args.score_total_cost_budget,
             close_instances_on_stop=False,
         )
         run["baseline_config"] = {
@@ -5914,6 +6389,18 @@ async def run_router_experiment(
             "wait_estimator": wait_estimator_name,
             "feasible_slo_mode": args.feasible_slo_mode,
         }
+        if utility_name == "score":
+            run["baseline_config"]["score"] = {
+                "published_fixed_lambda_argmax": True,
+                "quality_term": "predicted_quality",
+                "cost_term": "output_rate * predicted_output_tokens",
+                "latency_term": "predicted_total_response_latency_s",
+                "cost_weight": float(args.score_cost_weight),
+                "latency_weight": float(args.score_latency_weight),
+                "total_cost_budget": args.score_total_cost_budget,
+                "latency_limit_source": "request_e2e_latency_slo_ms",
+                "lambda_update": "fixed; paper does not specify controller",
+            }
         if route_strategy == "instance_affinity" and affinity_calibration is not None:
             run["baseline_config"]["instance_affinity"] = {
                 "scored_root": affinity_calibration.get("scored_root"),
@@ -5955,7 +6442,10 @@ async def run_router_experiment(
     if service_rates_by_instance is not None:
         result["service_rates_rps_by_instance"] = dict(service_rates_by_instance)
         result["service_rates_rps_resolution"] = service_rates_resolution
-    if decode_tps_by_instance is not None:
+    if (
+        decode_tps_by_instance is not None
+        and "hard_score_proxy" in normalized_utilities
+    ):
         result["score_proxy"] = {
             "exact_score_reproduction": False,
             "target": "ttft",
@@ -5969,6 +6459,24 @@ async def run_router_experiment(
                 mean_decode_batch_ms_by_instance or {}
             ),
             "metrics_resolution": score_proxy_metrics_resolution,
+        }
+    if decode_tps_by_instance is not None and "score" in normalized_utilities:
+        result["score"] = {
+            "published_fixed_lambda_argmax": True,
+            "formula": (
+                "quality_hat - lambda * (w_C * (c_output * output_hat) + "
+                "w_L * (W + s * output_hat))"
+            ),
+            "waiting_time_adaptation": (
+                "(effective_prefill_backlog_tokens + prompt_tokens) / "
+                "prefill_tps + effective_decode_backlog_tokens / decode_tps"
+            ),
+            "decode_tps_by_instance": dict(decode_tps_by_instance),
+            "mean_decode_batch_ms_by_instance": dict(
+                mean_decode_batch_ms_by_instance or {}
+            ),
+            "metrics_resolution": score_proxy_metrics_resolution,
+            "lambda_update": "fixed; paper does not specify controller",
         }
     if affinity_calibration is not None:
         result["instance_affinity_calibration"] = {
@@ -6376,6 +6884,7 @@ async def async_main(args: argparse.Namespace) -> None:
             in {
                 "hard_prefill_tps",
                 "hard_score_proxy",
+                "score",
                 "soft_prefill_tps",
                 "hard_pk_mg1",
                 "soft_pk_mg1",
@@ -6422,6 +6931,9 @@ async def async_main(args: argparse.Namespace) -> None:
             "output_length_model_path": args.output_length_model_path,
             "lambda_weight": args.lambda_weight,
             "delta_weight": args.delta_weight,
+            "score_cost_weight": args.score_cost_weight,
+            "score_latency_weight": args.score_latency_weight,
+            "score_total_cost_budget": args.score_total_cost_budget,
             "worker_count": args.worker_count,
             "max_queue_size": args.max_queue_size,
             "max_completion_tokens": args.max_completion_tokens,

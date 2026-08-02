@@ -22,6 +22,7 @@ DEFAULT_UTILITIES = [
     "hard_pk_mg1",
     "hard_prefill_tps",
     "hard_score_proxy",
+    "score",
     "shortest_queue",
     "latency_agnostic",
     "round_robin",
