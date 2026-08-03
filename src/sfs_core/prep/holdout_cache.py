@@ -7,9 +7,11 @@ from typing import Any
 from transformers import AutoTokenizer
 
 from sfs_core.shared.shared_experiment_helpers import (
+    DEFAULT_CHAT_TEMPLATE_KWARGS,
     DEFAULT_SYSTEM_PROMPT,
     as_nonnegative_int,
     build_messages,
+    resolve_chat_template_kwargs,
 )
 
 MANIFEST_FILENAME = "manifest.json"
@@ -70,6 +72,7 @@ def _build_expected_manifest_config(
     max_completion_tokens: int,
     prompt_token_limit: int,
     system_prompt: str,
+    chat_template_kwargs: dict[str, Any],
     bucket_files: list[str],
 ) -> dict[str, Any]:
     return {
@@ -82,6 +85,7 @@ def _build_expected_manifest_config(
         "max_completion_tokens": int(max_completion_tokens),
         "prompt_token_limit": int(prompt_token_limit),
         "system_prompt": str(system_prompt),
+        "chat_template_kwargs": dict(chat_template_kwargs),
         "bucket_files": list(bucket_files),
     }
 
@@ -98,7 +102,12 @@ def _is_cache_reusable(
         return False
 
     for key, expected_value in expected_manifest_config.items():
-        if manifest.get(key) != expected_value:
+        actual_value = manifest.get(key)
+        if key == "chat_template_kwargs" and key not in manifest:
+            # Version-2 caches predate the explicit field but were always
+            # tokenized with Qwen's non-thinking template policy.
+            actual_value = DEFAULT_CHAT_TEMPLATE_KWARGS
+        if actual_value != expected_value:
             return False
 
     bucket_counts = manifest.get("bucket_counts")
@@ -135,13 +144,18 @@ def _load_tokenizer(tokenizer_id: str):
         ) from exc
 
 
-def _compute_prompt_tokens(prompt: str, tokenizer: Any, system_prompt: str) -> int:
+def _compute_prompt_tokens(
+    prompt: str,
+    tokenizer: Any,
+    system_prompt: str,
+    chat_template_kwargs: dict[str, Any] | None = None,
+) -> int:
     messages = build_messages(prompt=prompt, system_prompt=system_prompt)
     token_ids = tokenizer.apply_chat_template(
         messages,
         tokenize=True,
         add_generation_prompt=True,
-        enable_thinking=False,
+        **resolve_chat_template_kwargs(chat_template_kwargs),
     )
     return int(len(token_ids))
 
@@ -176,6 +190,7 @@ def _slice_and_convert_bucket(
     prompt_token_limit: int,
     tokenizer: Any,
     system_prompt: str,
+    chat_template_kwargs: dict[str, Any],
 ) -> list[dict[str, Any]]:
     slice_end = holdout_start_index + holdout_prompts_per_bucket
     converted_records: list[dict[str, Any]] = []
@@ -232,7 +247,12 @@ def _slice_and_convert_bucket(
                 }
             }
 
-            prompt_tokens = _compute_prompt_tokens(prompt, tokenizer, system_prompt)
+            prompt_tokens = _compute_prompt_tokens(
+                prompt,
+                tokenizer,
+                system_prompt,
+                chat_template_kwargs,
+            )
 
             remaining_context = int(holdout_context_length) - int(prompt_tokens)
             record_max_completion_tokens = max(
@@ -276,6 +296,7 @@ def prepare_holdout_prompt_cache(
     prompt_token_limit: int = 32768,
     rebuild: bool = False,
     system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    chat_template_kwargs: dict[str, Any] | None = None,
     tokenizer: Any | None = None,
 ) -> tuple[Path, dict[str, Any], bool]:
     if holdout_prompts_per_bucket <= 0:
@@ -292,6 +313,9 @@ def prepare_holdout_prompt_cache(
     source_bucket_dir = source_bucket_dir.expanduser().resolve()
     cache_dir = cache_dir.expanduser().resolve()
     cache_dir.mkdir(parents=True, exist_ok=True)
+    resolved_chat_template_kwargs = resolve_chat_template_kwargs(
+        chat_template_kwargs
+    )
 
     bucket_files = _list_bucket_files(source_bucket_dir)
     expected_manifest_config = _build_expected_manifest_config(
@@ -303,6 +327,7 @@ def prepare_holdout_prompt_cache(
         max_completion_tokens=max_completion_tokens,
         prompt_token_limit=prompt_token_limit,
         system_prompt=system_prompt,
+        chat_template_kwargs=resolved_chat_template_kwargs,
         bucket_files=bucket_files,
     )
 
@@ -340,6 +365,7 @@ def prepare_holdout_prompt_cache(
             prompt_token_limit=prompt_token_limit,
             tokenizer=tokenizer,
             system_prompt=system_prompt,
+            chat_template_kwargs=resolved_chat_template_kwargs,
         )
 
         output_path = cache_dir / bucket_file

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping
 from itertools import islice
 import json
 import math
@@ -10,7 +11,44 @@ import random
 from typing import Any, Iterator
 
 DEFAULT_SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."
+DEFAULT_CHAT_TEMPLATE_KWARGS: dict[str, Any] = {"enable_thinking": False}
 DEFAULT_RANDOM_SEED = 69
+
+_RESERVED_CHAT_TEMPLATE_KWARGS = frozenset(
+    {
+        "add_generation_prompt",
+        "tokenize",
+    }
+)
+
+
+def resolve_chat_template_kwargs(
+    chat_template_kwargs: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Return validated template kwargs, preserving Qwen's default mode."""
+    if chat_template_kwargs is None:
+        return dict(DEFAULT_CHAT_TEMPLATE_KWARGS)
+    if not isinstance(chat_template_kwargs, Mapping):
+        raise ValueError("chat template kwargs must be a JSON object")
+    if not all(isinstance(key, str) for key in chat_template_kwargs):
+        raise ValueError("chat template kwarg names must be strings")
+
+    reserved = sorted(_RESERVED_CHAT_TEMPLATE_KWARGS.intersection(chat_template_kwargs))
+    if reserved:
+        raise ValueError(
+            "chat template kwargs cannot override runner-controlled argument(s): "
+            + ", ".join(reserved)
+        )
+    return dict(chat_template_kwargs)
+
+
+def parse_chat_template_kwargs_json(value: str) -> dict[str, Any]:
+    """Parse the CLI JSON representation of tokenizer chat-template kwargs."""
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid chat template kwargs JSON: {exc.msg}") from exc
+    return resolve_chat_template_kwargs(parsed)
 
 
 def as_nonnegative_int(

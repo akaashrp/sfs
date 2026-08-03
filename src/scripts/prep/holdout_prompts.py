@@ -5,7 +5,11 @@ import json
 from pathlib import Path
 
 from sfs_core.prep.holdout_cache import prepare_holdout_prompt_cache
-from sfs_core.shared.shared_experiment_helpers import DEFAULT_SYSTEM_PROMPT
+from sfs_core.shared.shared_experiment_helpers import (
+    DEFAULT_SYSTEM_PROMPT,
+    parse_chat_template_kwargs_json,
+    resolve_chat_template_kwargs,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -27,7 +31,22 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--rebuild", action="store_true")
     parser.add_argument("--system-prompt", type=str, default=DEFAULT_SYSTEM_PROMPT)
-    return parser.parse_args()
+    parser.add_argument(
+        "--chat-template-kwargs-json",
+        dest="chat_template_kwargs",
+        type=parse_chat_template_kwargs_json,
+        default=None,
+        help=(
+            "JSON object passed to the tokenizer chat template and vLLM chat API. "
+            "Defaults to Qwen's non-thinking mode; use '{}' for model families "
+            "without Qwen's enable_thinking option."
+        ),
+    )
+    args = parser.parse_args()
+    args.chat_template_kwargs = resolve_chat_template_kwargs(
+        args.chat_template_kwargs
+    )
+    return args
 
 
 def main() -> None:
@@ -43,6 +62,7 @@ def main() -> None:
         prompt_token_limit=int(args.prompt_token_limit),
         rebuild=bool(args.rebuild),
         system_prompt=str(args.system_prompt),
+        chat_template_kwargs=args.chat_template_kwargs,
     )
     print(
         json.dumps(
@@ -51,6 +71,8 @@ def main() -> None:
                 "rebuilt": bool(rebuilt),
                 "bucket_counts": manifest.get("bucket_counts", {}),
                 "prompt_token_limit": manifest.get("prompt_token_limit"),
+                "system_prompt": manifest.get("system_prompt"),
+                "chat_template_kwargs": manifest.get("chat_template_kwargs"),
             },
             indent=2,
         )

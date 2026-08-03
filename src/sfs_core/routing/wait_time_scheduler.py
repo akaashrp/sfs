@@ -29,6 +29,7 @@ import sys
 from .snapshot_shm_client import SnapshotShmClient
 from .pending_dispatch_ledger import PendingDispatch, PendingDispatchLedger
 from .readiness_predictor import ReadinessDelayPredictor
+from sfs_core.shared.shared_experiment_helpers import resolve_chat_template_kwargs
 
 LOGGER = logging.getLogger(__name__)
 
@@ -1102,11 +1103,15 @@ class WaitTimeScheduler:
 
     def _get_prompt_tokens(self, payload: Dict[str, any], prompt_text: str) -> int:
         if self._tokenizer:
+            chat_template_kwargs = None
+            extra_body = payload.get("extra_body")
+            if isinstance(extra_body, dict) and "chat_template_kwargs" in extra_body:
+                chat_template_kwargs = extra_body["chat_template_kwargs"]
             prompt_token_ids = self._tokenizer.apply_chat_template(
                 payload.get("messages"),
                 tokenize=True,
                 add_generation_prompt=True,
-                enable_thinking=False,
+                **resolve_chat_template_kwargs(chat_template_kwargs),
             )
             return len(prompt_token_ids)
         return len(prompt_text.split())

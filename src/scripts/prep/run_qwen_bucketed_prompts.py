@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Dispatch bucketed prompts to Qwen3 0.6B / 8B / 32B models using the async
+Dispatch bucketed prompts to one OpenAI-compatible model using the async
 WaitTimeScheduler machinery and log prompt/output/timing metadata.
 
 This script reuses the scheduler helpers from ``sfs_core.routing``
@@ -32,7 +32,12 @@ from sfs_core.routing.wait_time_scheduler import (
     WaitTimeResult,
     WaitTimeScheduler,
 )
-from sfs_core.shared.shared_experiment_helpers import build_messages, DEFAULT_SYSTEM_PROMPT
+from sfs_core.shared.shared_experiment_helpers import (
+    build_messages,
+    DEFAULT_SYSTEM_PROMPT,
+    parse_chat_template_kwargs_json,
+    resolve_chat_template_kwargs,
+)
 from sfs_core.paths import BUCKETED_OUTPUTS_ROOT, DEFAULT_BUCKET_POOL_QWEN3_0_6B
 
 DEFAULT_BUCKET_DIR = DEFAULT_BUCKET_POOL_QWEN3_0_6B
@@ -324,7 +329,7 @@ async def process_bucket(
                         messages,
                         tokenize=True,
                         add_generation_prompt=True,
-                        enable_thinking=False,
+                        **args.chat_template_kwargs,
                     )
                     total_prompt_tokens = len(prompt_token_ids)
                 except Exception as exc:
@@ -363,7 +368,7 @@ async def process_bucket(
                 "max_completion_tokens": max_completion_tokens,
             }
             payload["extra_body"] = {
-                "chat_template_kwargs": {"enable_thinking": False}
+                "chat_template_kwargs": dict(args.chat_template_kwargs)
             }
             if args.stop:
                 payload["stop"] = args.stop
@@ -486,6 +491,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUT_ROOT)
     parser.add_argument("--system-prompt", type=str, default=DEFAULT_SYSTEM_PROMPT)
+    parser.add_argument(
+        "--chat-template-kwargs-json",
+        dest="chat_template_kwargs",
+        type=parse_chat_template_kwargs_json,
+        default=None,
+        help=(
+            "JSON object passed to the tokenizer chat template and vLLM chat API. "
+            "Defaults to Qwen's non-thinking mode; use '{}' for model families "
+            "without Qwen's enable_thinking option."
+        ),
+    )
     parser.add_argument("--temperature", type=float, default=0)
     parser.add_argument("--top-p", type=float, default=1.0)
     parser.add_argument(
@@ -518,7 +534,11 @@ def parse_args() -> argparse.Namespace:
         help="Skip polling the /wait_time endpoint before dispatch and use cached wait data only.",
     )
     parser.add_argument("--request-log-path", type=Path, default=None)
-    return parser.parse_args()
+    args = parser.parse_args()
+    args.chat_template_kwargs = resolve_chat_template_kwargs(
+        args.chat_template_kwargs
+    )
+    return args
 
 
 async def run_job(
@@ -603,6 +623,7 @@ async def async_main(args: argparse.Namespace) -> None:
             "top_p": args.top_p,
             "max_prompts_per_bucket": args.max_prompts_per_bucket,
             "system_prompt": args.system_prompt,
+            "chat_template_kwargs": args.chat_template_kwargs,
             "bucket_dir": str(job.bucket_dir),
             "instance_address": job.address,
             "context_length": args.context_length,

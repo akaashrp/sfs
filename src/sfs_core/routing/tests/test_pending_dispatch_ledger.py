@@ -223,6 +223,29 @@ def test_prompt_token_fallback_passes_direct_thinking_kwarg():
     assert "chat_template_kwargs" not in scheduler._tokenizer.kwargs
 
 
+def test_prompt_token_fallback_uses_request_template_kwargs():
+    class _Tokenizer:
+        def __init__(self) -> None:
+            self.kwargs = None
+
+        def apply_chat_template(self, messages, **kwargs):
+            self.kwargs = kwargs
+            return [1, 2, 3]
+
+    scheduler = WaitTimeScheduler.__new__(WaitTimeScheduler)
+    scheduler._tokenizer = _Tokenizer()
+    payload = {
+        "messages": [{"role": "user", "content": "hello"}],
+        "extra_body": {"chat_template_kwargs": {}},
+    }
+
+    assert scheduler._get_prompt_tokens(payload, "hello") == 3
+    assert scheduler._tokenizer.kwargs == {
+        "tokenize": True,
+        "add_generation_prompt": True,
+    }
+
+
 def test_two_dispatch_workers_route_against_atomic_pending_state():
     asyncio.run(_exercise_two_dispatch_workers())
 

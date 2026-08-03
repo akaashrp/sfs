@@ -21,6 +21,22 @@ def test_calibration_payload_disables_qwen_thinking():
     assert payload["model"] == "qwen-test"
 
 
+def test_calibration_payload_supports_neutral_non_qwen_policy():
+    payload = _build_calibration_payload(
+        prompt="Summarize this report.",
+        max_completion_tokens=512,
+        model_id="llama-test",
+        system_prompt="You are a helpful assistant.",
+        chat_template_kwargs={},
+    )
+
+    assert payload["messages"] == [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Summarize this report."},
+    ]
+    assert payload["extra_body"] == {"chat_template_kwargs": {}}
+
+
 def test_model_calibration_streams_run_concurrently(monkeypatch, tmp_path):
     model_names = ("qwen3-0.6b", "qwen3-8b", "qwen3-32b")
     clients = {

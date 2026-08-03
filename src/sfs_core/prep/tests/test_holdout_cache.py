@@ -4,6 +4,7 @@ from sfs_core.prep.holdout_cache import (
     PROMPT_TOKENIZATION_VERSION,
     _build_expected_manifest_config,
     _compute_prompt_tokens,
+    _is_cache_reusable,
 )
 
 
@@ -25,6 +26,16 @@ def test_prompt_tokens_disable_thinking_with_direct_template_kwarg():
     assert "chat_template_kwargs" not in tokenizer.kwargs
 
 
+def test_prompt_tokens_allow_family_with_no_template_kwargs():
+    tokenizer = _RecordingTokenizer()
+
+    assert _compute_prompt_tokens("hello", tokenizer, "system", {}) == 3
+    assert tokenizer.kwargs == {
+        "tokenize": True,
+        "add_generation_prompt": True,
+    }
+
+
 def test_manifest_versions_prompt_tokenization_semantics():
     config = _build_expected_manifest_config(
         source_bucket_dir=Path("/source"),
@@ -35,7 +46,47 @@ def test_manifest_versions_prompt_tokenization_semantics():
         max_completion_tokens=4,
         prompt_token_limit=5,
         system_prompt="system",
+        chat_template_kwargs={"enable_thinking": False},
         bucket_files=["bucket.jsonl"],
     )
 
     assert config["prompt_tokenization_version"] == PROMPT_TOKENIZATION_VERSION
+    assert config["chat_template_kwargs"] == {"enable_thinking": False}
+
+
+def test_existing_qwen_v2_cache_remains_reusable(tmp_path):
+    bucket_file = "bucket.jsonl"
+    (tmp_path / bucket_file).write_text("{}\n{}\n", encoding="utf-8")
+    expected = _build_expected_manifest_config(
+        source_bucket_dir=Path("/source"),
+        tokenizer_id="tokenizer",
+        holdout_start_index=1,
+        holdout_prompts_per_bucket=2,
+        holdout_context_length=3,
+        max_completion_tokens=4,
+        prompt_token_limit=5,
+        system_prompt="system",
+        chat_template_kwargs={"enable_thinking": False},
+        bucket_files=[bucket_file],
+    )
+    legacy_manifest = dict(expected)
+    legacy_manifest.pop("chat_template_kwargs")
+    legacy_manifest["bucket_counts"] = {bucket_file: 2}
+
+    assert _is_cache_reusable(
+        manifest=legacy_manifest,
+        expected_manifest_config=expected,
+        cache_dir=tmp_path,
+        holdout_prompts_per_bucket=2,
+        bucket_files=[bucket_file],
+    )
+
+    llama_expected = dict(expected)
+    llama_expected["chat_template_kwargs"] = {}
+    assert not _is_cache_reusable(
+        manifest=legacy_manifest,
+        expected_manifest_config=llama_expected,
+        cache_dir=tmp_path,
+        holdout_prompts_per_bucket=2,
+        bucket_files=[bucket_file],
+    )

@@ -57,6 +57,8 @@ from sfs_core.shared.shared_experiment_helpers import (
     iter_bucketed_prompts,
     iter_mixed_then_random_bucketed_prompts,
     iter_random_bucketed_prompts,
+    parse_chat_template_kwargs_json,
+    resolve_chat_template_kwargs,
     select_prompt_subset,
     warm_up_instances,
 )
@@ -4342,6 +4344,8 @@ async def run_policy(
     max_completion_tokens: int,
     temperature: float,
     top_p: float,
+    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    chat_template_kwargs: dict[str, Any] | None = None,
     response_map_path: Optional[str],
     request_log_path: Optional[str],
     mmpp2_rate_ratio: float = DEFAULT_MMPP2_RATE_RATIO,
@@ -4374,6 +4378,9 @@ async def run_policy(
     close_instances_on_stop: bool = True,
     decouple_arrivals: bool = True,
 ) -> Dict[str, Any]:
+    resolved_chat_template_kwargs = resolve_chat_template_kwargs(
+        chat_template_kwargs
+    )
     resolved_feasible_slo_mode = feasible_slo_mode.strip().lower()
     if resolved_feasible_slo_mode not in FEASIBLE_SLO_MODES:
         raise ValueError(
@@ -4479,7 +4486,10 @@ async def run_policy(
             float(started_perf) if started_perf is not None else time.perf_counter()
         )
         payload: Dict[str, Any] = {
-            "messages": build_messages(prompt=req.prompt, system_prompt=DEFAULT_SYSTEM_PROMPT),
+            "messages": build_messages(
+                prompt=req.prompt,
+                system_prompt=system_prompt,
+            ),
             "max_completion_tokens": max_completion_tokens,
             "temperature": temperature,
             "top_p": top_p,
@@ -4493,7 +4503,7 @@ async def run_policy(
         if score_policy_state is not None:
             payload["_score_latency_limit_ms"] = float(req.latency_slo_ms)
         payload["extra_body"] = {
-            "chat_template_kwargs": {"enable_thinking": False}
+            "chat_template_kwargs": dict(resolved_chat_template_kwargs)
         }
         await scheduler.route_and_submit(
             request_id=_scheduler_request_id(req),
@@ -5417,6 +5427,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-completion-tokens", type=int, default=8192)
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--top-p", type=float, default=1.0)
+    parser.add_argument("--system-prompt", type=str, default=DEFAULT_SYSTEM_PROMPT)
+    parser.add_argument(
+        "--chat-template-kwargs-json",
+        dest="chat_template_kwargs",
+        type=parse_chat_template_kwargs_json,
+        default=None,
+        help=(
+            "JSON object passed to tokenizer and server chat templates. Defaults "
+            "to Qwen's non-thinking mode; use '{}' for model families without "
+            "enable_thinking."
+        ),
+    )
     parser.add_argument(
         "--response-map-path",
         type=Path,
@@ -5543,6 +5565,10 @@ def parse_args() -> argparse.Namespace:
         if args.holdout_context_length <= 0:
             parser.error("--holdout-context-length must be > 0 when holdout mode is enabled.")
 
+    args.chat_template_kwargs = resolve_chat_template_kwargs(
+        args.chat_template_kwargs
+    )
+
     return args
 
 
@@ -5592,7 +5618,8 @@ def _resolve_prompt_source(
         holdout_context_length=args.holdout_context_length,
         max_completion_tokens=args.max_completion_tokens,
         rebuild=args.rebuild_holdout_cache,
-        system_prompt=DEFAULT_SYSTEM_PROMPT,
+        system_prompt=args.system_prompt,
+        chat_template_kwargs=args.chat_template_kwargs,
     )
 
     source_info = {
@@ -6357,6 +6384,8 @@ async def run_router_experiment(
             max_completion_tokens=args.max_completion_tokens,
             temperature=args.temperature,
             top_p=args.top_p,
+            system_prompt=args.system_prompt,
+            chat_template_kwargs=args.chat_template_kwargs,
             response_map_path=str(utility_response_map_path),
             request_log_path=str(utility_request_log_path),
             route_strategy=route_strategy,
@@ -6703,6 +6732,8 @@ async def run_wait_gof_experiment(
         max_completion_tokens=args.max_completion_tokens,
         temperature=args.temperature,
         top_p=args.top_p,
+        system_prompt=args.system_prompt,
+        chat_template_kwargs=args.chat_template_kwargs,
         response_map_path=str(shared_response_map_path),
         request_log_path=str(shared_request_log_path),
         request_id_prefix=f"wait-{primary_key}",
@@ -6939,6 +6970,8 @@ async def async_main(args: argparse.Namespace) -> None:
             "max_completion_tokens": args.max_completion_tokens,
             "temperature": args.temperature,
             "top_p": args.top_p,
+            "system_prompt": args.system_prompt,
+            "chat_template_kwargs": args.chat_template_kwargs,
             "response_map_base_path": str(response_map_base_path),
             "request_log_base_path": str(request_log_base_path),
             "bucket_dir": str(args.bucket_dir.expanduser().resolve()),

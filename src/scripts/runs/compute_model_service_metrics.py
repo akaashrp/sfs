@@ -34,6 +34,8 @@ from sfs_core.shared.shared_experiment_helpers import (
     iter_mixed_then_random_bucketed_prompts,
     resolve_max_completion_tokens,
     resolve_prompt_bucket_dir,
+    parse_chat_template_kwargs_json,
+    resolve_chat_template_kwargs,
     select_prompt_subset,
     warm_up_instances,
 )
@@ -146,16 +148,20 @@ def _build_calibration_payload(
     prompt: str,
     max_completion_tokens: int,
     model_id: str | None,
+    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    chat_template_kwargs: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Build a calibration request with the same Qwen mode as sweep traffic."""
+    """Build a calibration request with the same prompt policy as sweep traffic."""
     return {
-        "messages": build_messages(prompt, system_prompt=DEFAULT_SYSTEM_PROMPT),
+        "messages": build_messages(prompt, system_prompt=system_prompt),
         "temperature": 0.0,
         "top_p": 1.0,
         "max_completion_tokens": max_completion_tokens,
         "model": model_id,
         "extra_body": {
-            "chat_template_kwargs": {"enable_thinking": False},
+            "chat_template_kwargs": resolve_chat_template_kwargs(
+                chat_template_kwargs
+            ),
         },
     }
 
@@ -204,6 +210,8 @@ async def _compute_single_model_metrics(
     model_id: str | None = None,
     max_completion_tokens: int = 8192,
     context_length: int | None = None,
+    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    chat_template_kwargs: dict[str, Any] | None = None,
     scheduler: WaitTimeScheduler,
     request_id_prefix: str,
     batch_fit_feature_set: str = "legacy",
@@ -242,6 +250,8 @@ async def _compute_single_model_metrics(
             prompt=prompt,
             max_completion_tokens=request_max_completion_tokens,
             model_id=model_id,
+            system_prompt=system_prompt,
+            chat_template_kwargs=chat_template_kwargs,
         )
 
         dispatch_tasks.append(
@@ -380,6 +390,8 @@ async def compute_metrics_for_models(
     request_rate_qps: float | None = None,
     max_completion_tokens: int = 8192,
     context_length: int | None = None,
+    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    chat_template_kwargs: dict[str, Any] | None = None,
     output_path: Path,
     batch_fit_feature_set: str = "legacy",
     batch_fit_nonnegative: bool = False,
@@ -416,6 +428,8 @@ async def compute_metrics_for_models(
                     ),
                     max_completion_tokens=max_completion_tokens,
                     context_length=context_length,
+                    system_prompt=system_prompt,
+                    chat_template_kwargs=chat_template_kwargs,
                     scheduler=schedulers[model_name],
                     request_id_prefix=(
                         f"model-metrics-{_sanitize_for_filename(model_name)}"
@@ -459,6 +473,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--request-rate-qps", type=float, default=None)
     parser.add_argument("--max-completion-tokens", type=int, default=8192)
     parser.add_argument("--context-length", type=int, default=None)
+    parser.add_argument("--system-prompt", type=str, default=DEFAULT_SYSTEM_PROMPT)
+    parser.add_argument(
+        "--chat-template-kwargs-json",
+        dest="chat_template_kwargs",
+        type=parse_chat_template_kwargs_json,
+        default=None,
+        help=(
+            "JSON object passed to the model chat template. Defaults to Qwen's "
+            "non-thinking mode; use '{}' for model families without "
+            "enable_thinking."
+        ),
+    )
     parser.add_argument(
         "--batch-fit-feature-set",
         choices=FEATURE_SET_CHOICES,
@@ -492,6 +518,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         parser.error("--max-completion-tokens must be > 0")
     if args.context_length is not None and args.context_length <= 0:
         parser.error("--context-length must be > 0 when supplied")
+    args.chat_template_kwargs = resolve_chat_template_kwargs(
+        args.chat_template_kwargs
+    )
     for port_name in ("port_0_6b", "port_8b", "port_32b"):
         if not 1 <= int(getattr(args, port_name)) <= 65535:
             parser.error(f"--{port_name.replace('_', '-')} must be in [1, 65535]")
@@ -546,6 +575,8 @@ def main():
             ),
             max_completion_tokens=args.max_completion_tokens,
             context_length=args.context_length,
+            system_prompt=args.system_prompt,
+            chat_template_kwargs=args.chat_template_kwargs,
             output_path=args.output_path,
             batch_fit_feature_set=args.batch_fit_feature_set,
             batch_fit_nonnegative=args.batch_fit_nonnegative,
