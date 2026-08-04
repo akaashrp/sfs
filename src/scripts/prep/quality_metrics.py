@@ -824,7 +824,7 @@ def main() -> None:
         )
 
     parser = argparse.ArgumentParser(
-        description="Score bucketed prompt generations for Qwen3 models."
+        description="Score bucketed prompt generations for model variants."
     )
     default_root = BUCKETED_OUTPUTS_ROOT
     parser.add_argument(

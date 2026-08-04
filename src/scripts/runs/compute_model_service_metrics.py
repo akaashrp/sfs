@@ -39,6 +39,7 @@ from sfs_core.shared.shared_experiment_helpers import (
     select_prompt_subset,
     warm_up_instances,
 )
+from sfs_core.shared.tokenizer_helpers import TOKENIZER_MODES
 from sfs_core.shared.trace_theta import (
     estimate_prefill_theta_from_trace,
     estimate_score_proxy_metrics_from_batch_stats,
@@ -173,6 +174,8 @@ def build_single_model_wait_time_scheduler(
     worker_count: int = 1,
     max_queue_size: int = 0,
     enable_wait_time_polling: bool = True,
+    tokenizer_id: str = "Qwen/Qwen3-8B",
+    tokenizer_mode: str = "auto",
 ) -> WaitTimeScheduler:
     """
     Create a scheduler that can route only to one selected model instance.
@@ -197,6 +200,8 @@ def build_single_model_wait_time_scheduler(
         lambda_weight=0.3,
         delta_weight=0.5,
         instance_costs=INSTANCE_COSTS.get(model_name),
+        tokenizer_id=tokenizer_id,
+        tokenizer_mode=tokenizer_mode,
         enable_wait_time_polling=enable_wait_time_polling,
     )
 
@@ -392,6 +397,8 @@ async def compute_metrics_for_models(
     context_length: int | None = None,
     system_prompt: str = DEFAULT_SYSTEM_PROMPT,
     chat_template_kwargs: dict[str, Any] | None = None,
+    tokenizer_id: str = "Qwen/Qwen3-8B",
+    tokenizer_mode: str = "auto",
     output_path: Path,
     batch_fit_feature_set: str = "legacy",
     batch_fit_nonnegative: bool = False,
@@ -404,7 +411,11 @@ async def compute_metrics_for_models(
     """
     schedulers = {
         model_name: build_single_model_wait_time_scheduler(
-            model_name, model_clients, enable_wait_time_polling=False,
+            model_name,
+            model_clients,
+            enable_wait_time_polling=False,
+            tokenizer_id=tokenizer_id,
+            tokenizer_mode=tokenizer_mode,
         )
         for model_name in model_clients
     }
@@ -473,6 +484,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--request-rate-qps", type=float, default=None)
     parser.add_argument("--max-completion-tokens", type=int, default=8192)
     parser.add_argument("--context-length", type=int, default=None)
+    parser.add_argument("--tokenizer-id", default="Qwen/Qwen3-8B")
+    parser.add_argument(
+        "--tokenizer-mode",
+        choices=TOKENIZER_MODES,
+        default="auto",
+        help="Tokenizer backend used for calibration prompt accounting.",
+    )
     parser.add_argument("--system-prompt", type=str, default=DEFAULT_SYSTEM_PROMPT)
     parser.add_argument(
         "--chat-template-kwargs-json",
@@ -575,6 +593,8 @@ def main():
             ),
             max_completion_tokens=args.max_completion_tokens,
             context_length=args.context_length,
+            tokenizer_id=args.tokenizer_id,
+            tokenizer_mode=args.tokenizer_mode,
             system_prompt=args.system_prompt,
             chat_template_kwargs=args.chat_template_kwargs,
             output_path=args.output_path,

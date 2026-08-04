@@ -40,6 +40,7 @@ def test_manifest_versions_prompt_tokenization_semantics():
     config = _build_expected_manifest_config(
         source_bucket_dir=Path("/source"),
         tokenizer_id="tokenizer",
+        tokenizer_mode="auto",
         holdout_start_index=1,
         holdout_prompts_per_bucket=2,
         holdout_context_length=3,
@@ -51,6 +52,7 @@ def test_manifest_versions_prompt_tokenization_semantics():
     )
 
     assert config["prompt_tokenization_version"] == PROMPT_TOKENIZATION_VERSION
+    assert config["tokenizer_mode"] == "auto"
     assert config["chat_template_kwargs"] == {"enable_thinking": False}
 
 
@@ -60,6 +62,7 @@ def test_existing_qwen_v2_cache_remains_reusable(tmp_path):
     expected = _build_expected_manifest_config(
         source_bucket_dir=Path("/source"),
         tokenizer_id="tokenizer",
+        tokenizer_mode="auto",
         holdout_start_index=1,
         holdout_prompts_per_bucket=2,
         holdout_context_length=3,
@@ -71,6 +74,7 @@ def test_existing_qwen_v2_cache_remains_reusable(tmp_path):
     )
     legacy_manifest = dict(expected)
     legacy_manifest.pop("chat_template_kwargs")
+    legacy_manifest.pop("tokenizer_mode")
     legacy_manifest["bucket_counts"] = {bucket_file: 2}
 
     assert _is_cache_reusable(
@@ -81,11 +85,12 @@ def test_existing_qwen_v2_cache_remains_reusable(tmp_path):
         bucket_files=[bucket_file],
     )
 
-    llama_expected = dict(expected)
-    llama_expected["chat_template_kwargs"] = {}
+    ministral_expected = dict(expected)
+    ministral_expected["tokenizer_mode"] = "mistral"
+    ministral_expected["chat_template_kwargs"] = {}
     assert not _is_cache_reusable(
         manifest=legacy_manifest,
-        expected_manifest_config=llama_expected,
+        expected_manifest_config=ministral_expected,
         cache_dir=tmp_path,
         holdout_prompts_per_bucket=2,
         bucket_files=[bucket_file],

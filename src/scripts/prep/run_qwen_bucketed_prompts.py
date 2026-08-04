@@ -19,8 +19,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
-from transformers import AutoTokenizer
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 WORKSPACE_ROOT = SCRIPT_DIR.parent.parent
 if str(WORKSPACE_ROOT) not in sys.path:
@@ -38,6 +36,10 @@ from sfs_core.shared.shared_experiment_helpers import (
     parse_chat_template_kwargs_json,
     resolve_chat_template_kwargs,
 )
+from sfs_core.shared.tokenizer_helpers import (
+    TOKENIZER_MODES,
+    load_tokenizer as load_configured_tokenizer,
+)
 from sfs_core.paths import BUCKETED_OUTPUTS_ROOT, DEFAULT_BUCKET_POOL_QWEN3_0_6B
 
 DEFAULT_BUCKET_DIR = DEFAULT_BUCKET_POOL_QWEN3_0_6B
@@ -53,10 +55,12 @@ class ModelJob:
     default_model: str
 
 
-def load_tokenizer(model_or_path: str):
+def load_tokenizer(model_or_path: str, *, tokenizer_mode: str = "auto"):
     try:
-        tokenizer = AutoTokenizer.from_pretrained(model_or_path, use_fast=True)
-        return tokenizer
+        return load_configured_tokenizer(
+            model_or_path,
+            tokenizer_mode=tokenizer_mode,
+        )
     except Exception as exc:
         print(
             f"[WARN] Failed to load tokenizer '{model_or_path}': {exc}. "
@@ -489,7 +493,25 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_ID,
         help="Tokenizer identifier used to count prompt tokens.",
     )
+    parser.add_argument(
+        "--tokenizer-mode",
+        choices=TOKENIZER_MODES,
+        default="auto",
+        help=(
+            "Tokenizer backend used for client-side token accounting. Select "
+            "'mistral' when the server uses vLLM's --tokenizer-mode mistral."
+        ),
+    )
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUT_ROOT)
+    parser.add_argument(
+        "--run-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Optional exact run directory. When omitted, a timestamped directory "
+            "is created below --output-root."
+        ),
+    )
     parser.add_argument("--system-prompt", type=str, default=DEFAULT_SYSTEM_PROMPT)
     parser.add_argument(
         "--chat-template-kwargs-json",
@@ -563,6 +585,8 @@ async def run_job(
         request_log_path=str(args.request_log_path) if args.request_log_path else None,
         worker_count=args.worker_count,
         max_queue_size=args.max_queue_size,
+        tokenizer_id=args.tokenizer_id,
+        tokenizer_mode=args.tokenizer_mode,
         enable_wait_time_polling=not args.disable_wait_time_polling,
     )
 
@@ -598,12 +622,20 @@ async def run_job(
 
 
 async def async_main(args: argparse.Namespace) -> None:
-    output_root = args.output_root.expanduser().resolve()
-    timestamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
-    run_dir = output_root / timestamp
+    if args.run_dir is None:
+        output_root = args.output_root.expanduser().resolve()
+        timestamp = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
+        run_dir = output_root / timestamp
+        manifest_name = "run_summary.json"
+    else:
+        run_dir = args.run_dir.expanduser().resolve()
+        manifest_name = f"run_summary_{args.job_label}.json"
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    tokenizer = load_tokenizer(args.tokenizer_id)
+    tokenizer = load_tokenizer(
+        args.tokenizer_id,
+        tokenizer_mode=args.tokenizer_mode,
+    )
 
     job = ModelJob(
         label=args.job_label,
@@ -628,6 +660,7 @@ async def async_main(args: argparse.Namespace) -> None:
             "instance_address": job.address,
             "context_length": args.context_length,
             "tokenizer_id": args.tokenizer_id,
+            "tokenizer_mode": args.tokenizer_mode,
             "prompt_token_limit": args.prompt_token_limit,
             "disable_wait_time_polling": args.disable_wait_time_polling,
         },
@@ -644,7 +677,7 @@ async def async_main(args: argparse.Namespace) -> None:
             "buckets": stats,
         }
 
-    manifest_path = run_dir / "run_summary.json"
+    manifest_path = run_dir / manifest_name
     manifest_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(f"\n[DONE] Results saved under: {run_dir}")
 

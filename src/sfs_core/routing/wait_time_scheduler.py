@@ -23,20 +23,25 @@ from vllm.v1.engine.output_length_predictor import (
 )
 from vllm.v1.engine.scheduler_simulator import SimulationStopMode
 
-from transformers import AutoTokenizer
 import sys
 
 from .snapshot_shm_client import SnapshotShmClient
 from .pending_dispatch_ledger import PendingDispatch, PendingDispatchLedger
 from .readiness_predictor import ReadinessDelayPredictor
 from sfs_core.shared.shared_experiment_helpers import resolve_chat_template_kwargs
+from sfs_core.shared.tokenizer_helpers import (
+    load_tokenizer as load_configured_tokenizer,
+    normalize_tokenizer_mode,
+)
 
 LOGGER = logging.getLogger(__name__)
 
-def load_tokenizer(model_or_path: str):
+def load_tokenizer(model_or_path: str, *, tokenizer_mode: str = "auto"):
     try:
-        tokenizer = AutoTokenizer.from_pretrained(model_or_path, use_fast=True)
-        return tokenizer
+        return load_configured_tokenizer(
+            model_or_path,
+            tokenizer_mode=tokenizer_mode,
+        )
     except Exception as exc:
         print(
             f"[WARN] Failed to load tokenizer '{model_or_path}': {exc}. "
@@ -399,6 +404,7 @@ class WaitTimeScheduler:
         instance_costs: Optional[Dict[str, Dict[str, float]]] = None,
         utility_fn: Optional[UtilityCallable] = None,
         tokenizer_id: str = "Qwen/Qwen3-0.6B",
+        tokenizer_mode: str = "auto",
         enable_wait_time_polling: bool = True,
         critical_wait_time_timeout_s: float = 0.05,
         route_random_seed: Optional[int] = None,
@@ -431,7 +437,11 @@ class WaitTimeScheduler:
         self._delta = float(delta_weight)
         self._instance_costs = instance_costs or {}
         self._utility_fn = utility_fn
-        self._tokenizer = load_tokenizer(tokenizer_id)
+        self._tokenizer_mode = normalize_tokenizer_mode(tokenizer_mode)
+        self._tokenizer = load_tokenizer(
+            tokenizer_id,
+            tokenizer_mode=self._tokenizer_mode,
+        )
         self._enable_wait_time_polling = bool(enable_wait_time_polling)
         self._critical_wait_time_timeout_s = float(critical_wait_time_timeout_s)
         self._route_rng = random.Random(route_random_seed)

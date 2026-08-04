@@ -62,6 +62,7 @@ from sfs_core.shared.shared_experiment_helpers import (
     select_prompt_subset,
     warm_up_instances,
 )
+from sfs_core.shared.tokenizer_helpers import TOKENIZER_MODES
 from sfs_core.paths import (
     BUCKETED_OUTPUTS_ROOT,
     DEFAULT_BUCKET_POOL_QWEN3_0_6B,
@@ -4344,6 +4345,8 @@ async def run_policy(
     max_completion_tokens: int,
     temperature: float,
     top_p: float,
+    tokenizer_id: str = DEFAULT_TOKENIZER_ID,
+    tokenizer_mode: str = "auto",
     system_prompt: str = DEFAULT_SYSTEM_PROMPT,
     chat_template_kwargs: dict[str, Any] | None = None,
     response_map_path: Optional[str],
@@ -4417,6 +4420,8 @@ async def run_policy(
         delta_weight=delta_weight,
         instance_costs=instance_costs,
         utility_fn=utility_fn,
+        tokenizer_id=tokenizer_id,
+        tokenizer_mode=tokenizer_mode,
         response_map_path=response_map_path,
         request_log_path=request_log_path,
         utility_state=utility_state,
@@ -5427,6 +5432,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-completion-tokens", type=int, default=8192)
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--top-p", type=float, default=1.0)
+    parser.add_argument(
+        "--tokenizer-mode",
+        choices=TOKENIZER_MODES,
+        default="auto",
+        help=(
+            "Tokenizer backend used for prompt accounting and holdout-cache "
+            "construction."
+        ),
+    )
     parser.add_argument("--system-prompt", type=str, default=DEFAULT_SYSTEM_PROMPT)
     parser.add_argument(
         "--chat-template-kwargs-json",
@@ -5613,6 +5627,7 @@ def _resolve_prompt_source(
         source_bucket_dir=args.holdout_bucket_dir,
         cache_dir=cache_dir_for_holdout,
         tokenizer_id=args.tokenizer_id,
+        tokenizer_mode=args.tokenizer_mode,
         holdout_start_index=args.holdout_start_index,
         holdout_prompts_per_bucket=args.holdout_prompts_per_bucket,
         holdout_context_length=args.holdout_context_length,
@@ -6384,6 +6399,8 @@ async def run_router_experiment(
             max_completion_tokens=args.max_completion_tokens,
             temperature=args.temperature,
             top_p=args.top_p,
+            tokenizer_id=args.tokenizer_id,
+            tokenizer_mode=args.tokenizer_mode,
             system_prompt=args.system_prompt,
             chat_template_kwargs=args.chat_template_kwargs,
             response_map_path=str(utility_response_map_path),
@@ -6732,6 +6749,8 @@ async def run_wait_gof_experiment(
         max_completion_tokens=args.max_completion_tokens,
         temperature=args.temperature,
         top_p=args.top_p,
+        tokenizer_id=args.tokenizer_id,
+        tokenizer_mode=args.tokenizer_mode,
         system_prompt=args.system_prompt,
         chat_template_kwargs=args.chat_template_kwargs,
         response_map_path=str(shared_response_map_path),
@@ -6970,6 +6989,8 @@ async def async_main(args: argparse.Namespace) -> None:
             "max_completion_tokens": args.max_completion_tokens,
             "temperature": args.temperature,
             "top_p": args.top_p,
+            "tokenizer_id": args.tokenizer_id,
+            "tokenizer_mode": args.tokenizer_mode,
             "system_prompt": args.system_prompt,
             "chat_template_kwargs": args.chat_template_kwargs,
             "response_map_base_path": str(response_map_base_path),

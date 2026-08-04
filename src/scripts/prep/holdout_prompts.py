@@ -10,6 +10,7 @@ from sfs_core.shared.shared_experiment_helpers import (
     parse_chat_template_kwargs_json,
     resolve_chat_template_kwargs,
 )
+from sfs_core.shared.tokenizer_helpers import TOKENIZER_MODES
 
 
 def parse_args() -> argparse.Namespace:
@@ -19,6 +20,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source-bucket-dir", type=Path, required=True)
     parser.add_argument("--cache-dir", type=Path, required=True)
     parser.add_argument("--tokenizer-id", type=str, required=True)
+    parser.add_argument(
+        "--tokenizer-mode",
+        choices=TOKENIZER_MODES,
+        default="auto",
+        help="Tokenizer backend used to build and validate the holdout cache.",
+    )
     parser.add_argument("--holdout-start-index", type=int, default=2500)
     parser.add_argument("--holdout-prompts-per-bucket", type=int, default=1000)
     parser.add_argument("--holdout-context-length", type=int, default=65536)
@@ -55,6 +62,7 @@ def main() -> None:
         source_bucket_dir=args.source_bucket_dir,
         cache_dir=args.cache_dir,
         tokenizer_id=args.tokenizer_id,
+        tokenizer_mode=args.tokenizer_mode,
         holdout_start_index=int(args.holdout_start_index),
         holdout_prompts_per_bucket=int(args.holdout_prompts_per_bucket),
         holdout_context_length=int(args.holdout_context_length),
@@ -71,6 +79,7 @@ def main() -> None:
                 "rebuilt": bool(rebuilt),
                 "bucket_counts": manifest.get("bucket_counts", {}),
                 "prompt_token_limit": manifest.get("prompt_token_limit"),
+                "tokenizer_mode": manifest.get("tokenizer_mode"),
                 "system_prompt": manifest.get("system_prompt"),
                 "chat_template_kwargs": manifest.get("chat_template_kwargs"),
             },

@@ -25,7 +25,7 @@ def test_calibration_payload_supports_neutral_non_qwen_policy():
     payload = _build_calibration_payload(
         prompt="Summarize this report.",
         max_completion_tokens=512,
-        model_id="llama-test",
+        model_id="ministral-test",
         system_prompt="You are a helpful assistant.",
         chat_template_kwargs={},
     )
@@ -48,6 +48,7 @@ def test_model_calibration_streams_run_concurrently(monkeypatch, tmp_path):
         for model_name in model_names
     }
     schedulers = {}
+    scheduler_kwargs = {}
 
     class Scheduler:
         def __init__(self, model_name):
@@ -57,9 +58,10 @@ def test_model_calibration_streams_run_concurrently(monkeypatch, tmp_path):
         async def stop(self):
             self.stopped = True
 
-    def build_scheduler(model_name, _model_clients, **_kwargs):
+    def build_scheduler(model_name, _model_clients, **kwargs):
         scheduler = Scheduler(model_name)
         schedulers[model_name] = scheduler
+        scheduler_kwargs[model_name] = kwargs
         return scheduler
 
     warmed_clients = []
@@ -103,6 +105,8 @@ def test_model_calibration_streams_run_concurrently(monkeypatch, tmp_path):
         compute_model_service_metrics.compute_metrics_for_models(
             clients,
             [{"prompt": "test", "prompt_tokens": 1}],
+            tokenizer_id="/models/ministral-tokenizer",
+            tokenizer_mode="mistral",
             output_path=output_path,
         )
     )
@@ -110,5 +114,13 @@ def test_model_calibration_streams_run_concurrently(monkeypatch, tmp_path):
     assert entered == set(model_names)
     assert warmed_clients == list(clients.values())
     assert all(scheduler.stopped for scheduler in schedulers.values())
+    assert all(
+        kwargs == {
+            "enable_wait_time_polling": False,
+            "tokenizer_id": "/models/ministral-tokenizer",
+            "tokenizer_mode": "mistral",
+        }
+        for kwargs in scheduler_kwargs.values()
+    )
     assert list(results) == list(model_names)
     assert json.loads(output_path.read_text(encoding="utf-8")) == results

@@ -4,14 +4,16 @@ import json
 from pathlib import Path
 from typing import Any
 
-from transformers import AutoTokenizer
-
 from sfs_core.shared.shared_experiment_helpers import (
     DEFAULT_CHAT_TEMPLATE_KWARGS,
     DEFAULT_SYSTEM_PROMPT,
     as_nonnegative_int,
     build_messages,
     resolve_chat_template_kwargs,
+)
+from sfs_core.shared.tokenizer_helpers import (
+    load_tokenizer as load_configured_tokenizer,
+    normalize_tokenizer_mode,
 )
 
 MANIFEST_FILENAME = "manifest.json"
@@ -66,6 +68,7 @@ def _build_expected_manifest_config(
     *,
     source_bucket_dir: Path,
     tokenizer_id: str,
+    tokenizer_mode: str,
     holdout_start_index: int,
     holdout_prompts_per_bucket: int,
     holdout_context_length: int,
@@ -79,6 +82,7 @@ def _build_expected_manifest_config(
         "prompt_tokenization_version": PROMPT_TOKENIZATION_VERSION,
         "source_bucket_dir": str(source_bucket_dir.resolve()),
         "tokenizer_id": str(tokenizer_id),
+        "tokenizer_mode": str(tokenizer_mode),
         "holdout_start_index": int(holdout_start_index),
         "holdout_prompts_per_bucket": int(holdout_prompts_per_bucket),
         "holdout_context_length": int(holdout_context_length),
@@ -107,6 +111,9 @@ def _is_cache_reusable(
             # Version-2 caches predate the explicit field but were always
             # tokenized with Qwen's non-thinking template policy.
             actual_value = DEFAULT_CHAT_TEMPLATE_KWARGS
+        elif key == "tokenizer_mode" and key not in manifest:
+            # Version-2 caches used Hugging Face AutoTokenizer exclusively.
+            actual_value = "auto"
         if actual_value != expected_value:
             return False
 
@@ -135,9 +142,12 @@ def _is_cache_reusable(
     return True
 
 
-def _load_tokenizer(tokenizer_id: str):
+def _load_tokenizer(tokenizer_id: str, *, tokenizer_mode: str = "auto"):
     try:
-        return AutoTokenizer.from_pretrained(tokenizer_id, use_fast=True)
+        return load_configured_tokenizer(
+            tokenizer_id,
+            tokenizer_mode=tokenizer_mode,
+        )
     except Exception as exc:
         raise RuntimeError(
             f"Failed to load tokenizer '{tokenizer_id}' for holdout cache conversion."
@@ -289,6 +299,7 @@ def prepare_holdout_prompt_cache(
     source_bucket_dir: Path,
     cache_dir: Path,
     tokenizer_id: str,
+    tokenizer_mode: str = "auto",
     holdout_start_index: int,
     holdout_prompts_per_bucket: int,
     holdout_context_length: int,
@@ -316,11 +327,13 @@ def prepare_holdout_prompt_cache(
     resolved_chat_template_kwargs = resolve_chat_template_kwargs(
         chat_template_kwargs
     )
+    resolved_tokenizer_mode = normalize_tokenizer_mode(tokenizer_mode)
 
     bucket_files = _list_bucket_files(source_bucket_dir)
     expected_manifest_config = _build_expected_manifest_config(
         source_bucket_dir=source_bucket_dir,
         tokenizer_id=tokenizer_id,
+        tokenizer_mode=resolved_tokenizer_mode,
         holdout_start_index=holdout_start_index,
         holdout_prompts_per_bucket=holdout_prompts_per_bucket,
         holdout_context_length=holdout_context_length,
@@ -343,7 +356,10 @@ def prepare_holdout_prompt_cache(
         return cache_dir, existing_manifest, False
 
     if tokenizer is None:
-        tokenizer = _load_tokenizer(tokenizer_id)
+        tokenizer = _load_tokenizer(
+            tokenizer_id,
+            tokenizer_mode=resolved_tokenizer_mode,
+        )
 
     for existing_file in cache_dir.iterdir():
         if (
