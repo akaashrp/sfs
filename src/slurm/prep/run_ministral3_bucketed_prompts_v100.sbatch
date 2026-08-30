@@ -12,7 +12,18 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -n "${SFS_ROOT:-}" && -f "$SFS_ROOT/src/slurm/prep/run_ministral3_bucketed_prompts_all_models.sh" ]]; then
+  DRIVER="$SFS_ROOT/src/slurm/prep/run_ministral3_bucketed_prompts_all_models.sh"
+elif [[ -n "${SLURM_SUBMIT_DIR:-}" && -f "$SLURM_SUBMIT_DIR/src/slurm/prep/run_ministral3_bucketed_prompts_all_models.sh" ]]; then
+  DRIVER="$SLURM_SUBMIT_DIR/src/slurm/prep/run_ministral3_bucketed_prompts_all_models.sh"
+else
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  DRIVER="$SCRIPT_DIR/run_ministral3_bucketed_prompts_all_models.sh"
+fi
+if [[ ! -f "$DRIVER" ]]; then
+  echo "[ERROR] Could not locate run_ministral3_bucketed_prompts_all_models.sh" >&2
+  exit 1
+fi
 export MINISTRAL_GPU_PROFILE="v100-32"
 export MINISTRAL_TP_3B="${MINISTRAL_TP_3B:-1}"
 export MINISTRAL_TP_8B="${MINISTRAL_TP_8B:-1}"
@@ -21,4 +32,4 @@ export VLLM_DTYPE="half"
 export VLLM_ATTENTION_BACKEND="${VLLM_ATTENTION_BACKEND:-TRITON_ATTN}"
 export CHUNKED_PREFILL="0"
 
-exec bash "$SCRIPT_DIR/run_ministral3_bucketed_prompts_all_models.sh"
+exec bash "$DRIVER"
