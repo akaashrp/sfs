@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --partition=RM-shared
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=16G
+#SBATCH --mem=15G
 #SBATCH --mail-type=BEGIN,FAIL,END
 
 set -euo pipefail
