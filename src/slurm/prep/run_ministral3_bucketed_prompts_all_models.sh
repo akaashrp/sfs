@@ -113,8 +113,8 @@ if [[ "$CHAT_TEMPLATE_KWARGS_JSON" != "{}" ]]; then
   echo "[ERROR] Ministral Instruct requires CHAT_TEMPLATE_KWARGS_JSON='{}'." >&2
   exit 1
 fi
-if [[ "$CHUNKED_PREFILL" == "0" ]] && (( MAX_NUM_BATCHED_TOKENS <= CONTEXT_LENGTH )); then
-  echo "[ERROR] Unchunked prefill requires MAX_NUM_BATCHED_TOKENS > CONTEXT_LENGTH." >&2
+if [[ "$CHUNKED_PREFILL" == "0" ]] && (( MAX_NUM_BATCHED_TOKENS < CONTEXT_LENGTH )); then
+  echo "[ERROR] Unchunked prefill requires MAX_NUM_BATCHED_TOKENS >= CONTEXT_LENGTH." >&2
   exit 1
 fi
 
