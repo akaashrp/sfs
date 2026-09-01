@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import argparse
-import asyncio
 import importlib
 import json
 import logging
+import math
 import os
 import random
 import re
 import string
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable, Optional, Sequence, Tuple
@@ -600,6 +601,45 @@ def _load_existing_scored_keys(dst_path: Path) -> set[str]:
     return existing_keys
 
 
+def _load_existing_judged_quality_mean(dst_path: Path) -> tuple[float, int]:
+    """Return the mean of non-imputed judge scores already stored in a file."""
+    values: list[float] = []
+    with dst_path.open("r", encoding="utf-8") as dst:
+        for line_number, line in enumerate(dst, start=1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError as exc:
+                logger.warning(
+                    "Skipping malformed existing scored record in %s line %d: %s",
+                    dst_path,
+                    line_number,
+                    exc,
+                )
+                continue
+
+            if record.get("quality_imputed") is True:
+                continue
+            if record.get("quality_metric") == "judge_default_bucket_mean":
+                continue
+
+            quality = record.get("quality")
+            if isinstance(quality, bool) or not isinstance(quality, (int, float)):
+                continue
+            quality = float(quality)
+            if math.isfinite(quality):
+                values.append(quality)
+
+    if not values:
+        raise RuntimeError(
+            "Cannot impute failed judge requests because no successful judge scores "
+            f"exist in {dst_path}."
+        )
+    return sum(values) / len(values), len(values)
+
+
 def sort_scored_jsonl_file(scored_jsonl_path: str | Path) -> None:
     """Sort an existing *_scored.jsonl file in-place by example_id numeric suffix."""
     scored_path = Path(scored_jsonl_path)
@@ -625,11 +665,33 @@ def annotate_bucket_group_with_quality(
     output_paths_by_model: Optional[dict[str, Path]],
     *,
     judge_concurrency: int = 20,
-) -> None:
+    judge_retries: int = 3,
+    individual_retries: int = 3,
+    retry_sleep_s: float = 10.0,
+) -> dict[str, int]:
     """Score one bucket across models using alignment keys instead of file order."""
+    if judge_concurrency < 1:
+        raise ValueError("judge_concurrency must be at least 1")
+    if judge_retries < 1:
+        raise ValueError("judge_retries must be at least 1")
+    if individual_retries < 1:
+        raise ValueError("individual_retries must be at least 1")
+    if retry_sleep_s < 0:
+        raise ValueError("retry_sleep_s must be non-negative")
+
     if not jsonl_paths_by_model or not output_paths_by_model:
         logger.warning("No model JSONL paths or output paths provided for grouped bucket scoring.")
-        return
+        return {
+            "total_groups": 0,
+            "pending_groups": 0,
+            "batch_scored_groups": 0,
+            "individual_fallback_groups": 0,
+            "individual_recovered_groups": 0,
+            "imputed_groups": 0,
+            "judged_records_written": 0,
+            "imputed_records_written": 0,
+            "reused_records": 0,
+        }
 
     model_names = sorted(jsonl_paths_by_model.keys())
     records_by_model: dict[str, dict[str, dict]] = {}
@@ -647,7 +709,17 @@ def annotate_bucket_group_with_quality(
     key_sets = [set(records_by_model[model_name].keys()) for model_name in model_names]
     if not key_sets:
         logger.warning("No model records loaded for grouped bucket scoring.")
-        return
+        return {
+            "total_groups": 0,
+            "pending_groups": 0,
+            "batch_scored_groups": 0,
+            "individual_fallback_groups": 0,
+            "individual_recovered_groups": 0,
+            "imputed_groups": 0,
+            "judged_records_written": 0,
+            "imputed_records_written": 0,
+            "reused_records": 0,
+        }
 
     common_keys = set.intersection(*key_sets)
     if len(common_keys) != len(key_sets[0]):
@@ -669,7 +741,19 @@ def annotate_bucket_group_with_quality(
     ]
     if not keys_to_score:
         logger.info("All common keys already scored across selected models.")
-        return
+        return {
+            "total_groups": len(common_keys),
+            "pending_groups": 0,
+            "batch_scored_groups": 0,
+            "individual_fallback_groups": 0,
+            "individual_recovered_groups": 0,
+            "imputed_groups": 0,
+            "judged_records_written": 0,
+            "imputed_records_written": 0,
+            "reused_records": sum(
+                len(existing_keys_by_model[model_name]) for model_name in model_names
+            ),
+        }
 
     keys_to_score.sort(key=_alignment_key_sort_key)
 
@@ -701,9 +785,11 @@ def annotate_bucket_group_with_quality(
             }
         )
 
-    skipped_groups = 0
     reused_records = 0
-    written_records = 0
+    judged_records_written = 0
+    imputed_records_written = 0
+    batch_scored_groups = 0
+    individual_recovered_groups = 0
 
     outputs = {}
     for model_name in model_names:
@@ -716,7 +802,7 @@ def annotate_bucket_group_with_quality(
 
     def _write_group_scores(alignment_key: str, grouped_scores: dict[str, float]) -> None:
         nonlocal reused_records
-        nonlocal written_records
+        nonlocal judged_records_written
 
         missing_models = [
             model_name for model_name in model_names if model_name not in grouped_scores
@@ -738,82 +824,196 @@ def annotate_bucket_group_with_quality(
             outputs[model_name].write(json.dumps(record, ensure_ascii=False))
             outputs[model_name].write("\n")
             existing_keys_by_model[model_name].add(alignment_key)
-            written_records += 1
+            judged_records_written += 1
 
-    async def _score_batch(batch_jobs: list[dict[str, object]]) -> list[tuple[str, dict[str, float]]]:
-        tasks = [
-            asyncio.to_thread(
-                judge_scores_for_prompt_group,
-                prompt=str(job["prompt"]),
-                gold=str(job["gold"]),
-                example_id=str(job["example_id"]),
-                candidates_by_model=dict(job["candidates_by_model"]),
-            )
-            for job in batch_jobs
-        ]
-        batch_scores = await asyncio.gather(*tasks)
-        return [
-            (str(job["alignment_key"]), grouped_scores)
-            for job, grouped_scores in zip(batch_jobs, batch_scores)
-        ]
+    def _flush_outputs() -> None:
+        for handle in outputs.values():
+            handle.flush()
 
-    retry_sleep_s = 10.0
-    num_retries = 3
+    def _score_group_job(job: dict[str, object]) -> dict[str, float]:
+        return judge_scores_for_prompt_group(
+            prompt=str(job["prompt"]),
+            gold=str(job["gold"]),
+            example_id=str(job["example_id"]),
+            candidates_by_model=dict(job["candidates_by_model"]),
+        )
+
+    failed_group_jobs: list[dict[str, object]] = []
 
     try:
-        if judge_concurrency <= 1:
-            for job in group_jobs:
-                for _ in range(num_retries):
+        pending_attempt_jobs = list(group_jobs)
+        for attempt in range(1, judge_retries + 1):
+            retry_jobs: list[dict[str, object]] = []
+            attempt_concurrency = max(
+                1, judge_concurrency // (2 ** (attempt - 1))
+            )
+            worker_count = min(attempt_concurrency, len(pending_attempt_jobs))
+            logger.info(
+                "Judge retry wave %d/%d: %d prompt groups with concurrency %d.",
+                attempt,
+                judge_retries,
+                len(pending_attempt_jobs),
+                worker_count,
+            )
+            with ThreadPoolExecutor(max_workers=worker_count) as executor:
+                futures_to_jobs = {
+                    executor.submit(_score_group_job, job): job
+                    for job in pending_attempt_jobs
+                }
+                for future in as_completed(futures_to_jobs):
+                    job = futures_to_jobs[future]
+                    alignment_key = str(job["alignment_key"])
                     try:
-                        grouped_scores = judge_scores_for_prompt_group(
-                            prompt=str(job["prompt"]),
-                            gold=str(job["gold"]),
-                            example_id=str(job["example_id"]),
-                            candidates_by_model=dict(job["candidates_by_model"]),
-                        )
-                        
-                        _write_group_scores(str(job["alignment_key"]), grouped_scores)
-                        for handle in outputs.values():
-                            handle.flush()
-                        break
+                        grouped_scores = future.result()
                     except Exception as exc:
                         logger.warning(
-                            "Error scoring %s: %s. Retrying the same request.",
-                            _alignment_key_to_str(str(job["alignment_key"])),
+                            "Error scoring %s in retry wave %d/%d: %s",
+                            _alignment_key_to_str(alignment_key),
+                            attempt,
+                            judge_retries,
                             exc,
                         )
-                        time.sleep(retry_sleep_s)
-        else:
-            for batch_start in range(0, len(group_jobs), judge_concurrency):
-                batch_jobs = group_jobs[batch_start : batch_start + judge_concurrency]
-                for _ in range(num_retries):
+                        retry_jobs.append(job)
+                        continue
+
                     try:
-                        batch_results = asyncio.run(_score_batch(batch_jobs))
-                        for alignment_key, grouped_scores in batch_results:
-                            _write_group_scores(alignment_key, grouped_scores)
-                        for handle in outputs.values():
-                            handle.flush()
-                        break
+                        _write_group_scores(alignment_key, grouped_scores)
+                        batch_scored_groups += 1
+                        _flush_outputs()
                     except Exception as exc:
-                        batch_first = batch_start + 1
-                        batch_last = batch_start + len(batch_jobs)
                         logger.warning(
-                            "Error scoring batch %d-%d: %s. Resubmitting the same batch.",
-                            batch_first,
-                            batch_last,
+                            "Error storing score for %s in retry wave %d/%d: %s",
+                            _alignment_key_to_str(alignment_key),
+                            attempt,
+                            judge_retries,
                             exc,
                         )
-                        time.sleep(retry_sleep_s)
+                        retry_jobs.append(job)
+
+            pending_attempt_jobs = retry_jobs
+            if not pending_attempt_jobs:
+                break
+            logger.warning(
+                "%d prompt groups remain after retry wave %d/%d.",
+                len(pending_attempt_jobs),
+                attempt,
+                judge_retries,
+            )
+            if attempt < judge_retries and retry_sleep_s:
+                time.sleep(retry_sleep_s * (2 ** (attempt - 1)))
+
+        failed_group_jobs.extend(pending_attempt_jobs)
+
+        if failed_group_jobs:
+            logger.warning(
+                "%d prompt groups exhausted concurrent attempts; retrying them "
+                "individually after all concurrency batches.",
+                len(failed_group_jobs),
+            )
+
+        unresolved_group_jobs: list[dict[str, object]] = []
+        for job_number, job in enumerate(failed_group_jobs, start=1):
+            alignment_key = str(job["alignment_key"])
+            for attempt in range(1, individual_retries + 1):
+                try:
+                    grouped_scores = judge_scores_for_prompt_group(
+                        prompt=str(job["prompt"]),
+                        gold=str(job["gold"]),
+                        example_id=str(job["example_id"]),
+                        candidates_by_model=dict(job["candidates_by_model"]),
+                    )
+                    _write_group_scores(alignment_key, grouped_scores)
+                    _flush_outputs()
+                    individual_recovered_groups += 1
+                    break
+                except Exception as exc:
+                    logger.warning(
+                        "Individual fallback failed for %s (%d/%d, attempt %d/%d): %s",
+                        _alignment_key_to_str(alignment_key),
+                        job_number,
+                        len(failed_group_jobs),
+                        attempt,
+                        individual_retries,
+                        exc,
+                    )
+                    if attempt < individual_retries and retry_sleep_s:
+                        time.sleep(retry_sleep_s * (2 ** (attempt - 1)))
+            else:
+                unresolved_group_jobs.append(job)
     finally:
         for handle in outputs.values():
             handle.close()
 
+    if unresolved_group_jobs:
+        quality_means_by_model: dict[str, float] = {}
+        for model_name in model_names:
+            mean_quality, score_count = _load_existing_judged_quality_mean(
+                output_paths_by_model[model_name]
+            )
+            quality_means_by_model[model_name] = mean_quality
+            logger.warning(
+                "Using %.12g as the %s bucket-mean fallback from %d successful scores.",
+                mean_quality,
+                model_name,
+                score_count,
+            )
+
+        imputation_outputs = {
+            model_name: output_paths_by_model[model_name].open("a", encoding="utf-8")
+            for model_name in model_names
+        }
+        try:
+            for job in unresolved_group_jobs:
+                alignment_key = str(job["alignment_key"])
+                for model_name in model_names:
+                    if alignment_key in existing_keys_by_model[model_name]:
+                        reused_records += 1
+                        continue
+                    record = dict(records_by_model[model_name][alignment_key])
+                    record["quality"] = quality_means_by_model[model_name]
+                    record["quality_metric"] = "judge_default_bucket_mean"
+                    record["quality_imputed"] = True
+                    record["quality_imputed_reason"] = "judge_refusal_or_unavailable"
+                    imputation_outputs[model_name].write(
+                        json.dumps(record, ensure_ascii=False)
+                    )
+                    imputation_outputs[model_name].write("\n")
+                    existing_keys_by_model[model_name].add(alignment_key)
+                    imputed_records_written += 1
+        finally:
+            for handle in imputation_outputs.values():
+                handle.close()
+
+    for model_name in model_names:
+        missing_keys = common_keys - existing_keys_by_model[model_name]
+        if missing_keys:
+            raise RuntimeError(
+                f"Judge output for {model_name} remains incomplete: "
+                f"{len(missing_keys)} common prompt groups are missing."
+            )
+        sort_scored_jsonl_file(output_paths_by_model[model_name])
+
+    summary = {
+        "total_groups": len(common_keys),
+        "pending_groups": len(group_jobs),
+        "batch_scored_groups": batch_scored_groups,
+        "individual_fallback_groups": len(failed_group_jobs),
+        "individual_recovered_groups": individual_recovered_groups,
+        "imputed_groups": len(unresolved_group_jobs),
+        "judged_records_written": judged_records_written,
+        "imputed_records_written": imputed_records_written,
+        "reused_records": reused_records,
+    }
     logger.info(
-        "Completed grouped bucket scoring (%d written, %d reused, %d skipped groups)",
-        written_records,
+        "Completed grouped bucket scoring (%d judged records, %d imputed records, "
+        "%d reused records; %d individual recoveries, %d imputed groups)",
+        judged_records_written,
+        imputed_records_written,
         reused_records,
-        skipped_groups,
+        individual_recovered_groups,
+        len(unresolved_group_jobs),
     )
+    return summary
 
 
 def main() -> None:
@@ -854,11 +1054,61 @@ def main() -> None:
     )
     parser.add_argument(
         "--judge-concurrency",
+        "--judge-batch-size",
+        dest="judge_concurrency",
         type=int,
         default=20,
-        help="Number of concurrent grouped judge requests per batch (1 = synchronous).",
+        help=(
+            "Number of prompt-group requests issued concurrently per batch "
+            "(default: %(default)s)."
+        ),
+    )
+    parser.add_argument(
+        "--judge-retries",
+        type=int,
+        default=3,
+        help=(
+            "Total attempts for each request during concurrent batch processing "
+            "(default: %(default)s)."
+        ),
+    )
+    parser.add_argument(
+        "--individual-retries",
+        type=int,
+        default=3,
+        help=(
+            "Total attempts for each failed prompt during the final individual "
+            "cleanup pass (default: %(default)s)."
+        ),
+    )
+    parser.add_argument(
+        "--retry-sleep-seconds",
+        type=float,
+        default=10.0,
+        help=(
+            "Initial retry delay; subsequent retry delays use exponential backoff "
+            "(default: %(default)s)."
+        ),
+    )
+    parser.add_argument(
+        "--summary-path",
+        type=Path,
+        default=None,
+        help=(
+            "Write a JSON run summary here (default: "
+            "<outputs-root>/judge_run_summary.json)."
+        ),
     )
     args = parser.parse_args()
+
+    if args.judge_concurrency < 1:
+        parser.error("--judge-concurrency/--judge-batch-size must be at least 1")
+    if args.judge_retries < 1:
+        parser.error("--judge-retries must be at least 1")
+    if args.individual_retries < 1:
+        parser.error("--individual-retries must be at least 1")
+    if args.retry_sleep_seconds < 0:
+        parser.error("--retry-sleep-seconds must be non-negative")
 
     if args.judge_model:
         global DEFAULT_JUDGE_MODEL
@@ -893,6 +1143,7 @@ def main() -> None:
         print("[WARN] No common bucket JSONL files found across selected models.")
         return
 
+    bucket_summaries: dict[str, dict[str, int]] = {}
     for bucket_name in sorted(common_bucket_names):
         jsonl_paths_by_model = {
             model_name: model_dir / bucket_name
@@ -903,11 +1154,40 @@ def main() -> None:
             for model_name, src_path in jsonl_paths_by_model.items()
         }
         print(f"[INFO] Scoring bucket {bucket_name} across models: {', '.join(sorted(jsonl_paths_by_model.keys()))}")
-        annotate_bucket_group_with_quality(
+        bucket_summaries[bucket_name] = annotate_bucket_group_with_quality(
             jsonl_paths_by_model,
             output_paths_by_model=output_paths_by_model,
             judge_concurrency=args.judge_concurrency,
+            judge_retries=args.judge_retries,
+            individual_retries=args.individual_retries,
+            retry_sleep_s=args.retry_sleep_seconds,
         )
+
+    summary_path = (
+        args.summary_path.expanduser().resolve()
+        if args.summary_path is not None
+        else root / "judge_run_summary.json"
+    )
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text(
+        json.dumps(
+            {
+                "outputs_root": str(root),
+                "models": sorted(model_dirs),
+                "judge_model": DEFAULT_JUDGE_MODEL,
+                "judge_batch_size": args.judge_concurrency,
+                "judge_retries": args.judge_retries,
+                "individual_retries": args.individual_retries,
+                "retry_sleep_seconds": args.retry_sleep_seconds,
+                "buckets": bucket_summaries,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    logger.info("Wrote judge run summary to %s", summary_path)
 
 
 if __name__ == "__main__":

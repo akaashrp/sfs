@@ -76,6 +76,55 @@ These launchers prepare calibration generations only. A complete Ministral
 family experiment still needs fresh judge scores, accuracy/output-length
 predictors, serving calibration, family-specific costs, and routing artifacts.
 
+## Judge the generated outputs
+
+Keep the Gemini key outside the repository in a user-only environment file.
+Enter the key at the hidden prompt; do not paste it into a command or chat:
+
+```bash
+install -d -m 700 /jet/home/aparthas/.config/sfs
+(
+  umask 077
+  IFS= read -rsp "Gemini API key: " SFS_GEMINI_KEY
+  printf '\n'
+  printf 'export GEMINI_API_KEY=%q\n' "$SFS_GEMINI_KEY" \
+    > /jet/home/aparthas/.config/sfs/gemini.env
+)
+chmod 600 /jet/home/aparthas/.config/sfs/gemini.env
+```
+
+Validate the CPU-only judge launcher without reading the key or calling Gemini:
+
+```bash
+COMPLETIONS_ROOT="$PWD/experiments/<generation-run>/completions"
+VALIDATE_ONLY=1 bash src/slurm/prep/run_ministral3_judge.sbatch \
+  "$COMPLETIONS_ROOT"
+```
+
+Then submit the resumable CPU job:
+
+```bash
+sbatch src/slurm/prep/run_ministral3_judge.sbatch "$COMPLETIONS_ROOT"
+```
+
+The judge matches the Qwen grouped-scoring protocol: one Gemini request scores
+the three shuffled model responses for each aligned prompt, using
+`gemini-3.1-pro-preview`. It processes 20 prompt groups concurrently by
+default. Only failed requests are retried, up to three concurrent attempts with
+exponential backoff; retry-wave concurrency steps down from 20 to 10 to 5.
+Requests still failing are retried individually after all concurrency batches,
+up to three more attempts. Persistent failures receive the mean of the
+successful scores for the same model and bucket, with the same
+`judge_default_bucket_mean`, `quality_imputed`, and
+`quality_imputed_reason` fields used by the saved Qwen results. Existing scored
+records are reused, so resubmitting the job resumes rather than starting over.
+
+Override `JUDGE_BATCH_SIZE`, `JUDGE_RETRIES`, `INDIVIDUAL_RETRIES`,
+`RETRY_SLEEP_SECONDS`, `JUDGE_MODEL`, or `GEMINI_ENV_FILE` only when needed.
+The launcher writes a job-specific `judge_run_summary_*.json` under the
+completions root and exits successfully only after every common prompt has a
+score for every model.
+
 Before the first GPU run, build/install the nested vLLM at this worktree's
 recorded gitlink so that the Python-side Ministral scaling backport and the
 existing native scheduler-simulation extension come from one checkout:
