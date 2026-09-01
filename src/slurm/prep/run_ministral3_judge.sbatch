@@ -13,14 +13,21 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SFS_ROOT="$SCRIPT_DIR"
-while [[ "$SFS_ROOT" != "/" && ! -d "$SFS_ROOT/src/slurm" ]]; do
-  SFS_ROOT="$(dirname "$SFS_ROOT")"
-done
-if [[ "$SFS_ROOT" == "/" ]]; then
+if [[ -n "${SFS_ROOT:-}" && -f "$SFS_ROOT/src/scripts/prep/quality_metrics.py" ]]; then
+  RESOLVED_SFS_ROOT="$SFS_ROOT"
+elif [[ -n "${SLURM_SUBMIT_DIR:-}" && -f "$SLURM_SUBMIT_DIR/src/scripts/prep/quality_metrics.py" ]]; then
+  RESOLVED_SFS_ROOT="$SLURM_SUBMIT_DIR"
+else
+  RESOLVED_SFS_ROOT="$SCRIPT_DIR"
+  while [[ "$RESOLVED_SFS_ROOT" != "/" && ! -d "$RESOLVED_SFS_ROOT/src/slurm" ]]; do
+    RESOLVED_SFS_ROOT="$(dirname "$RESOLVED_SFS_ROOT")"
+  done
+fi
+if [[ "$RESOLVED_SFS_ROOT" == "/" ]]; then
   echo "[ERROR] Could not resolve SFS repo root from $SCRIPT_DIR" >&2
   exit 1
 fi
+SFS_ROOT="$RESOLVED_SFS_ROOT"
 
 OUTPUTS_ROOT="${OUTPUTS_ROOT:-${1:-}}"
 GEMINI_ENV_FILE="${GEMINI_ENV_FILE:-/jet/home/aparthas/.config/sfs/gemini.env}"
