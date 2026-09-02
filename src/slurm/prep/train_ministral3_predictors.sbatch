@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --partition=GPU-shared
 #SBATCH --cpus-per-task=12
-#SBATCH --gres=gpu:h100-80:1
+#SBATCH --gres=gpu:v100-32:1
 #SBATCH --mail-type=BEGIN,FAIL,END
 
 set -euo pipefail
