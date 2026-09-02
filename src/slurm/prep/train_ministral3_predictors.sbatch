@@ -73,7 +73,7 @@ import sys
 metadata_path = Path(sys.argv[1])
 inputs = [Path(value) for value in sys.argv[2:]]
 metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-expected_model_by_dir = {
+expected_served_model_by_dir = {
     "ministral3-3b": "ministral3-3b-instruct",
     "ministral3-8b": "ministral3-8b-instruct",
     "ministral3-14b": "ministral3-14b-instruct",
@@ -81,16 +81,22 @@ expected_model_by_dir = {
 counts = Counter()
 prompt_sets = defaultdict(set)
 for path in inputs:
-    expected_model = expected_model_by_dir[path.parent.name]
-    if expected_model not in metadata:
-        raise RuntimeError(f"Missing descriptor for {expected_model}")
+    model_label = path.parent.name
+    expected_served_model = expected_served_model_by_dir[model_label]
+    if model_label not in metadata:
+        raise RuntimeError(f"Missing descriptor for model label {model_label}")
     with path.open(encoding="utf-8") as handle:
         for line_number, line in enumerate(handle, start=1):
             record = json.loads(line)
-            if record.get("model_id") != expected_model:
+            if record.get("model_label") != model_label:
+                raise RuntimeError(
+                    f"{path}:{line_number}: model_label={record.get('model_label')!r}; "
+                    f"expected {model_label!r}"
+                )
+            if record.get("model_id") != expected_served_model:
                 raise RuntimeError(
                     f"{path}:{line_number}: model_id={record.get('model_id')!r}; "
-                    f"expected {expected_model!r}"
+                    f"expected {expected_served_model!r}"
                 )
             quality = record.get("quality")
             if not isinstance(quality, (int, float)):

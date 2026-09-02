@@ -110,7 +110,9 @@ Each job writes a distinct run under
 split, seed 69, and unbalanced 30,000-example training population as the saved
 Qwen predictors. Model descriptors live in
 `src/assets/model_metadata/ministral3.json` and use the checkpoints' native
-262,144-token context capability.
+262,144-token context capability. Descriptor keys intentionally match the
+`model_label` values consumed by predictor feature extraction; served IDs are
+audited separately.
 
 For cost-aware routing, the reference cost rates are the standard global
 Mistral API prices accessed on 2026-09-02: 3B is $0.10/$0.10, 8B is

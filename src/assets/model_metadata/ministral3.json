@@ -1,13 +1,13 @@
 {
-  "ministral3-3b-instruct": {
+  "ministral3-3b": {
     "num_params": 3000000000,
     "max_context_length": 262144
   },
-  "ministral3-8b-instruct": {
+  "ministral3-8b": {
     "num_params": 8000000000,
     "max_context_length": 262144
   },
-  "ministral3-14b-instruct": {
+  "ministral3-14b": {
     "num_params": 14000000000,
     "max_context_length": 262144
   }
