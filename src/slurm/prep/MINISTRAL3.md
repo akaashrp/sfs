@@ -145,6 +145,16 @@ It writes `holdout_cache_2000` for the delta sweep and
 the neutral system prompt, an empty chat-template policy, a 65,536-token client
 context, a 32,768-token prompt cap, and an 8,192-token completion cap.
 
+Build the corresponding deterministic router request maps with:
+
+```bash
+python -m scripts.prep.map_holdout_request_ids \
+  --preset all \
+  --qps-cache-dir experiments/data/prompts/ministral3/holdout_cache_4000 \
+  --delta-cache-dir experiments/data/prompts/ministral3/holdout_cache_2000 \
+  --output-dir experiments/ministral3_paper/request_maps
+```
+
 ## Judge the generated outputs
 
 Keep the Gemini key outside the repository in a user-only environment file.

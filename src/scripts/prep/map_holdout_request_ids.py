@@ -179,12 +179,17 @@ def write_csv(path: Path, rows: List[Dict[str, Any]]) -> None:
             writer.writerow(row)
 
 
-def build_jobs(preset: str) -> List[Dict[str, Any]]:
+def build_jobs(
+    preset: str,
+    *,
+    qps_cache_dir: Path = QPS_CACHE_DIR,
+    delta_cache_dir: Path = DELTA_CACHE_DIR,
+) -> List[Dict[str, Any]]:
     if preset == "qps":
         return [
             {
                 "name": "qps",
-                "cache_dir": QPS_CACHE_DIR,
+                "cache_dir": qps_cache_dir,
                 "per_bucket_limit": 4000,
                 "num_requests": 16000,
             }
@@ -193,7 +198,7 @@ def build_jobs(preset: str) -> List[Dict[str, Any]]:
         return [
             {
                 "name": "delta",
-                "cache_dir": DELTA_CACHE_DIR,
+                "cache_dir": delta_cache_dir,
                 "per_bucket_limit": 2000,
                 "num_requests": 8000,
             }
@@ -202,13 +207,13 @@ def build_jobs(preset: str) -> List[Dict[str, Any]]:
         return [
             {
                 "name": "qps",
-                "cache_dir": QPS_CACHE_DIR,
+                "cache_dir": qps_cache_dir,
                 "per_bucket_limit": 4000,
                 "num_requests": 16000,
             },
             {
                 "name": "delta",
-                "cache_dir": DELTA_CACHE_DIR,
+                "cache_dir": delta_cache_dir,
                 "per_bucket_limit": 2000,
                 "num_requests": 8000,
             },
@@ -245,6 +250,18 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_OUTPUT_DIR,
         help="Directory for generated CSV mapping tables.",
     )
+    parser.add_argument(
+        "--qps-cache-dir",
+        type=Path,
+        default=QPS_CACHE_DIR,
+        help="Holdout cache used for QPS and arrival-process mappings.",
+    )
+    parser.add_argument(
+        "--delta-cache-dir",
+        type=Path,
+        default=DELTA_CACHE_DIR,
+        help="Holdout cache used for delta-sweep mappings.",
+    )
     return parser.parse_args()
 
 
@@ -253,7 +270,11 @@ def main() -> None:
     output_dir = args.output_dir.expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    jobs = build_jobs(args.preset)
+    jobs = build_jobs(
+        args.preset,
+        qps_cache_dir=args.qps_cache_dir,
+        delta_cache_dir=args.delta_cache_dir,
+    )
     manifest: Dict[str, Any] = {"seed": args.seed, "jobs": []}
 
     for job in jobs:
