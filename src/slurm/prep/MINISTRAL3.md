@@ -80,6 +80,9 @@ assistant.`, and no Qwen-specific chat-template arguments. Each job writes
 three aligned model directories under its `completions` directory and prints
 the exact grouped judge-scoring command when generation finishes.
 
+For dependency chains, set `RUN_DIR_OVERRIDE` to a new, deterministic path.
+The driver refuses to overwrite an existing override directory.
+
 These launchers prepare calibration generations only. A complete Ministral
 family experiment still needs fresh judge scores, accuracy/output-length
 predictors, serving calibration, family-specific costs, and routing artifacts.

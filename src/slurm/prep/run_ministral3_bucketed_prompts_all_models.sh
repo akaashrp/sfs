@@ -34,6 +34,7 @@ PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SFS_ROOT/.." && pwd)}"
 MODEL_CACHE_ROOT="${MODEL_CACHE_ROOT:-$PROJECT_ROOT/.cache/huggingface/hub}"
 EXPERIMENT_DIR="${EXPERIMENT_DIR:-$SFS_ROOT/experiments}"
 SHARED_PROMPT_ROOT="${SHARED_PROMPT_ROOT:-$PROJECT_ROOT/vllm_utils}"
+RUN_DIR_OVERRIDE="${RUN_DIR_OVERRIDE:-}"
 
 # The family is deliberately explicit here. These are the official BF16
 # Instruct checkpoints, not the default FP8 repositories, so the same Mistral-
@@ -140,6 +141,9 @@ if [[ "$VALIDATE_ONLY" == "1" ]]; then
   echo "profile=$GPU_PROFILE workload=$MINISTRAL_WORKLOAD gpu_count=$REQUIRED_GPU_COUNT dtype=$VLLM_DTYPE tokenizer_mode=$TOKENIZER_MODE"
   echo "max_model_len=$MAX_MODEL_LEN context_length=$CONTEXT_LENGTH prompt_token_limit=$PROMPT_TOKEN_LIMIT max_completion_tokens=$MAX_COMPLETION_TOKENS"
   echo "chunked_prefill=$CHUNKED_PREFILL max_num_batched_tokens=$MAX_NUM_BATCHED_TOKENS max_num_seqs=$MAX_NUM_SEQS"
+  if [[ -n "$RUN_DIR_OVERRIDE" ]]; then
+    echo "run_dir_override=$RUN_DIR_OVERRIDE"
+  fi
   echo "ministral3-3b repo=$MODEL_REPO_3B snapshot=$MODEL_SNAPSHOT_3B tp=$TP_3B"
   echo "ministral3-8b repo=$MODEL_REPO_8B snapshot=$MODEL_SNAPSHOT_8B tp=$TP_8B"
   echo "ministral3-14b repo=$MODEL_REPO_14B snapshot=$MODEL_SNAPSHOT_14B tp=$TP_14B"
@@ -196,11 +200,23 @@ if [[ "$ACTIVE_VLLM_COMMIT" != "$EXPECTED_VLLM_COMMIT" ]]; then
   exit 1
 fi
 
-RUN_STAMP="${SLURM_JOB_ID:-local}_$(date +%Y%m%d_%H%M%S)"
-if [[ "$MINISTRAL_WORKLOAD" == "generation" ]]; then
-  RUN_DIR="$EXPERIMENT_DIR/ministral3_${GPU_PROFILE}_bucketed_all_models_${RUN_STAMP}"
+if [[ -n "$RUN_DIR_OVERRIDE" ]]; then
+  if [[ "$RUN_DIR_OVERRIDE" == /* ]]; then
+    RUN_DIR="$RUN_DIR_OVERRIDE"
+  else
+    RUN_DIR="$SFS_ROOT/$RUN_DIR_OVERRIDE"
+  fi
+  if [[ -e "$RUN_DIR" ]]; then
+    echo "[ERROR] Refusing to overwrite RUN_DIR_OVERRIDE: $RUN_DIR" >&2
+    exit 1
+  fi
 else
-  RUN_DIR="$EXPERIMENT_DIR/ministral3_${GPU_PROFILE}_service_metrics_${RUN_STAMP}"
+  RUN_STAMP="${SLURM_JOB_ID:-local}_$(date +%Y%m%d_%H%M%S)"
+  if [[ "$MINISTRAL_WORKLOAD" == "generation" ]]; then
+    RUN_DIR="$EXPERIMENT_DIR/ministral3_${GPU_PROFILE}_bucketed_all_models_${RUN_STAMP}"
+  else
+    RUN_DIR="$EXPERIMENT_DIR/ministral3_${GPU_PROFILE}_service_metrics_${RUN_STAMP}"
+  fi
 fi
 JOB_ID="${SLURM_JOB_ID:-$$}"
 JOB_LOCAL="/local/$USER/$JOB_ID"
