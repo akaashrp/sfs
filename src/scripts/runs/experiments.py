@@ -4107,6 +4107,7 @@ def run_batch_fit_experiment(
     huber_epsilon: float,
     max_plot_points: int,
     feature_set: str,
+    nonnegative_coefficients: bool = False,
 ) -> Dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -4132,6 +4133,7 @@ def run_batch_fit_experiment(
             stall_percentile=stall_percentile,
             huber_epsilon=huber_epsilon,
             feature_set=feature_set,
+            nonnegative_coefficients=nonnegative_coefficients,
         )
 
         coeff_path = output_dir / "heldout_two_part_coefficients.txt"
@@ -4242,6 +4244,7 @@ def run_batch_fit_experiment(
                 "stall_percentile": stall_percentile,
                 "huber_epsilon": huber_epsilon,
                 "feature_set": feature_set,
+                "nonnegative_coefficients": nonnegative_coefficients,
             },
             "train_csv_paths": [str(path) for path in resolved_train_paths],
             "test_csv_paths": [str(path) for path in resolved_test_paths],
@@ -4288,6 +4291,7 @@ def run_batch_fit_experiment(
             stall_percentile=stall_percentile,
             huber_epsilon=huber_epsilon,
             feature_set=feature_set,
+            nonnegative_coefficients=nonnegative_coefficients,
         )
 
         coeff_path = output_dir / f"{csv_path.stem}_two_part_coefficients.txt"
@@ -4323,6 +4327,12 @@ def run_batch_fit_experiment(
         "evaluation": "in_sample",
         "num_files": len(files),
         "output_dir": str(output_dir),
+        "fit_params": {
+            "stall_percentile": stall_percentile,
+            "huber_epsilon": huber_epsilon,
+            "feature_set": feature_set,
+            "nonnegative_coefficients": nonnegative_coefficients,
+        },
         "files": files,
     }
 
@@ -5513,6 +5523,14 @@ def parse_args() -> argparse.Namespace:
         "--batch-fit-feature-set",
         type=str,
         default=_BATCH_FIT_DEFAULT_FEATURE_SET,
+    )
+    parser.add_argument(
+        "--batch-fit-nonnegative",
+        action="store_true",
+        help=(
+            "Constrain the batch-fit intercept and slopes to nonnegative values. "
+            "Use this when evaluating the physical SFS calibration model."
+        ),
     )
 
     args = parser.parse_args()
@@ -7100,6 +7118,7 @@ async def async_main(args: argparse.Namespace) -> None:
             huber_epsilon=args.batch_fit_huber_epsilon,
             max_plot_points=args.batch_fit_max_plot_points,
             feature_set=args.batch_fit_feature_set,
+            nonnegative_coefficients=args.batch_fit_nonnegative,
         )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)

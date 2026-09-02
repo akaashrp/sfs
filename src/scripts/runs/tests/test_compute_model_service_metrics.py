@@ -146,14 +146,14 @@ def test_family_neutral_instances_config(monkeypatch, tmp_path):
                         "instance_id": "vllm-ministral3-3b",
                         "address": "http://localhost:8100",
                         "default_model": "ministral3-3b-instruct",
-                        "model_id": "ministral3-3b-instruct",
+                        "model_id": "ministral3-3b",
                     },
                     {
                         "model_key": "ministral3-8b",
                         "instance_id": "vllm-ministral3-8b",
                         "address": "http://localhost:8101",
                         "default_model": "ministral3-8b-instruct",
-                        "model_id": "ministral3-8b-instruct",
+                        "model_id": "ministral3-8b",
                     },
                 ],
                 "instance_costs": {
@@ -169,6 +169,7 @@ def test_family_neutral_instances_config(monkeypatch, tmp_path):
 
     assert list(clients) == ["ministral3-3b", "ministral3-8b"]
     assert clients["ministral3-3b"].instance_id == "vllm-ministral3-3b"
+    assert clients["ministral3-3b"].model_id == "ministral3-3b"
     assert clients["ministral3-8b"].default_model == "ministral3-8b-instruct"
     assert costs == {
         "vllm-ministral3-3b": {"prompt": 0.1, "output": 0.1},
