@@ -144,6 +144,97 @@ python -m sfs_core.predictors.accuracy_model \
   --no-balance-quality-metrics \
   >"$RUN_DIR/accuracy_training.log" 2>&1
 
+python - "$RUN_DIR" "$MODEL_METADATA" <<'PY'
+import json
+import math
+from pathlib import Path
+import sys
+
+run_dir = Path(sys.argv[1])
+source_descriptors = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+expected_models = set(source_descriptors)
+expected_lookup_keys = expected_models | {"__unknown__"}
+
+accuracy_dir = run_dir / "accuracy_predictor"
+length_dir = run_dir / "output_length_predictor"
+accuracy_metadata = json.loads(
+    (accuracy_dir / "metadata.json").read_text(encoding="utf-8")
+)
+length_metadata = json.loads(
+    (length_dir / "metadata.json").read_text(encoding="utf-8")
+)
+accuracy_summary = json.loads(
+    (accuracy_dir / "training_summary.json").read_text(encoding="utf-8")
+)
+length_summary = json.loads(
+    (length_dir / "training_summary.json").read_text(encoding="utf-8")
+)
+
+for name, lookup in (
+    ("accuracy", accuracy_metadata["model_id_lookup"]),
+    ("output length", length_metadata["model_id_lookup"]),
+):
+    if set(lookup) != expected_lookup_keys:
+        raise RuntimeError(
+            f"{name} model lookup keys {sorted(lookup)} do not match "
+            f"{sorted(expected_lookup_keys)}"
+        )
+
+trained_descriptors = accuracy_metadata["model_descriptors"]
+if set(trained_descriptors) != expected_models | {"__default__"}:
+    raise RuntimeError(
+        "Accuracy descriptor keys do not match the model labels used for training: "
+        f"{sorted(trained_descriptors)} versus {sorted(expected_models)}"
+    )
+for model, source in source_descriptors.items():
+    trained = trained_descriptors[model]
+    expected_log_params = math.log(float(source["num_params"]))
+    if not math.isclose(
+        float(trained["log_num_params"]), expected_log_params, rel_tol=0, abs_tol=1e-12
+    ):
+        raise RuntimeError(f"Incorrect log_num_params descriptor for {model}")
+    if int(trained["max_context_length"]) != int(source["max_context_length"]):
+        raise RuntimeError(f"Incorrect max_context_length descriptor for {model}")
+
+for name, summary, model_field in (
+    ("accuracy", accuracy_summary, "models"),
+    ("output length", length_summary, "model_ids"),
+):
+    if summary["total_examples"] != 30_000:
+        raise RuntimeError(f"{name} total_examples is not 30000")
+    if summary["train_examples"] != 27_000 or summary["test_examples"] != 3_000:
+        raise RuntimeError(f"{name} train/test split is not 27000/3000")
+    if set(summary[model_field]) != expected_models:
+        raise RuntimeError(f"{name} summary model labels do not match metadata")
+
+accuracy_test_ids = json.loads(
+    (accuracy_dir / accuracy_metadata["test_example_ids_file"]).read_text(
+        encoding="utf-8"
+    )
+)
+length_test_ids = json.loads(
+    (length_dir / length_metadata["test_example_ids_file"]).read_text(
+        encoding="utf-8"
+    )
+)
+if accuracy_test_ids != length_test_ids:
+    raise RuntimeError("Accuracy and output-length predictors used different test rows")
+
+audit = {
+    "status": "PASS",
+    "models": sorted(expected_models),
+    "total_examples": 30_000,
+    "train_examples": 27_000,
+    "test_examples": 3_000,
+    "test_example_ids_aligned": True,
+    "accuracy_descriptor_labels_aligned": True,
+}
+(run_dir / "predictor_audit.json").write_text(
+    json.dumps(audit, indent=2) + "\n", encoding="utf-8"
+)
+print(json.dumps(audit, sort_keys=True))
+PY
+
 python - "$RUN_DIR" "$CALIBRATION_COMPLETIONS_ROOT" "$MODEL_METADATA" <<'PY'
 import json
 import os
