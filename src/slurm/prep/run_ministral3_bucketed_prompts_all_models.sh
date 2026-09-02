@@ -601,6 +601,12 @@ else
   run_model ministral3-14b vllm-ministral3-14b "$MODEL_DST_14B" "$SERVED_MODEL_14B" "$PORT_14B"
 fi
 
+python -m scripts.prep.audit_generation_outputs \
+  --outputs-root "$RUN_DIR/completions" \
+  --models ministral3-3b ministral3-8b ministral3-14b \
+  --expected-per-bucket "$MAX_PROMPTS_PER_BUCKET" \
+  --output-path "$RUN_DIR/generation_audit.json"
+
 echo "[DONE] Completed all Ministral 3 generation runs."
 echo "[DONE] Run directory: $RUN_DIR"
 echo "[NEXT] Score aligned outputs with:"
