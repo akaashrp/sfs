@@ -104,6 +104,14 @@ def truncate_prompt_tokens(
     return truncated_text, len(truncated_ids)
 
 
+def extract_prompt_metadata(record: Dict[str, Any]) -> Dict[str, Any]:
+    """Preserve canonical source metadata when replaying a holdout cache."""
+    nested_metadata = record.get("prompt_metadata")
+    if isinstance(nested_metadata, dict):
+        return dict(nested_metadata)
+    return {key: value for key, value in record.items() if key != "prompt"}
+
+
 def iso_timestamp(ts: float) -> str:
     return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
 
@@ -321,7 +329,7 @@ async def process_bucket(
             prompt, prompt_only_tokens = truncate_prompt_tokens(
                 original_prompt, tokenizer, prompt_token_limit
             )
-            metadata = {k: v for k, v in record.items() if k != "prompt"}
+            metadata = extract_prompt_metadata(record)
             request_id = f"{job.label}-{bucket_file.stem}-{idx}"
             start_perf = time.perf_counter()
             

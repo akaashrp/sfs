@@ -27,10 +27,12 @@ MINIMUM_SFS_FIT_R2 = 0.95
 
 def summarize_capacity(
     rows: dict[str, dict[str, Any]],
+    *,
+    model_keys: tuple[str, ...] = MODEL_KEYS,
 ) -> dict[str, Any]:
     per_model_qps = {
         model: float(rows[model]["service_rate_qps"])
-        for model in MODEL_KEYS
+        for model in model_keys
     }
     return {
         "method": "sum_of_standalone_saturated_service_rates",
@@ -79,6 +81,7 @@ def load_and_validate(
     *,
     expected_feature_set: str,
     require_nonnegative_sfs: bool = False,
+    model_keys: tuple[str, ...] = MODEL_KEYS,
 ) -> dict[str, dict[str, Any]]:
     resolved_path = path.expanduser().resolve()
     try:
@@ -92,7 +95,7 @@ def load_and_validate(
         raise ValueError("Calibration JSON must be an object keyed by model")
 
     validated: dict[str, dict[str, Any]] = {}
-    for model_key in MODEL_KEYS:
+    for model_key in model_keys:
         row = rows.get(model_key)
         if not isinstance(row, dict):
             raise ValueError(f"Calibration is missing model row {model_key!r}")
@@ -337,6 +340,7 @@ def derive_nonnegative_calibration(
     output_path: Path,
     *,
     expected_feature_set: str,
+    model_keys: tuple[str, ...] = MODEL_KEYS,
 ) -> Path:
     """Refit only the SFS latency coefficients from an existing calibration."""
     import pandas as pd
@@ -353,11 +357,12 @@ def derive_nonnegative_calibration(
     source_rows = load_and_validate(
         source_path,
         expected_feature_set=expected_feature_set,
+        model_keys=model_keys,
     )
     derived_rows = copy.deepcopy(source_rows)
     source_sha256 = _sha256(source_path)
 
-    for model_key in MODEL_KEYS:
+    for model_key in model_keys:
         source_row = source_rows[model_key]
         source_sfs = source_row["sfs_simulation"]
         batch_path = (
@@ -449,6 +454,7 @@ def derive_nonnegative_calibration(
         output_path,
         expected_feature_set=expected_feature_set,
         require_nonnegative_sfs=True,
+        model_keys=model_keys,
     )
     return output_path
 
@@ -456,6 +462,16 @@ def derive_nonnegative_calibration(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--path", type=Path, required=True)
+    parser.add_argument(
+        "--model-key",
+        action="append",
+        dest="model_keys",
+        default=None,
+        help=(
+            "Expected model key in the calibration JSON; repeat once per "
+            "model. Defaults to the legacy Qwen family."
+        ),
+    )
     parser.add_argument(
         "--expected-feature-set",
         choices=("legacy", "cross_term"),
@@ -474,10 +490,10 @@ def parse_args() -> argparse.Namespace:
     subparsers.add_parser("capacity-summary")
 
     coefficients = subparsers.add_parser("coefficients")
-    coefficients.add_argument("--model", choices=MODEL_KEYS, required=True)
+    coefficients.add_argument("--model", required=True)
 
     simulation_args = subparsers.add_parser("simulation-args")
-    simulation_args.add_argument("--model", choices=MODEL_KEYS, required=True)
+    simulation_args.add_argument("--model", required=True)
 
     refit = subparsers.add_parser("refit-nonnegative")
     refit.add_argument("--output-path", type=Path, required=True)
@@ -494,17 +510,27 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    model_keys = tuple(
+        str(model).strip() for model in (args.model_keys or MODEL_KEYS)
+    )
+    if not model_keys or any(not model for model in model_keys):
+        raise ValueError(
+            "--model-key must contain at least one non-empty model key"
+        )
+    if len(set(model_keys)) != len(model_keys):
+        raise ValueError("--model-key must not contain duplicate model keys")
     rows = load_and_validate(
         args.path,
         expected_feature_set=args.expected_feature_set,
         require_nonnegative_sfs=args.require_nonnegative_sfs,
+        model_keys=model_keys,
     )
     if args.command == "validate":
         print(
             json.dumps(
                 {
                     "path": str(args.path.expanduser().resolve()),
-                    "models": list(MODEL_KEYS),
+                    "models": list(model_keys),
                     "feature_set": args.expected_feature_set,
                 },
                 sort_keys=True,
@@ -512,11 +538,19 @@ def main() -> None:
         )
         return
     if args.command == "coefficients":
+        if args.model not in rows:
+            raise ValueError(
+                f"--model {args.model!r} is not one of {list(model_keys)!r}"
+            )
         sfs = rows[args.model]["sfs_simulation"]
         for key in SFS_COEFFICIENT_KEYS:
             print(f"{float(sfs[key]):.17g}")
         return
     if args.command == "simulation-args":
+        if args.model not in rows:
+            raise ValueError(
+                f"--model {args.model!r} is not one of {list(model_keys)!r}"
+            )
         print("\n".join(build_simulation_args(rows[args.model])))
         return
     if args.command == "refit-nonnegative":
@@ -524,14 +558,24 @@ def main() -> None:
             args.path,
             args.output_path,
             expected_feature_set=args.expected_feature_set,
+            model_keys=model_keys,
         )
         print(output_path)
         return
     if args.command == "capacity-summary":
-        print(json.dumps(summarize_capacity(rows), sort_keys=True))
+        print(
+            json.dumps(
+                summarize_capacity(rows, model_keys=model_keys),
+                sort_keys=True,
+            )
+        )
         return
     if args.command == "qps-values":
-        capacity_qps = float(summarize_capacity(rows)["aggregate_capacity_qps"])
+        capacity_qps = float(
+            summarize_capacity(rows, model_keys=model_keys)[
+                "aggregate_capacity_qps"
+            ]
+        )
         values: list[float] = []
         for fraction in args.fractions:
             if not math.isfinite(fraction) or fraction <= 0:

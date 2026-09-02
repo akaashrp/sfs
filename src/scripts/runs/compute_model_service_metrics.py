@@ -95,6 +95,82 @@ def get_instance_clients(
 
     return instance_0_6b, instance_8b, instance_32b
 
+
+def get_instance_clients_from_config(
+    path: Path,
+) -> tuple[dict[str, InstanceClient], dict[str, dict[str, float]]]:
+    """Load calibration clients from the same family-neutral JSON schema as runs."""
+    resolved_path = path.expanduser().resolve()
+    try:
+        payload = json.loads(resolved_path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ValueError(
+            f"Instances config does not exist: {resolved_path}"
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"Invalid instances config {resolved_path}: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise ValueError("Instances config must be a JSON object")
+    raw_instances = payload.get("instances")
+    if not isinstance(raw_instances, list) or not raw_instances:
+        raise ValueError(
+            "Instances config must contain a non-empty 'instances' list"
+        )
+
+    raw_costs = payload.get("instance_costs", {})
+    if not isinstance(raw_costs, dict):
+        raise ValueError("Instances config 'instance_costs' must be an object")
+    instance_costs: dict[str, dict[str, float]] = {}
+    for instance_id, raw_rates in raw_costs.items():
+        if not isinstance(raw_rates, dict):
+            raise ValueError(
+                f"Cost row for instance {instance_id!r} must be an object"
+            )
+        try:
+            prompt_rate = float(raw_rates["prompt"])
+            output_rate = float(raw_rates["output"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Cost row for instance {instance_id!r} requires numeric "
+                "'prompt' and 'output' rates"
+            ) from exc
+        if not np.isfinite(prompt_rate) or not np.isfinite(output_rate):
+            raise ValueError(
+                f"Cost row for instance {instance_id!r} must be finite"
+            )
+        instance_costs[str(instance_id)] = {
+            "prompt": prompt_rate,
+            "output": output_rate,
+        }
+
+    clients: dict[str, InstanceClient] = {}
+    for raw_instance in raw_instances:
+        if not isinstance(raw_instance, dict):
+            raise ValueError("Each instances config row must be an object")
+        try:
+            instance_id = str(raw_instance["instance_id"])
+            address = str(raw_instance["address"])
+            default_model = str(raw_instance["default_model"])
+            model_id = str(raw_instance["model_id"])
+        except KeyError as exc:
+            raise ValueError(
+                f"Instances config row is missing required field {exc.args[0]!r}"
+            ) from exc
+        model_key = str(raw_instance.get("model_key", model_id))
+        if not model_key:
+            raise ValueError("Instances config model_key/model_id cannot be empty")
+        if model_key in clients:
+            raise ValueError(f"Duplicate calibration model key {model_key!r}")
+        clients[model_key] = InstanceClient(
+            instance_id=instance_id,
+            address=address,
+            default_model=default_model,
+            model_id=model_id,
+        )
+    return clients, instance_costs
+
 INSTANCE_COSTS={
     "vllm-0.6b": {"prompt": 0.05, "output": 0.15},
     "vllm-8b": {"prompt": 0.115, "output": 0.4935},
@@ -176,6 +252,7 @@ def build_single_model_wait_time_scheduler(
     enable_wait_time_polling: bool = True,
     tokenizer_id: str = "Qwen/Qwen3-8B",
     tokenizer_mode: str = "auto",
+    instance_costs: dict[str, dict[str, float]] | None = None,
 ) -> WaitTimeScheduler:
     """
     Create a scheduler that can route only to one selected model instance.
@@ -199,7 +276,7 @@ def build_single_model_wait_time_scheduler(
         # output_length_model_path=str(BUCKETED_OUTPUTS_ROOT / "output_length_predictor"),
         lambda_weight=0.3,
         delta_weight=0.5,
-        instance_costs=INSTANCE_COSTS.get(model_name),
+        instance_costs=INSTANCE_COSTS if instance_costs is None else instance_costs,
         tokenizer_id=tokenizer_id,
         tokenizer_mode=tokenizer_mode,
         enable_wait_time_polling=enable_wait_time_polling,
@@ -221,6 +298,7 @@ async def _compute_single_model_metrics(
     request_id_prefix: str,
     batch_fit_feature_set: str = "legacy",
     batch_fit_nonnegative: bool = False,
+    respect_record_completion_caps: bool = True,
 ) -> dict[str, Any]:
     """
     Submit a subset of requests to a single running model and return serving rate and prefill throughput.
@@ -248,7 +326,11 @@ async def _compute_single_model_metrics(
             max_completion_tokens,
             request_prompt_tokens[request_id],
             context_length=context_length,
-            record_max_completion_tokens=prompt_record.get("max_completion_tokens"),
+            record_max_completion_tokens=(
+                prompt_record.get("max_completion_tokens")
+                if respect_record_completion_caps
+                else None
+            ),
         )
 
         payload = _build_calibration_payload(
@@ -402,6 +484,8 @@ async def compute_metrics_for_models(
     output_path: Path,
     batch_fit_feature_set: str = "legacy",
     batch_fit_nonnegative: bool = False,
+    instance_costs: dict[str, dict[str, float]] | None = None,
+    respect_record_completion_caps: bool = True,
 ) -> dict[str, dict[str, Any]]:
     """
     Convenience wrapper to compute service rates and prefill throughputs for different models.
@@ -409,16 +493,20 @@ async def compute_metrics_for_models(
     Start all model servers before calling this function. Each model is routed
     to independently, and all per-model calibration streams run concurrently.
     """
-    schedulers = {
-        model_name: build_single_model_wait_time_scheduler(
+    schedulers: dict[str, WaitTimeScheduler] = {}
+    for model_name in model_clients:
+        scheduler_kwargs: dict[str, Any] = {
+            "enable_wait_time_polling": False,
+            "tokenizer_id": tokenizer_id,
+            "tokenizer_mode": tokenizer_mode,
+        }
+        if instance_costs is not None:
+            scheduler_kwargs["instance_costs"] = instance_costs
+        schedulers[model_name] = build_single_model_wait_time_scheduler(
             model_name,
             model_clients,
-            enable_wait_time_polling=False,
-            tokenizer_id=tokenizer_id,
-            tokenizer_mode=tokenizer_mode,
+            **scheduler_kwargs,
         )
-        for model_name in model_clients
-    }
     results: dict[str, dict[str, Any]] = {}
     try:
         # Warm every server together, then give telemetry a common flush
@@ -447,6 +535,7 @@ async def compute_metrics_for_models(
                     ),
                     batch_fit_feature_set=batch_fit_feature_set,
                     batch_fit_nonnegative=batch_fit_nonnegative,
+                    respect_record_completion_caps=respect_record_completion_caps,
                 )
                 for model_name in model_names
             )
@@ -472,6 +561,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         )
     )
     parser.add_argument(
+        "--instances-config",
+        type=Path,
+        default=None,
+        help=(
+            "Optional family-neutral instance JSON. When supplied, its "
+            "instances replace the three legacy Qwen CLI slots."
+        ),
+    )
+    parser.add_argument(
         "--prompt-bucket-dir",
         type=Path,
         default=PROMPT_BUCKET_DIR,
@@ -484,6 +582,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--request-rate-qps", type=float, default=None)
     parser.add_argument("--max-completion-tokens", type=int, default=8192)
     parser.add_argument("--context-length", type=int, default=None)
+    parser.add_argument(
+        "--ignore-record-completion-caps",
+        action="store_true",
+        help=(
+            "Recompute each completion cap only from --context-length and "
+            "--max-completion-tokens. Use this when replaying records created "
+            "under a smaller client context budget."
+        ),
+    )
     parser.add_argument("--tokenizer-id", default="Qwen/Qwen3-8B")
     parser.add_argument(
         "--tokenizer-mode",
@@ -567,20 +674,26 @@ def main():
         args.num_requests,
     )
     
-    instance_0_6b, instance_8b, instance_32b = get_instance_clients(
-        model_dir_0_6b=args.model_dir_0_6b,
-        model_dir_8b=args.model_dir_8b,
-        model_dir_32b=args.model_dir_32b,
-        port_0_6b=args.port_0_6b,
-        port_8b=args.port_8b,
-        port_32b=args.port_32b,
-    )
+    instance_costs: dict[str, dict[str, float]] | None = None
+    if args.instances_config is not None:
+        model_clients, instance_costs = get_instance_clients_from_config(
+            args.instances_config
+        )
+    else:
+        instance_0_6b, instance_8b, instance_32b = get_instance_clients(
+            model_dir_0_6b=args.model_dir_0_6b,
+            model_dir_8b=args.model_dir_8b,
+            model_dir_32b=args.model_dir_32b,
+            port_0_6b=args.port_0_6b,
+            port_8b=args.port_8b,
+            port_32b=args.port_32b,
+        )
 
-    model_clients = {
-        "qwen3-0.6b": instance_0_6b,
-        "qwen3-8b": instance_8b,
-        "qwen3-32b": instance_32b,
-    }
+        model_clients = {
+            "qwen3-0.6b": instance_0_6b,
+            "qwen3-8b": instance_8b,
+            "qwen3-32b": instance_32b,
+        }
 
     results_metrics = asyncio.run(
         compute_metrics_for_models(
@@ -600,6 +713,10 @@ def main():
             output_path=args.output_path,
             batch_fit_feature_set=args.batch_fit_feature_set,
             batch_fit_nonnegative=args.batch_fit_nonnegative,
+            instance_costs=instance_costs,
+            respect_record_completion_caps=(
+                not args.ignore_record_completion_caps
+            ),
         )
     )
     print(json.dumps(results_metrics, indent=2))

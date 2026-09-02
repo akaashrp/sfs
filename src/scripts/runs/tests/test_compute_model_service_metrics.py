@@ -5,6 +5,7 @@ import json
 
 from scripts.runs import compute_model_service_metrics
 from scripts.runs.compute_model_service_metrics import _build_calibration_payload
+from scripts.runs.compute_model_service_metrics import get_instance_clients_from_config
 
 
 def test_calibration_payload_disables_qwen_thinking():
@@ -124,3 +125,53 @@ def test_model_calibration_streams_run_concurrently(monkeypatch, tmp_path):
     )
     assert list(results) == list(model_names)
     assert json.loads(output_path.read_text(encoding="utf-8")) == results
+
+
+def test_family_neutral_instances_config(monkeypatch, tmp_path):
+    created = []
+
+    class Client:
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+            created.append(kwargs)
+
+    monkeypatch.setattr(compute_model_service_metrics, "InstanceClient", Client)
+    path = tmp_path / "instances.json"
+    path.write_text(
+        json.dumps(
+            {
+                "instances": [
+                    {
+                        "model_key": "ministral3-3b",
+                        "instance_id": "vllm-ministral3-3b",
+                        "address": "http://localhost:8100",
+                        "default_model": "ministral3-3b-instruct",
+                        "model_id": "ministral3-3b-instruct",
+                    },
+                    {
+                        "model_key": "ministral3-8b",
+                        "instance_id": "vllm-ministral3-8b",
+                        "address": "http://localhost:8101",
+                        "default_model": "ministral3-8b-instruct",
+                        "model_id": "ministral3-8b-instruct",
+                    },
+                ],
+                "instance_costs": {
+                    "vllm-ministral3-3b": {"prompt": 0.1, "output": 0.1},
+                    "vllm-ministral3-8b": {"prompt": 0.15, "output": 0.15},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    clients, costs = get_instance_clients_from_config(path)
+
+    assert list(clients) == ["ministral3-3b", "ministral3-8b"]
+    assert clients["ministral3-3b"].instance_id == "vllm-ministral3-3b"
+    assert clients["ministral3-8b"].default_model == "ministral3-8b-instruct"
+    assert costs == {
+        "vllm-ministral3-3b": {"prompt": 0.1, "output": 0.1},
+        "vllm-ministral3-8b": {"prompt": 0.15, "output": 0.15},
+    }
+    assert len(created) == 2

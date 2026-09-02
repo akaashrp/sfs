@@ -57,14 +57,22 @@ MAX_PROMPTS_PER_BUCKET=2500 \
   sbatch src/slurm/prep/run_ministral3_bucketed_prompts_v100.sbatch
 ```
 
-The H100 profile uses one GPU per model. The V100 profile uses one GPU for 3B,
-one for 8B, and tensor parallelism across two GPUs for 14B. Both default to
-FP16 and unchunked prefill, disable prefix caching, and set the batched-token
-limit above the 40,960-token model limit. The V100 wrapper enforces FP16 and
-unchunked prefill; the H100 wrapper leaves those two settings overridable. The
-text-only experiment rejects image inputs and disables the multimodal processor
-cache. The fork's Mistral-format Pixtral wrapper still loads each checkpoint's
-0.4B vision component; the hardware profiles budget for that overhead.
+The H100 profile uses one GPU per model and mirrors the main Qwen H100 serving
+envelope: automatic dtype selection (BF16 for these pinned checkpoints), a
+131,072-token vLLM model limit, a 65,536-token client context budget, chunked
+prefill, 32,768 batched tokens, 512 sequences, prefix caching disabled, and
+CUDA graphs enabled. The client independently caps prompt text at 32,768 tokens
+and completion length at 8,192 tokens. Keeping `MAX_MODEL_LEN` distinct from
+`CONTEXT_LENGTH` is intentional: the former sizes the server while the latter
+controls request construction.
+
+The V100 profile uses one GPU for 3B, one for 8B, and tensor parallelism across
+two GPUs for 14B. It explicitly preserves the previously validated compatibility
+profile: FP16, a 40,960-token model and client limit, unchunked prefill, 49,152
+batched tokens, and 64 sequences. The text-only experiment rejects image inputs
+and disables the multimodal processor cache. The fork's Mistral-format Pixtral
+wrapper still loads each checkpoint's 0.4B vision component; the hardware
+profiles budget for that overhead.
 
 The launchers use vLLM's Mistral tokenizer backend for both serving and
 client-side token accounting, the neutral system prompt `You are a helpful
@@ -75,6 +83,64 @@ the exact grouped judge-scoring command when generation finishes.
 These launchers prepare calibration generations only. A complete Ministral
 family experiment still needs fresh judge scores, accuracy/output-length
 predictors, serving calibration, family-specific costs, and routing artifacts.
+
+## Train the family predictors
+
+The audited calibration archive can be used directly; the training launcher
+passes the twelve scored files explicitly so raw and scored JSONLs cannot be
+mixed accidentally:
+
+```bash
+VALIDATE_ONLY=1 bash src/slurm/prep/train_ministral3_predictors.sbatch
+sbatch src/slurm/prep/train_ministral3_predictors.sbatch
+```
+
+Each job writes a distinct run under
+`experiments/ministral3_paper/predictors/`. It uses the same 90/10 grouped
+split, seed 69, and unbalanced 30,000-example training population as the saved
+Qwen predictors. Model descriptors live in
+`src/assets/model_metadata/ministral3.json` and use the checkpoints' native
+262,144-token context capability.
+
+For cost-aware routing, the reference cost rates are the standard global
+Mistral API prices accessed on 2026-09-02: 3B is $0.10/$0.10, 8B is
+$0.15/$0.15, and 14B is $0.20/$0.20 per million input/output tokens. Runtime
+instance JSON records these rates so they are not confused with Qwen defaults.
+Sources: <https://docs.mistral.ai/models/ministral-3-3b-25-12> and
+<https://docs.mistral.ai/inference/pricing>.
+
+## Calibrate the corrected H100 service profile
+
+```bash
+VALIDATE_ONLY=1 bash src/slurm/runs/ministral3_service_metrics.sbatch
+sbatch src/slurm/runs/ministral3_service_metrics.sbatch
+```
+
+The service job starts all three models concurrently under exactly the H100
+profile documented above. It replays the 10,000 audited calibration prompts per
+model at saturation, fits the paper's `cross_term` batch-time equation with
+nonnegative physical coefficients, validates complete trace coverage, and
+writes service rates, prefill/decode measurements, coefficients, batch traces,
+and a capacity summary to a job-specific directory. It uses the scored 3B
+records only as an aligned prompt/token-count view; quality labels do not enter
+serving calibration. Old record-level completion caps are recomputed under the
+65,536-token client context budget.
+
+## Prepare the disjoint sweep prompts
+
+This CPU-only job builds both paper-sized holdout caches from source rows after
+the 2,500 calibration examples in every bucket:
+
+```bash
+VALIDATE_ONLY=1 bash src/slurm/prep/prepare_ministral3_holdouts.sbatch
+sbatch src/slurm/prep/prepare_ministral3_holdouts.sbatch
+```
+
+It writes `holdout_cache_2000` for the delta sweep and
+`holdout_cache_4000` for the QPS and arrival-process sweeps under
+`experiments/data/prompts/ministral3/`, using the pinned 8B Mistral tokenizer,
+the neutral system prompt, an empty chat-template policy, a 65,536-token client
+context, a 32,768-token prompt cap, and an 8,192-token completion cap.
 
 ## Judge the generated outputs
 

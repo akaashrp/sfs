@@ -57,7 +57,7 @@ GPU_PROFILE="${MINISTRAL_GPU_PROFILE:-}"
 TP_3B="${MINISTRAL_TP_3B:-}"
 TP_8B="${MINISTRAL_TP_8B:-}"
 TP_14B="${MINISTRAL_TP_14B:-}"
-VLLM_DTYPE="${VLLM_DTYPE:-half}"
+VLLM_DTYPE="${VLLM_DTYPE:-auto}"
 TOKENIZER_MODE="${TOKENIZER_MODE:-mistral}"
 CHUNKED_PREFILL="${CHUNKED_PREFILL:-0}"
 ENFORCE_EAGER="${ENFORCE_EAGER:-0}"
@@ -71,20 +71,25 @@ CHAT_TEMPLATE_KWARGS_JSON="${CHAT_TEMPLATE_KWARGS_JSON:-}"
 if [[ -z "$CHAT_TEMPLATE_KWARGS_JSON" ]]; then
   CHAT_TEMPLATE_KWARGS_JSON='{}'
 fi
-CONTEXT_LENGTH="${CONTEXT_LENGTH:-40960}"
+MAX_MODEL_LEN="${MAX_MODEL_LEN:-131072}"
+CONTEXT_LENGTH="${CONTEXT_LENGTH:-65536}"
 MAX_COMPLETION_TOKENS="${MAX_COMPLETION_TOKENS:-8192}"
 PROMPT_TOKEN_LIMIT="${PROMPT_TOKEN_LIMIT:-32768}"
 TEMPERATURE="${TEMPERATURE:-0.0}"
 TOP_P="${TOP_P:-1.0}"
 SEED="${SEED:-69}"
 
-MAX_NUM_BATCHED_TOKENS="${MAX_NUM_BATCHED_TOKENS:-49152}"
-MAX_NUM_SEQS="${MAX_NUM_SEQS:-64}"
+MAX_NUM_BATCHED_TOKENS="${MAX_NUM_BATCHED_TOKENS:-32768}"
+MAX_NUM_SEQS="${MAX_NUM_SEQS:-512}"
 GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.90}"
 WORKER_COUNT="${WORKER_COUNT:-16}"
 MAX_QUEUE_SIZE="${MAX_QUEUE_SIZE:-0}"
 RUN_IN_PARALLEL="${RUN_IN_PARALLEL:-1}"
 VALIDATE_ONLY="${VALIDATE_ONLY:-0}"
+MINISTRAL_WORKLOAD="${MINISTRAL_WORKLOAD:-generation}"
+CALIBRATION_NUM_REQUESTS="${CALIBRATION_NUM_REQUESTS:-10000}"
+CALIBRATION_COMPLETIONS_ROOT="${CALIBRATION_COMPLETIONS_ROOT:-$PROJECT_ROOT/sfs_artifacts/ministral3_calibration_44849564_judge_45009121_20260902/run/completions}"
+CALIBRATION_SOURCE_MODEL="${CALIBRATION_SOURCE_MODEL:-ministral3-3b}"
 
 for required_name in GPU_PROFILE TP_3B TP_8B TP_14B; do
   if [[ -z "${!required_name}" ]]; then
@@ -92,13 +97,25 @@ for required_name in GPU_PROFILE TP_3B TP_8B TP_14B; do
     exit 1
   fi
 done
-for integer_name in TP_3B TP_8B TP_14B CONTEXT_LENGTH MAX_NUM_BATCHED_TOKENS \
-  MAX_NUM_SEQS WORKER_COUNT; do
+for integer_name in TP_3B TP_8B TP_14B MAX_MODEL_LEN CONTEXT_LENGTH MAX_NUM_BATCHED_TOKENS \
+  MAX_NUM_SEQS WORKER_COUNT CALIBRATION_NUM_REQUESTS; do
   if ! [[ "${!integer_name}" =~ ^[1-9][0-9]*$ ]]; then
     echo "[ERROR] $integer_name must be a positive integer; got ${!integer_name}." >&2
     exit 1
   fi
 done
+if [[ "$MINISTRAL_WORKLOAD" != "generation" && "$MINISTRAL_WORKLOAD" != "service_metrics" ]]; then
+  echo "[ERROR] MINISTRAL_WORKLOAD must be generation or service_metrics." >&2
+  exit 1
+fi
+if (( CONTEXT_LENGTH > MAX_MODEL_LEN )); then
+  echo "[ERROR] CONTEXT_LENGTH must not exceed MAX_MODEL_LEN; got ${CONTEXT_LENGTH} > ${MAX_MODEL_LEN}." >&2
+  exit 1
+fi
+if (( PROMPT_TOKEN_LIMIT + MAX_COMPLETION_TOKENS > CONTEXT_LENGTH )); then
+  echo "[ERROR] PROMPT_TOKEN_LIMIT + MAX_COMPLETION_TOKENS must not exceed CONTEXT_LENGTH." >&2
+  exit 1
+fi
 for boolean_name in CHUNKED_PREFILL ENFORCE_EAGER RUN_IN_PARALLEL VALIDATE_ONLY; do
   if [[ "${!boolean_name}" != "0" && "${!boolean_name}" != "1" ]]; then
     echo "[ERROR] $boolean_name must be 0 or 1; got ${!boolean_name}." >&2
@@ -113,14 +130,16 @@ if [[ "$CHAT_TEMPLATE_KWARGS_JSON" != "{}" ]]; then
   echo "[ERROR] Ministral Instruct requires CHAT_TEMPLATE_KWARGS_JSON='{}'." >&2
   exit 1
 fi
-if [[ "$CHUNKED_PREFILL" == "0" ]] && (( MAX_NUM_BATCHED_TOKENS < CONTEXT_LENGTH )); then
-  echo "[ERROR] Unchunked prefill requires MAX_NUM_BATCHED_TOKENS >= CONTEXT_LENGTH." >&2
+if [[ "$CHUNKED_PREFILL" == "0" ]] && (( MAX_NUM_BATCHED_TOKENS < MAX_MODEL_LEN )); then
+  echo "[ERROR] Unchunked prefill requires MAX_NUM_BATCHED_TOKENS >= MAX_MODEL_LEN." >&2
   exit 1
 fi
 
 REQUIRED_GPU_COUNT=$((TP_3B + TP_8B + TP_14B))
 if [[ "$VALIDATE_ONLY" == "1" ]]; then
-  echo "profile=$GPU_PROFILE gpu_count=$REQUIRED_GPU_COUNT dtype=$VLLM_DTYPE tokenizer_mode=$TOKENIZER_MODE"
+  echo "profile=$GPU_PROFILE workload=$MINISTRAL_WORKLOAD gpu_count=$REQUIRED_GPU_COUNT dtype=$VLLM_DTYPE tokenizer_mode=$TOKENIZER_MODE"
+  echo "max_model_len=$MAX_MODEL_LEN context_length=$CONTEXT_LENGTH prompt_token_limit=$PROMPT_TOKEN_LIMIT max_completion_tokens=$MAX_COMPLETION_TOKENS"
+  echo "chunked_prefill=$CHUNKED_PREFILL max_num_batched_tokens=$MAX_NUM_BATCHED_TOKENS max_num_seqs=$MAX_NUM_SEQS"
   echo "ministral3-3b repo=$MODEL_REPO_3B snapshot=$MODEL_SNAPSHOT_3B tp=$TP_3B"
   echo "ministral3-8b repo=$MODEL_REPO_8B snapshot=$MODEL_SNAPSHOT_8B tp=$TP_8B"
   echo "ministral3-14b repo=$MODEL_REPO_14B snapshot=$MODEL_SNAPSHOT_14B tp=$TP_14B"
@@ -178,7 +197,11 @@ if [[ "$ACTIVE_VLLM_COMMIT" != "$EXPECTED_VLLM_COMMIT" ]]; then
 fi
 
 RUN_STAMP="${SLURM_JOB_ID:-local}_$(date +%Y%m%d_%H%M%S)"
-RUN_DIR="$EXPERIMENT_DIR/ministral3_${GPU_PROFILE}_bucketed_all_models_${RUN_STAMP}"
+if [[ "$MINISTRAL_WORKLOAD" == "generation" ]]; then
+  RUN_DIR="$EXPERIMENT_DIR/ministral3_${GPU_PROFILE}_bucketed_all_models_${RUN_STAMP}"
+else
+  RUN_DIR="$EXPERIMENT_DIR/ministral3_${GPU_PROFILE}_service_metrics_${RUN_STAMP}"
+fi
 JOB_ID="${SLURM_JOB_ID:-$$}"
 JOB_LOCAL="/local/$USER/$JOB_ID"
 mkdir_with_retry "$RUN_DIR/completions"
@@ -269,6 +292,10 @@ start_server() {
   local chunked_args=(--no-enable-chunked-prefill)
   local eager_args=()
 
+  if [[ "$MINISTRAL_WORKLOAD" == "service_metrics" ]]; then
+    wait_log="$RUN_DIR/actual_wait_times_${label}.log"
+  fi
+
   if [[ "$CHUNKED_PREFILL" == "1" ]]; then
     chunked_args=(--enable-chunked-prefill)
   fi
@@ -284,7 +311,7 @@ start_server() {
       --config-format mistral \
       --load-format mistral \
       --dtype "$VLLM_DTYPE" \
-      --max-model-len "$CONTEXT_LENGTH" \
+      --max-model-len "$MAX_MODEL_LEN" \
       "${chunked_args[@]}" \
       --no-enable-prefix-caching \
       --max-num-batched-tokens "$MAX_NUM_BATCHED_TOKENS" \
@@ -343,6 +370,7 @@ nvidia-smi --query-gpu=index,name,uuid,memory.total \
   --format=csv,noheader >"$RUN_DIR/gpus.csv" 2>/dev/null || true
 {
   echo "slurm_job_id=${SLURM_JOB_ID:-local}"
+  echo "workload=$MINISTRAL_WORKLOAD"
   echo "sfs_commit=$(git -C "$SFS_ROOT" rev-parse HEAD)"
   echo "recorded_vllm_commit=$EXPECTED_VLLM_COMMIT"
   echo "active_vllm_root=$ACTIVE_VLLM_ROOT"
@@ -365,6 +393,7 @@ nvidia-smi --query-gpu=index,name,uuid,memory.total \
   echo "tokenizer_mode=$TOKENIZER_MODE"
   echo "config_format=mistral"
   echo "load_format=mistral"
+  echo "max_model_len=$MAX_MODEL_LEN"
   echo "context_length=$CONTEXT_LENGTH"
   echo "rope_scaling=model_native_yarn"
   echo "system_prompt=$SYSTEM_PROMPT"
@@ -382,7 +411,121 @@ nvidia-smi --query-gpu=index,name,uuid,memory.total \
   echo "top_p=$TOP_P"
   echo "seed=$SEED"
   echo "bucket_dir=$BUCKET_DIR"
+  if [[ "$MINISTRAL_WORKLOAD" == "service_metrics" ]]; then
+    echo "calibration_completions_root=$CALIBRATION_COMPLETIONS_ROOT"
+    echo "calibration_source_model=$CALIBRATION_SOURCE_MODEL"
+    echo "calibration_num_requests=$CALIBRATION_NUM_REQUESTS"
+    echo "record_completion_caps_ignored=true"
+    echo "batch_fit_feature_set=cross_term"
+    echo "batch_fit_nonnegative=true"
+  fi
 } >"$RUN_DIR/provenance.txt"
+
+if [[ "$MINISTRAL_WORKLOAD" == "service_metrics" ]]; then
+  PROMPT_VIEW="$RUN_DIR/calibration_prompts"
+  INSTANCES_CONFIG="$RUN_DIR/instances.json"
+  METRICS_JSON="$RUN_DIR/model_metrics.json"
+  mkdir_with_retry "$PROMPT_VIEW"
+  for bucket in alpaca govreport-summarization hotpot_qa writingprompts; do
+    source_path="$CALIBRATION_COMPLETIONS_ROOT/$CALIBRATION_SOURCE_MODEL/${bucket}_scored.jsonl"
+    if [[ ! -f "$source_path" ]]; then
+      echo "[ERROR] Missing scored calibration bucket: $source_path" >&2
+      exit 1
+    fi
+    ln -s "$source_path" "$PROMPT_VIEW/${bucket}.jsonl"
+  done
+
+  python - "$INSTANCES_CONFIG" "$PORT_3B" "$PORT_8B" "$PORT_14B" \
+    "$MAX_NUM_BATCHED_TOKENS" "$MAX_NUM_SEQS" "$CHUNKED_PREFILL" \
+    "$MAX_MODEL_LEN" "$CONTEXT_LENGTH" "$VLLM_DTYPE" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+ports = [int(value) for value in sys.argv[2:5]]
+max_num_batched_tokens = int(sys.argv[5])
+max_num_seqs = int(sys.argv[6])
+chunked_prefill_enabled = bool(int(sys.argv[7]))
+max_model_len = int(sys.argv[8])
+context_length = int(sys.argv[9])
+dtype = sys.argv[10]
+models = (
+    ("ministral3-3b", "vllm-ministral3-3b", "ministral3-3b-instruct", 0.10),
+    ("ministral3-8b", "vllm-ministral3-8b", "ministral3-8b-instruct", 0.15),
+    ("ministral3-14b", "vllm-ministral3-14b", "ministral3-14b-instruct", 0.20),
+)
+payload = {
+    "instances": [
+        {
+            "model_key": model_key,
+            "instance_id": instance_id,
+            "address": f"http://127.0.0.1:{port}",
+            "default_model": served_model,
+            "model_id": served_model,
+            "max_num_batched_tokens": max_num_batched_tokens,
+            "max_num_seqs": max_num_seqs,
+            "chunked_prefill_enabled": chunked_prefill_enabled,
+            "long_prefill_token_threshold": 0,
+        }
+        for (model_key, instance_id, served_model, _), port in zip(models, ports)
+    ],
+    "instance_costs": {
+        instance_id: {"prompt": price, "output": price}
+        for _, instance_id, _, price in models
+    },
+    "cost_units": "USD per million tokens",
+    "cost_source": "https://docs.mistral.ai/inference/pricing",
+    "cost_source_accessed": "2026-09-02",
+    "serving_profile": {
+        "max_model_len": max_model_len,
+        "context_length": context_length,
+        "dtype": dtype,
+    },
+}
+path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+PY
+
+  export MODEL_METRICS_TRACE_DIR="$RUN_DIR"
+  python -m scripts.runs.compute_model_service_metrics \
+    --instances-config "$INSTANCES_CONFIG" \
+    --prompt-bucket-dir "$PROMPT_VIEW" \
+    --num-requests "$CALIBRATION_NUM_REQUESTS" \
+    --request-rate-qps "$CALIBRATION_NUM_REQUESTS" \
+    --max-completion-tokens "$MAX_COMPLETION_TOKENS" \
+    --context-length "$CONTEXT_LENGTH" \
+    --ignore-record-completion-caps \
+    --tokenizer-id "$MODEL_DST_8B" \
+    --tokenizer-mode "$TOKENIZER_MODE" \
+    --system-prompt "$SYSTEM_PROMPT" \
+    --chat-template-kwargs-json "$CHAT_TEMPLATE_KWARGS_JSON" \
+    --batch-fit-feature-set cross_term \
+    --batch-fit-nonnegative \
+    --output-path "$METRICS_JSON" \
+    >"$RUN_DIR/service_metrics_driver.log" 2>&1
+
+  MODEL_KEY_ARGS=(
+    --model-key ministral3-3b
+    --model-key ministral3-8b
+    --model-key ministral3-14b
+  )
+  python -m scripts.runs.service_metrics_config \
+    --path "$METRICS_JSON" \
+    --expected-feature-set cross_term \
+    --require-nonnegative-sfs \
+    "${MODEL_KEY_ARGS[@]}" \
+    validate \
+    >"$RUN_DIR/calibration_validation.json"
+  python -m scripts.runs.service_metrics_config \
+    --path "$METRICS_JSON" \
+    --expected-feature-set cross_term \
+    "${MODEL_KEY_ARGS[@]}" \
+    capacity-summary \
+    >"$RUN_DIR/capacity_summary.json"
+  sha256sum "$METRICS_JSON" >"$METRICS_JSON.sha256"
+  echo "[DONE] Ministral service calibration completed: $RUN_DIR"
+  exit 0
+fi
 
 run_model() {
   local label="$1"
@@ -419,11 +562,11 @@ run_model() {
 }
 
 if [[ "$RUN_IN_PARALLEL" == "1" ]]; then
-  run_model ministral3-3b vllm-3b "$MODEL_DST_3B" "$SERVED_MODEL_3B" "$PORT_3B" &
+  run_model ministral3-3b vllm-ministral3-3b "$MODEL_DST_3B" "$SERVED_MODEL_3B" "$PORT_3B" &
   RUN_PID_3B=$!
-  run_model ministral3-8b vllm-8b "$MODEL_DST_8B" "$SERVED_MODEL_8B" "$PORT_8B" &
+  run_model ministral3-8b vllm-ministral3-8b "$MODEL_DST_8B" "$SERVED_MODEL_8B" "$PORT_8B" &
   RUN_PID_8B=$!
-  run_model ministral3-14b vllm-14b "$MODEL_DST_14B" "$SERVED_MODEL_14B" "$PORT_14B" &
+  run_model ministral3-14b vllm-ministral3-14b "$MODEL_DST_14B" "$SERVED_MODEL_14B" "$PORT_14B" &
   RUN_PID_14B=$!
 
   FAILED=0
@@ -437,9 +580,9 @@ if [[ "$RUN_IN_PARALLEL" == "1" ]]; then
     exit 1
   fi
 else
-  run_model ministral3-3b vllm-3b "$MODEL_DST_3B" "$SERVED_MODEL_3B" "$PORT_3B"
-  run_model ministral3-8b vllm-8b "$MODEL_DST_8B" "$SERVED_MODEL_8B" "$PORT_8B"
-  run_model ministral3-14b vllm-14b "$MODEL_DST_14B" "$SERVED_MODEL_14B" "$PORT_14B"
+  run_model ministral3-3b vllm-ministral3-3b "$MODEL_DST_3B" "$SERVED_MODEL_3B" "$PORT_3B"
+  run_model ministral3-8b vllm-ministral3-8b "$MODEL_DST_8B" "$SERVED_MODEL_8B" "$PORT_8B"
+  run_model ministral3-14b vllm-ministral3-14b "$MODEL_DST_14B" "$SERVED_MODEL_14B" "$PORT_14B"
 fi
 
 echo "[DONE] Completed all Ministral 3 generation runs."

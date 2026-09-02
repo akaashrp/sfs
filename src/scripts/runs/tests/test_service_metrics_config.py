@@ -102,6 +102,31 @@ def test_capacity_summary_is_explicit_sum_of_standalone_rates():
     }
 
 
+def test_custom_model_family_can_be_validated_and_summarized(tmp_path):
+    model_keys = ("ministral3-3b", "ministral3-8b", "ministral3-14b")
+    payload = {
+        model: _row(service_rate_qps=float(index))
+        for index, model in enumerate(model_keys, start=1)
+    }
+    path = tmp_path / "ministral-calibration.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    rows = load_and_validate(
+        path,
+        expected_feature_set="legacy",
+        model_keys=model_keys,
+    )
+    summary = summarize_capacity(rows, model_keys=model_keys)
+
+    assert tuple(rows) == model_keys
+    assert summary["per_model_qps"] == {
+        "ministral3-3b": 1.0,
+        "ministral3-8b": 2.0,
+        "ministral3-14b": 3.0,
+    }
+    assert summary["aggregate_capacity_qps"] == 6.0
+
+
 def test_cross_term_simulation_args_are_parser_safe_and_use_cross_term_option():
     row = _row()
     sfs = row["sfs_simulation"]
