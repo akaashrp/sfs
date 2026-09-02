@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --partition=GPU-shared
-#SBATCH --cpus-per-task=12
+#SBATCH --cpus-per-task=5
 #SBATCH --gres=gpu:v100-32:1
 #SBATCH --mail-type=BEGIN,FAIL,END
 
