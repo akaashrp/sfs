@@ -11,14 +11,20 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SFS_ROOT="$SCRIPT_DIR"
-while [[ "$SFS_ROOT" != "/" && ! -d "$SFS_ROOT/src/slurm" ]]; do
-  SFS_ROOT="$(dirname "$SFS_ROOT")"
-done
-if [[ "$SFS_ROOT" == "/" ]]; then
-  echo "[ERROR] Could not resolve SFS repo root from $SCRIPT_DIR" >&2
-  exit 1
+if [[ -n "${SFS_ROOT:-}" && -d "$SFS_ROOT/src/slurm" ]]; then
+  SFS_ROOT="$(cd "$SFS_ROOT" && pwd)"
+elif [[ -n "${SLURM_SUBMIT_DIR:-}" && -d "$SLURM_SUBMIT_DIR/src/slurm" ]]; then
+  SFS_ROOT="$(cd "$SLURM_SUBMIT_DIR" && pwd)"
+else
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  SFS_ROOT="$SCRIPT_DIR"
+  while [[ "$SFS_ROOT" != "/" && ! -d "$SFS_ROOT/src/slurm" ]]; do
+    SFS_ROOT="$(dirname "$SFS_ROOT")"
+  done
+  if [[ "$SFS_ROOT" == "/" ]]; then
+    echo "[ERROR] Could not resolve SFS repo root." >&2
+    exit 1
+  fi
 fi
 
 PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SFS_ROOT/.." && pwd)}"
