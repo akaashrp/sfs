@@ -86,6 +86,10 @@ only after a strict audit confirms the expected record count, no per-request
 errors or empty completions, and identical example IDs across all three models;
 this makes an `afterok` judge dependency safe.
 
+The accuracy-augmentation reader accepts the judge launcher's direct layout
+(`<root>/<model>/*_scored.jsonl`) as well as the legacy Qwen
+`<root>/<model>/scored/` layout.
+
 These launchers prepare calibration generations only. A complete Ministral
 family experiment still needs fresh judge scores, accuracy/output-length
 predictors, serving calibration, family-specific costs, and routing artifacts.

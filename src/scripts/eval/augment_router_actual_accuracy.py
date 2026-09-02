@@ -97,9 +97,8 @@ def load_quality_index(
     model_dirs = [p for p in sorted(scored_root.iterdir()) if p.is_dir()]
     for model_dir in model_dirs:
         default_model_label = normalize_model_label(model_dir.name)
-        scored_dir = model_dir / "scored"
-        if not scored_dir.is_dir():
-            continue
+        nested_scored_dir = model_dir / "scored"
+        scored_dir = nested_scored_dir if nested_scored_dir.is_dir() else model_dir
 
         scored_files = sorted(scored_dir.glob("*_scored.jsonl"))
         for scored_file in scored_files:
