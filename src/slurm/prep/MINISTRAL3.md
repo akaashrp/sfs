@@ -223,3 +223,39 @@ bash scripts/setup/compile_vllm_scheduler_sim.sh
 
 The launcher verifies the active editable vLLM commit and fails before starting
 servers if a different SCORE worktree is still installed.
+
+## Reproduce the paper-style figures
+
+The Ministral workflow has separate, dependency-safe jobs for the principal
+paper comparisons:
+
+- `ministral3_wait_gof.sbatch` reproduces the Figure 2 wait-estimator
+  comparison on the 3B model at 90% of its calibrated standalone capacity.
+- `ministral3_batch_fit.sbatch` performs an 80/20 held-out batch-time fit for
+  all three models and emits the Figure 3 parity plots.
+- `ministral3_router_sweep.sbatch` runs the Figure 5 offered-load sweep, the
+  Figure 6 delta sweep, and the Figure 7 Poisson/MMPP-2 comparison. QPS values
+  are expressed as fractions of the measured three-server capacity so the load
+  regimes remain comparable after changing model family.
+
+Run the router wrapper twice for Figure 5 (`SWEEP_KIND=qps`, snapshot and
+baseline utility groups), once for Figure 6 (`SWEEP_KIND=delta`, combined), and
+twice for Figure 7 (`SWEEP_KIND=qps_arrival`, snapshot and baseline). Figure 7
+uses capacity fractions 0.82, 0.95, and 1.10, which are also present in the
+Poisson Figure 5 sweep.
+
+After generation, judging, and all five sweeps succeed, submit the CPU-only
+collation job with their exact Slurm IDs:
+
+```bash
+sbatch --dependency=afterok:<judge>:<qps-sfs>:<qps-base>:<delta>:<arrival-sfs>:<arrival-base> \
+  --export=ALL,QPS_SNAPSHOT_JOB_ID=<qps-sfs>,QPS_BASELINE_JOB_ID=<qps-base>,DELTA_JOB_ID=<delta>,ARRIVAL_SNAPSHOT_JOB_ID=<arrival-sfs>,ARRIVAL_BASELINE_JOB_ID=<arrival-base>,JUDGE_JOB_ID=<judge> \
+  src/slurm/runs/ministral3_paper_postprocess.sbatch
+```
+
+The collation job verifies every raw checksum and sweep audit, verifies the
+48,000 held-out judge scores, hard-links the router JSONs into a derived tree,
+and augments only those copies with realized quality. It then creates Figures
+5-7 and refuses to pass unless their policy/rate matrices are complete. A
+second raw checksum pass proves that postprocessing did not mutate the original
+sweep outputs.

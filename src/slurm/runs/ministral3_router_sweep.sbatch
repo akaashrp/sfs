@@ -158,7 +158,9 @@ case "$SWEEP_KIND" in
       >"$MINISTRAL_RUN_ROOT/driver.log" 2>&1
     ;;
   qps_arrival)
-    read -r -a fractions <<< "${ARRIVAL_QPS_FRACTIONS:-0.82 0.96 1.10}"
+    # These three points must also exist in the Poisson QPS sweep so Figure 7
+    # compares arrival processes at identical offered loads.
+    read -r -a fractions <<< "${ARRIVAL_QPS_FRACTIONS:-0.82 0.95 1.10}"
     read -r -a qps_values <<< "$(ministral3_capacity_qps_values "${fractions[@]}")"
     EXPECTED_POINTS=$(( ${#qps_values[@]} * 2 ))
     EXPECTED_REQUESTS=16000

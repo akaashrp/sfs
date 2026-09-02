@@ -140,6 +140,40 @@ def _plot_metric(
     plt.close()
 
 
+def _plot_utility_vs_qps(
+    summary: dict[str, Any],
+    qps_keys: list[str],
+    output_path: Path,
+) -> None:
+    """Plot the paper's OnTimeUtility objective against offered load."""
+
+    plt.figure(figsize=(10, 6))
+    for utility in summary["utilities"]:
+        x_values = []
+        y_values = []
+        for qps_key in qps_keys:
+            utility_data = summary["qps"][qps_key].get(utility)
+            if not isinstance(utility_data, dict):
+                continue
+            metric_value = utility_data.get("actual_slo_gated_utility_mean")
+            if not isinstance(metric_value, (int, float)):
+                continue
+            x_values.append(float(qps_key))
+            y_values.append(float(metric_value))
+        if not x_values:
+            continue
+        plt.plot(x_values, y_values, marker="o", linewidth=1.8, label=utility)
+
+    plt.xlabel("Queries per second")
+    plt.ylabel("OnTimeUtility (accuracy - lambda * cost)")
+    plt.title("OnTimeUtility vs Offered Load")
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=220)
+    plt.close()
+
+
 def _qps_with_all_utilities_present(
     summary: dict[str, Any], qps_keys: list[str]
 ) -> list[str]:
@@ -191,6 +225,12 @@ def main() -> None:
         f.write("\n")
 
     plot_qps_keys = _qps_with_all_utilities_present(summary, qps_keys)
+
+    _plot_utility_vs_qps(
+        summary=summary,
+        qps_keys=plot_qps_keys,
+        output_path=output_dir / "actual_slo_gated_utility_mean_vs_qps.png",
+    )
 
     _plot_metric(
         summary=summary,
