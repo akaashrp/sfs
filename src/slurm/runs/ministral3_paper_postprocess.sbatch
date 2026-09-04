@@ -34,16 +34,24 @@ DELTA_JOB_ID="${DELTA_JOB_ID:-}"
 ARRIVAL_SNAPSHOT_JOB_ID="${ARRIVAL_SNAPSHOT_JOB_ID:-}"
 ARRIVAL_BASELINE_JOB_ID="${ARRIVAL_BASELINE_JOB_ID:-}"
 JUDGE_JOB_ID="${JUDGE_JOB_ID:-}"
+COLLATION_SCOPE="${COLLATION_SCOPE:-figure5}"
 VALIDATE_ONLY="${VALIDATE_ONLY:-0}"
 
 ID_VARIABLES=(
   QPS_SNAPSHOT_JOB_ID
   QPS_BASELINE_JOB_ID
-  DELTA_JOB_ID
-  ARRIVAL_SNAPSHOT_JOB_ID
-  ARRIVAL_BASELINE_JOB_ID
   JUDGE_JOB_ID
 )
+case "$COLLATION_SCOPE" in
+  figure5) ;;
+  full)
+    ID_VARIABLES+=(DELTA_JOB_ID ARRIVAL_SNAPSHOT_JOB_ID ARRIVAL_BASELINE_JOB_ID)
+    ;;
+  *)
+    echo "[ERROR] COLLATION_SCOPE must be figure5 or full; got '$COLLATION_SCOPE'." >&2
+    exit 1
+    ;;
+esac
 for variable_name in "${ID_VARIABLES[@]}"; do
   if ! [[ "${!variable_name}" =~ ^[1-9][0-9]*$ ]]; then
     echo "[ERROR] $variable_name must be a positive Slurm job ID; got '${!variable_name}'." >&2
@@ -68,14 +76,21 @@ RUN_ID="${SLURM_JOB_ID:-local}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-$SFS_ROOT/experiments/ministral3_paper/paper_figures/run_$RUN_ID}"
 
 if [[ "$VALIDATE_ONLY" == "1" ]]; then
+  echo "collation_scope=$COLLATION_SCOPE"
   echo "qps_snapshot_raw=$QPS_SNAPSHOT_RAW"
   echo "qps_baseline_raw=$QPS_BASELINE_RAW"
-  echo "delta_raw=$DELTA_RAW"
-  echo "arrival_snapshot_raw=$ARRIVAL_SNAPSHOT_RAW"
-  echo "arrival_baseline_raw=$ARRIVAL_BASELINE_RAW"
+  if [[ "$COLLATION_SCOPE" == "full" ]]; then
+    echo "delta_raw=$DELTA_RAW"
+    echo "arrival_snapshot_raw=$ARRIVAL_SNAPSHOT_RAW"
+    echo "arrival_baseline_raw=$ARRIVAL_BASELINE_RAW"
+  fi
   echo "scored_root=$SCORED_ROOT"
   echo "output_root=$OUTPUT_ROOT"
-  echo "figures=5,6,7 raw_sweeps_immutable=true"
+  if [[ "$COLLATION_SCOPE" == "full" ]]; then
+    echo "figures=5,6,7 raw_sweeps_immutable=true"
+  else
+    echo "figures=5 raw_sweeps_immutable=true"
+  fi
   exit 0
 fi
 
@@ -92,10 +107,14 @@ export PYTHONPATH="$SFS_ROOT/src:${PYTHONPATH:-}"
 RAW_RUNS=(
   "$QPS_SNAPSHOT_RAW:qps:snapshot"
   "$QPS_BASELINE_RAW:qps:baseline"
-  "$DELTA_RAW:delta:combined"
-  "$ARRIVAL_SNAPSHOT_RAW:qps_arrival:snapshot"
-  "$ARRIVAL_BASELINE_RAW:qps_arrival:baseline"
 )
+if [[ "$COLLATION_SCOPE" == "full" ]]; then
+  RAW_RUNS+=(
+    "$DELTA_RAW:delta:combined"
+    "$ARRIVAL_SNAPSHOT_RAW:qps_arrival:snapshot"
+    "$ARRIVAL_BASELINE_RAW:qps_arrival:baseline"
+  )
+fi
 for specification in "${RAW_RUNS[@]}"; do
   IFS=: read -r run_root sweep_kind utility_group <<< "$specification"
   label="${sweep_kind}_${utility_group}"
@@ -207,11 +226,15 @@ PY
 declare -A COPY_SOURCES=(
   [qps_snapshot]="$QPS_SNAPSHOT_RAW/outputs"
   [qps_baseline]="$QPS_BASELINE_RAW/outputs"
-  [delta_combined]="$DELTA_RAW/outputs"
-  [qps_arrival_snapshot]="$ARRIVAL_SNAPSHOT_RAW/outputs"
-  [qps_arrival_baseline]="$ARRIVAL_BASELINE_RAW/outputs"
 )
-for label in qps_snapshot qps_baseline delta_combined qps_arrival_snapshot qps_arrival_baseline; do
+COPY_LABELS=(qps_snapshot qps_baseline)
+if [[ "$COLLATION_SCOPE" == "full" ]]; then
+  COPY_SOURCES[delta_combined]="$DELTA_RAW/outputs"
+  COPY_SOURCES[qps_arrival_snapshot]="$ARRIVAL_SNAPSHOT_RAW/outputs"
+  COPY_SOURCES[qps_arrival_baseline]="$ARRIVAL_BASELINE_RAW/outputs"
+  COPY_LABELS+=(delta_combined qps_arrival_snapshot qps_arrival_baseline)
+fi
+for label in "${COPY_LABELS[@]}"; do
   destination="$OUTPUT_ROOT/derived_sweeps/$label"
   mkdir -p "$destination"
   cp -al "${COPY_SOURCES[$label]}/." "$destination/"
@@ -220,10 +243,14 @@ done
 DERIVED_DIRS=(
   "$OUTPUT_ROOT/derived_sweeps/qps_snapshot"
   "$OUTPUT_ROOT/derived_sweeps/qps_baseline"
-  "$OUTPUT_ROOT/derived_sweeps/delta_combined"
-  "$OUTPUT_ROOT/derived_sweeps/qps_arrival_snapshot"
-  "$OUTPUT_ROOT/derived_sweeps/qps_arrival_baseline"
 )
+if [[ "$COLLATION_SCOPE" == "full" ]]; then
+  DERIVED_DIRS+=(
+    "$OUTPUT_ROOT/derived_sweeps/delta_combined"
+    "$OUTPUT_ROOT/derived_sweeps/qps_arrival_snapshot"
+    "$OUTPUT_ROOT/derived_sweeps/qps_arrival_baseline"
+  )
+fi
 python -m scripts.eval.augment_router_actual_accuracy \
   "${DERIVED_DIRS[@]}" \
   --delta-req-map "$DELTA_REQ_MAP" \
@@ -243,13 +270,17 @@ done
 FIGURE5_DIR="$OUTPUT_ROOT/figure5_offered_load"
 FIGURE6_DIR="$OUTPUT_ROOT/figure6_latency_tradeoff"
 FIGURE7_DIR="$OUTPUT_ROOT/figure7_arrival_processes"
-mkdir -p "$FIGURE5_DIR" "$FIGURE6_DIR" "$FIGURE7_DIR/poisson_inputs"
+mkdir -p "$FIGURE5_DIR"
+if [[ "$COLLATION_SCOPE" == "full" ]]; then
+  mkdir -p "$FIGURE6_DIR" "$FIGURE7_DIR/poisson_inputs"
+fi
 
 python -m scripts.reporting.router_qps_sweep_summary \
   "$OUTPUT_ROOT/derived_sweeps/qps_snapshot" \
   "$OUTPUT_ROOT/derived_sweeps/qps_baseline" \
   --output-dir "$FIGURE5_DIR"
 
+if [[ "$COLLATION_SCOPE" == "full" ]]; then
 DELTA_QPS="$(tr -d '[:space:]' < "$DELTA_RAW/qps_values.txt")"
 python -m scripts.reporting.router_delta_sweep_summary \
   "$OUTPUT_ROOT/derived_sweeps/delta_combined" \
@@ -309,7 +340,9 @@ python -m scripts.reporting.router_arrival_sweep_summary \
   "$OUTPUT_ROOT/derived_sweeps/qps_arrival_snapshot" \
   "$OUTPUT_ROOT/derived_sweeps/qps_arrival_baseline" \
   --output-dir "$FIGURE7_DIR"
+fi
 
+if [[ "$COLLATION_SCOPE" == "full" ]]; then
 python - "$OUTPUT_ROOT" "$SFS_ROOT" \
   "$QPS_SNAPSHOT_RAW" "$QPS_BASELINE_RAW" "$DELTA_RAW" \
   "$ARRIVAL_SNAPSHOT_RAW" "$ARRIVAL_BASELINE_RAW" "$SCORED_ROOT" <<'PY'
@@ -403,6 +436,7 @@ for path in plots:
 
 payload = {
     "status": "PASS",
+    "collation_scope": "full",
     "sfs_commit": subprocess.check_output(
         ["git", "-C", str(sfs_root), "rev-parse", "HEAD"], text=True
     ).strip(),
@@ -421,7 +455,80 @@ payload = {
     json.dumps(payload, indent=2) + "\n", encoding="utf-8"
 )
 PY
+else
+python - "$OUTPUT_ROOT" "$SFS_ROOT" "$QPS_SNAPSHOT_RAW" \
+  "$QPS_BASELINE_RAW" "$SCORED_ROOT" <<'PY'
+import json
+import math
+from pathlib import Path
+import subprocess
+import sys
 
+output_root = Path(sys.argv[1])
+sfs_root = Path(sys.argv[2])
+raw_paths = [Path(value).resolve() for value in sys.argv[3:5]]
+scored_root = Path(sys.argv[5]).resolve()
+derived_root = output_root / "derived_sweeps"
+expected_records = {
+    "qps_snapshot": 13 * 2 * 16000,
+    "qps_baseline": 13 * 2 * 16000,
+}
+record_counts = {}
+for label, expected in expected_records.items():
+    count = 0
+    for path in sorted((derived_root / label).glob("*.json")):
+        if path.name.endswith("manifest.json"):
+            continue
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        for run in payload.get("router", {}).get("runs", []):
+            for record in run.get("per_request", []):
+                value = record.get("actual_accuracy")
+                if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+                    raise RuntimeError(f"Missing actual_accuracy in {path}")
+                count += 1
+    if count != expected:
+        raise RuntimeError(f"{label}: expected {expected} augmented records; found {count}")
+    record_counts[label] = count
+
+figure5 = json.loads(
+    (output_root / "figure5_offered_load/router_qps_sweep_summary.json").read_text(
+        encoding="utf-8"
+    )
+)
+expected_utilities = {"hard", "shortest_queue", "latency_agnostic", "round_robin"}
+if len(figure5.get("qps", {})) != 13 or set(figure5.get("utilities", [])) != expected_utilities:
+    raise RuntimeError("Figure 5 summary does not contain the complete 13-point/four-policy matrix")
+for qps, entries in figure5["qps"].items():
+    for utility in expected_utilities:
+        value = entries.get(utility, {}).get("actual_slo_gated_utility_mean")
+        if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+            raise RuntimeError(f"Figure 5 missing OnTimeUtility for qps={qps}, utility={utility}")
+
+plot = output_root / "figure5_offered_load/actual_slo_gated_utility_mean_vs_qps.png"
+if not plot.is_file() or plot.stat().st_size == 0:
+    raise RuntimeError(f"Missing Figure 5 plot: {plot}")
+
+payload = {
+    "status": "PASS",
+    "collation_scope": "figure5",
+    "sfs_commit": subprocess.check_output(
+        ["git", "-C", str(sfs_root), "rev-parse", "HEAD"], text=True
+    ).strip(),
+    "raw_sweep_roots": [str(path) for path in raw_paths],
+    "scored_root": str(scored_root),
+    "raw_sweeps_modified": False,
+    "augmented_record_counts": record_counts,
+    "augmented_records_total": sum(record_counts.values()),
+    "figure5_qps_points": 13,
+    "plots": [str(plot.resolve())],
+}
+(output_root / "audit.json").write_text(
+    json.dumps(payload, indent=2) + "\n", encoding="utf-8"
+)
+PY
+fi
+
+if [[ "$COLLATION_SCOPE" == "full" ]]; then
 python - "$OUTPUT_ROOT" "$QPS_SNAPSHOT_JOB_ID" "$QPS_BASELINE_JOB_ID" \
   "$DELTA_JOB_ID" "$ARRIVAL_SNAPSHOT_JOB_ID" "$ARRIVAL_BASELINE_JOB_ID" \
   "$JUDGE_JOB_ID" <<'PY'
@@ -431,6 +538,7 @@ import sys
 
 output_root = Path(sys.argv[1])
 payload = {
+    "collation_scope": "full",
     "figure_5": str((output_root / "figure5_offered_load").resolve()),
     "figure_6": str((output_root / "figure6_latency_tradeoff").resolve()),
     "figure_7": str((output_root / "figure7_arrival_processes").resolve()),
@@ -447,7 +555,29 @@ payload = {
     json.dumps(payload, indent=2) + "\n", encoding="utf-8"
 )
 PY
+else
+python - "$OUTPUT_ROOT" "$QPS_SNAPSHOT_JOB_ID" "$QPS_BASELINE_JOB_ID" \
+  "$JUDGE_JOB_ID" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+output_root = Path(sys.argv[1])
+payload = {
+    "collation_scope": "figure5",
+    "figure_5": str((output_root / "figure5_offered_load").resolve()),
+    "source_jobs": {
+        "qps_snapshot": int(sys.argv[2]),
+        "qps_baseline": int(sys.argv[3]),
+        "judge": int(sys.argv[4]),
+    },
+}
+(output_root / "figure_index.json").write_text(
+    json.dumps(payload, indent=2) + "\n", encoding="utf-8"
+)
+PY
+fi
 
 find "$OUTPUT_ROOT" -type f ! -name SHA256SUMS -print0 \
   | sort -z | xargs -0 sha256sum >"$OUTPUT_ROOT/SHA256SUMS"
-echo "[DONE] Audited Ministral paper figures: $OUTPUT_ROOT"
+echo "[DONE] Audited Ministral $COLLATION_SCOPE collation: $OUTPUT_ROOT"

@@ -244,18 +244,27 @@ twice for Figure 7 (`SWEEP_KIND=qps_arrival`, snapshot and baseline). Figure 7
 uses capacity fractions 0.82, 0.95, and 1.10, which are also present in the
 Poisson Figure 5 sweep.
 
-After generation, judging, and all five sweeps succeed, submit the CPU-only
-collation job with their exact Slurm IDs:
+For each ablation, submit the default Figure-5-only collation after judging and
+the two QPS sweeps succeed:
+
+```bash
+sbatch --dependency=afterok:<judge>:<qps-sfs>:<qps-base> \
+  --export=ALL,COLLATION_SCOPE=figure5,QPS_SNAPSHOT_JOB_ID=<qps-sfs>,QPS_BASELINE_JOB_ID=<qps-base>,JUDGE_JOB_ID=<judge> \
+  src/slurm/runs/ministral3_paper_postprocess.sbatch
+```
+
+Only for a canonical full-suite run, submit the collation job after all five
+sweeps and select the explicit `full` scope:
 
 ```bash
 sbatch --dependency=afterok:<judge>:<qps-sfs>:<qps-base>:<delta>:<arrival-sfs>:<arrival-base> \
-  --export=ALL,QPS_SNAPSHOT_JOB_ID=<qps-sfs>,QPS_BASELINE_JOB_ID=<qps-base>,DELTA_JOB_ID=<delta>,ARRIVAL_SNAPSHOT_JOB_ID=<arrival-sfs>,ARRIVAL_BASELINE_JOB_ID=<arrival-base>,JUDGE_JOB_ID=<judge> \
+  --export=ALL,COLLATION_SCOPE=full,QPS_SNAPSHOT_JOB_ID=<qps-sfs>,QPS_BASELINE_JOB_ID=<qps-base>,DELTA_JOB_ID=<delta>,ARRIVAL_SNAPSHOT_JOB_ID=<arrival-sfs>,ARRIVAL_BASELINE_JOB_ID=<arrival-base>,JUDGE_JOB_ID=<judge> \
   src/slurm/runs/ministral3_paper_postprocess.sbatch
 ```
 
 The collation job verifies every raw checksum and sweep audit, verifies the
 48,000 held-out judge scores, hard-links the router JSONs into a derived tree,
-and augments only those copies with realized quality. It then creates Figures
-5-7 and refuses to pass unless their policy/rate matrices are complete. A
-second raw checksum pass proves that postprocessing did not mutate the original
-sweep outputs.
+and augments only those copies with realized quality. The default scope creates
+and audits Figure 5 without requiring Figure 6 or 7 jobs; `full` creates all
+three figures. A second raw checksum pass proves that postprocessing did not
+mutate the original sweep outputs.
