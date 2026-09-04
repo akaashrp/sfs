@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections import Counter
 from pathlib import Path
+from types import SimpleNamespace
 
 from scripts.prep import quality_metrics
 
@@ -34,6 +35,53 @@ def _read_jsonl(path: Path) -> list[dict]:
         return [json.loads(line) for line in src if line.strip()]
 
 
+def test_grouped_judge_returns_and_logs_realized_alias_mapping(
+    monkeypatch,
+    caplog,
+) -> None:
+    response = SimpleNamespace(
+        candidates=[
+            SimpleNamespace(
+                content=SimpleNamespace(
+                    parts=[SimpleNamespace(text='{"scores":{"A":1,"B":2,"C":3}}')]
+                )
+            )
+        ]
+    )
+    client = SimpleNamespace(
+        models=SimpleNamespace(generate_content=lambda **_: response)
+    )
+    monkeypatch.setattr(quality_metrics, "_get_gemini_client", lambda: client)
+    monkeypatch.setattr(quality_metrics.random, "shuffle", lambda items: items.reverse())
+
+    result = quality_metrics.judge_scores_for_prompt_group(
+        prompt="prompt",
+        gold="reference",
+        example_id="example:1",
+        candidates_by_model={
+            "small": "small response",
+            "medium": "medium response",
+            "large": "large response",
+        },
+    )
+
+    assert result.alias_to_model == {
+        "A": "large",
+        "B": "medium",
+        "C": "small",
+    }
+    assert result.scores_by_model == {
+        "large": 1.0,
+        "medium": 2.0,
+        "small": 3.0,
+    }
+    assert (
+        'Group-judging example_id=example:1 alias_to_model={"A": "large", '
+        '"B": "medium", "C": "small"}'
+        in caplog.text
+    )
+
+
 def test_grouped_judge_retries_failures_individually_then_imputes(
     tmp_path: Path,
     monkeypatch,
@@ -47,7 +95,14 @@ def test_grouped_judge_retries_failures_individually_then_imputes(
 
     attempts: Counter[str] = Counter()
 
-    def fake_grouped_judge(*, example_id: str, candidates_by_model: dict, **_) -> dict:
+    alias_to_model = {
+        chr(ord("A") + index): model_name
+        for index, model_name in enumerate(sorted(MODELS))
+    }
+
+    def fake_grouped_judge(
+        *, example_id: str, candidates_by_model: dict, **_
+    ) -> quality_metrics.GroupedJudgeResult:
         attempts[example_id] += 1
         index = int(example_id.rsplit(":", 1)[-1])
         attempt = attempts[example_id]
@@ -59,10 +114,13 @@ def test_grouped_judge_retries_failures_individually_then_imputes(
         if index == 3:
             raise RuntimeError("persistent judge refusal")
 
-        return {
-            model_name: float(2 + model_index * 2 + index)
-            for model_index, model_name in enumerate(sorted(candidates_by_model))
-        }
+        return quality_metrics.GroupedJudgeResult(
+            scores_by_model={
+                model_name: float(2 + model_index * 2 + index)
+                for model_index, model_name in enumerate(sorted(candidates_by_model))
+            },
+            alias_to_model=alias_to_model,
+        )
 
     monkeypatch.setattr(
         quality_metrics,
@@ -104,10 +162,13 @@ def test_grouped_judge_retries_failures_individually_then_imputes(
             (2 + model_index * 2 + index) / 10.0 for index in range(3)
         ) / 3
         imputed = records[-1]
+        for judged in records[:-1]:
+            assert judged["judge_alias_to_model"] == alias_to_model
         assert imputed["quality"] == expected_mean
         assert imputed["quality_metric"] == "judge_default_bucket_mean"
         assert imputed["quality_imputed"] is True
         assert imputed["quality_imputed_reason"] == "judge_refusal_or_unavailable"
+        assert "judge_alias_to_model" not in imputed
 
 
 def test_grouped_judge_rejects_invalid_retry_configuration() -> None:

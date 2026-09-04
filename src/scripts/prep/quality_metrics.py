@@ -104,6 +104,14 @@ class ExampleRecord:
     ref_output_tokens: int
 
 
+@dataclass(frozen=True)
+class GroupedJudgeResult:
+    """Scores and the randomized candidate aliases used for one judge call."""
+
+    scores_by_model: dict[str, float]
+    alias_to_model: dict[str, str]
+
+
 class JudgeScoreParseError(ValueError):
     """Raised when the judge response does not contain a usable score."""
 
@@ -223,9 +231,8 @@ def judge_scores_for_prompt_group(
     gold: Optional[str],
     example_id: Optional[str],
     candidates_by_model: dict[str, str],
-) -> dict[str, float]:
-    """Return a raw 0-10 score per model for a single prompt group."""
-    logger.info("Group-judging example_id=%s", example_id or "N/A")
+) -> GroupedJudgeResult:
+    """Return raw 0-10 scores and the realized aliases for one prompt group."""
 
     client = _get_gemini_client()
 
@@ -240,6 +247,11 @@ def judge_scores_for_prompt_group(
         alias_sections.append(
             f"<CANDIDATE_{alias}>\n{response_text}\n</CANDIDATE_{alias}>"
         )
+    logger.info(
+        "Group-judging example_id=%s alias_to_model=%s",
+        example_id or "N/A",
+        json.dumps(alias_to_model, sort_keys=True),
+    )
 
     judge_input = (
         "<PROMPT>\n"
@@ -289,10 +301,13 @@ def judge_scores_for_prompt_group(
             f"Grouped judge response missing aliases {missing_aliases}: {content}"
         )
 
-    return {
-        model_name: max(0.0, min(10.0, alias_scores[alias]))
-        for alias, model_name in alias_to_model.items()
-    }
+    return GroupedJudgeResult(
+        scores_by_model={
+            model_name: max(0.0, min(10.0, alias_scores[alias]))
+            for alias, model_name in alias_to_model.items()
+        },
+        alias_to_model=dict(alias_to_model),
+    )
 
 
 QA_DATASETS = {"natural_questions", "hotpotqa/hotpot_qa"}
@@ -800,10 +815,14 @@ def annotate_bucket_group_with_quality(
                 logger.info("Creating new scored output file at %s", dst_path)
         outputs[model_name] = dst_path.open("a", encoding="utf-8")
 
-    def _write_group_scores(alignment_key: str, grouped_scores: dict[str, float]) -> None:
+    def _write_group_scores(
+        alignment_key: str,
+        grouped_result: GroupedJudgeResult,
+    ) -> None:
         nonlocal reused_records
         nonlocal judged_records_written
 
+        grouped_scores = grouped_result.scores_by_model
         missing_models = [
             model_name for model_name in model_names if model_name not in grouped_scores
         ]
@@ -821,6 +840,7 @@ def annotate_bucket_group_with_quality(
             raw_score = float(grouped_scores[model_name])
             record["quality"] = max(0.0, min(1.0, raw_score / 10.0))
             record["quality_metric"] = "judge"
+            record["judge_alias_to_model"] = dict(grouped_result.alias_to_model)
             outputs[model_name].write(json.dumps(record, ensure_ascii=False))
             outputs[model_name].write("\n")
             existing_keys_by_model[model_name].add(alignment_key)
@@ -830,7 +850,7 @@ def annotate_bucket_group_with_quality(
         for handle in outputs.values():
             handle.flush()
 
-    def _score_group_job(job: dict[str, object]) -> dict[str, float]:
+    def _score_group_job(job: dict[str, object]) -> GroupedJudgeResult:
         return judge_scores_for_prompt_group(
             prompt=str(job["prompt"]),
             gold=str(job["gold"]),
