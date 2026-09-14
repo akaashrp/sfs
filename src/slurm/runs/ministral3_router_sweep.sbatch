@@ -27,6 +27,41 @@ fi
 source "$COMMON"
 ministral3_resolve_sfs_root
 
+# Measured Figure 5 mode bypasses every legacy rate/default-policy branch.
+if [[ -n "${FIGURE5_MANIFEST:-}" ]]; then
+  if [[ "${SWEEP_KIND:-qps}" != "qps" ]]; then
+    echo "[ERROR] FIGURE5_MANIFEST only supports the Figure 5 QPS sweep." >&2
+    exit 1
+  fi
+  source "$(conda info --base)/etc/profile.d/conda.sh"
+  conda activate vllm
+  export PYTHONPATH="$SFS_ROOT/vllm:$SFS_ROOT/experiments/methodology_baselines/deps:$SFS_ROOT/src:${PYTHONPATH:-}"
+  export TMPDIR="$SFS_ROOT/experiments/methodology_baselines/scratch"
+  mkdir -p "$TMPDIR"
+  export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 TOKENIZERS_PARALLELISM=false
+  export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+  FIGURE5_MANIFEST="$(realpath "$FIGURE5_MANIFEST")"
+  ministral3_resolve_service_run
+  cd "$SFS_ROOT/src"
+  python -m scripts.runs.ministral3_figure5 validate --manifest "$FIGURE5_MANIFEST" \
+    --group "${UTILITY_GROUP:-all}" --service-run-dir "$MINISTRAL_SERVICE_RUN_DIR" \
+    --predictor-run-dir "${PREDICTOR_RUN_DIR:?Set the frozen shared predictor run}"
+  if [[ "${VALIDATE_ONLY:-0}" == "1" ]]; then exit 0; fi
+  MINISTRAL_RUN_ROOT="${RUN_ROOT_OVERRIDE:-$SFS_ROOT/experiments/ministral3_paper/figure_sweeps/measured_${UTILITY_GROUP:-all}_run_${SLURM_JOB_ID:?}}"
+  if [[ -e "$MINISTRAL_RUN_ROOT" ]]; then
+    echo "[ERROR] Refusing to overwrite $MINISTRAL_RUN_ROOT" >&2
+    exit 1
+  fi
+  mkdir -p "$MINISTRAL_RUN_ROOT"
+  ministral3_start_router_pool
+  python -m scripts.runs.ministral3_figure5 sweep --manifest "$FIGURE5_MANIFEST" \
+    --group "${UTILITY_GROUP:-all}" --output-root "$MINISTRAL_RUN_ROOT" \
+    --instances-config "$MINISTRAL_INSTANCES_CONFIG" \
+    --wait-log "$MINISTRAL_WAIT_LOG_3B" --wait-log "$MINISTRAL_WAIT_LOG_8B" \
+    --wait-log "$MINISTRAL_WAIT_LOG_14B"
+  exit 0
+fi
+
 SWEEP_KIND="${SWEEP_KIND:-}"
 UTILITY_GROUP="${UTILITY_GROUP:-}"
 VALIDATE_ONLY="${VALIDATE_ONLY:-0}"

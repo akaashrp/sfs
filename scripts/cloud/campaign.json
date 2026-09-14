@@ -1,0 +1,557 @@
+{
+  "schema_version": 1,
+  "cells": [
+    {
+      "id": "qwen-mooncake_prefill-7",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mooncake_prefill-8.3",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mooncake_prefill-8.6",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 8.6,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mooncake_prefill-8.9",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 8.9,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-lmdeploy_proxy-7",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "lmdeploy_proxy",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-lmdeploy_proxy-8.3",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "lmdeploy_proxy",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-lmdeploy_proxy-8.6",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "lmdeploy_proxy",
+      "qps": 8.6,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-lmdeploy_proxy-8.9",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "lmdeploy_proxy",
+      "qps": 8.9,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-routebalance-7",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-routebalance-8.3",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-routebalance-8.6",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 8.6,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-routebalance-8.9",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 8.9,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-score-7",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-score-8.3",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-score-8.6",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 8.6,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-score-8.9",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 8.9,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-vllm_sr_latency-7",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-vllm_sr_latency-8.3",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-vllm_sr_latency-8.6",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 8.6,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-vllm_sr_latency-8.9",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 8.9,
+      "requests": 16000
+    },
+    {
+      "id": "ministral-hard-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-hard-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-hard-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-hard-9.7125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 9.7125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-score-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-score-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-score-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-score-9.7125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 9.7125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-lmdeploy_proxy-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "lmdeploy_proxy",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-lmdeploy_proxy-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "lmdeploy_proxy",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-lmdeploy_proxy-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "lmdeploy_proxy",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-lmdeploy_proxy-9.7125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "lmdeploy_proxy",
+      "qps": 9.7125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-mooncake_prefill-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-mooncake_prefill-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-mooncake_prefill-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-mooncake_prefill-9.7125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 9.7125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-routebalance-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-routebalance-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-routebalance-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-routebalance-9.7125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 9.7125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-shortest_queue-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "shortest_queue",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-shortest_queue-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "shortest_queue",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-shortest_queue-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "shortest_queue",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-shortest_queue-9.7125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "shortest_queue",
+      "qps": 9.7125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-latency_agnostic-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "latency_agnostic",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-latency_agnostic-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "latency_agnostic",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-latency_agnostic-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "latency_agnostic",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-latency_agnostic-9.7125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "latency_agnostic",
+      "qps": 9.7125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-round_robin-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "round_robin",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-round_robin-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "round_robin",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-round_robin-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "round_robin",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-round_robin-9.7125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "round_robin",
+      "qps": 9.7125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-vllm_sr_latency-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-vllm_sr_latency-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-vllm_sr_latency-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-vllm_sr_latency-9.7125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 9.7125,
+      "requests": 8000
+    },
+    {
+      "id": "qwen-mlp_quality-7",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "hard",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-8.3",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "hard",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-8.6",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "hard",
+      "qps": 8.6,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-8.9",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "hard",
+      "qps": 8.9,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-7",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "hard",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-8.3",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "hard",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-8.6",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "hard",
+      "qps": 8.6,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-8.9",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "hard",
+      "qps": 8.9,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-7",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "hard",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-8.3",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "hard",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-8.6",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "hard",
+      "qps": 8.6,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-8.9",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "hard",
+      "qps": 8.9,
+      "requests": 16000
+    }
+  ],
+  "requests_total": 800000,
+  "arrival_process": "poisson",
+  "seed": 69,
+  "deferred": [
+    "serving configuration ablations",
+    "consistent SFS reruns",
+    "Figure 7 new baselines"
+  ]
+}

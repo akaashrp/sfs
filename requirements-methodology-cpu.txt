@@ -1,0 +1,4 @@
+# Additional CPU wheels; use scripts/setup/setup_methodology_cpu_deps.sh.
+# Existing numpy/scipy/torch/transformers come from the activated vllm env.
+faiss-cpu==1.12.0
+xgboost-cpu==3.0.5

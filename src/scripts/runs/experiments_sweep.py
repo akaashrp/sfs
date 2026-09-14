@@ -237,7 +237,10 @@ def _build_run_points(
     if wrapper_args.sweep in {"delta", "both"}:
         if not wrapper_args.delta_values:
             raise ValueError("--delta-values is required when --sweep is delta/both.")
-        all_utilities = list(_exp().BUILTIN_UTILITIES)
+        # Artifact-backed methodology baselines require explicit selection.
+        # Preserve the historical implicit delta=0 sweep population.
+        all_utilities = [name for name in _exp().BUILTIN_UTILITIES
+                         if name not in {"lmdeploy_proxy", "mooncake_prefill", "routebalance", "vllm_sr_latency"}]
         delta_zero_utilities = (
             list(wrapper_args.delta_zero_utilities)
             if wrapper_args.delta_zero_utilities is not None
@@ -549,6 +552,12 @@ async def _async_main(argv: Sequence[str]) -> None:
                     "feasible_slo_mode": run_args.feasible_slo_mode,
                     "accuracy_model_path": run_args.accuracy_model_path,
                     "output_length_model_path": run_args.output_length_model_path,
+                    "methodology_calibration_json": getattr(run_args, "methodology_calibration_json", None),
+                    "routebalance_predictor_path": getattr(run_args, "routebalance_predictor_path", None),
+                    "routebalance_weights": list(getattr(run_args, "routebalance_weights", (1/3, 1/3, 1/3))),
+                    "routebalance_batch_max_size": getattr(run_args, "routebalance_batch_max_size", 16),
+                    "routebalance_batch_wait_ms": getattr(run_args, "routebalance_batch_wait_ms", 25.0),
+                    "methodology_snapshot_max_age_ms": getattr(run_args, "methodology_snapshot_max_age_ms", 1000.0),
                     "enable_wait_time_polling": bool(run_args.enable_wait_time_polling),
                     "critical_wait_time_timeout_s": float(
                         run_args.critical_wait_time_timeout_s

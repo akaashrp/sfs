@@ -2,7 +2,7 @@
 #SBATCH --job-name=ministral3-wait-gof
 #SBATCH --output=experiments/ministral3_wait_gof_%j.out
 #SBATCH --error=experiments/ministral3_wait_gof_%j.err
-#SBATCH --time=02:00:00
+#SBATCH --time=08:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --partition=GPU-shared
@@ -33,7 +33,7 @@ SERVICE_JOB_ID="${SERVICE_JOB_ID:-}"
 SERVICE_RUN_DIR="${SERVICE_RUN_DIR:-}"
 PREDICTOR_RUN_DIR="${PREDICTOR_RUN_DIR:-}"
 VALIDATE_ONLY="${VALIDATE_ONLY:-0}"
-NUM_REQUESTS="${NUM_REQUESTS:-8000}"
+NUM_REQUESTS="${NUM_REQUESTS:-16000}"
 WAIT_GOF_LOAD_FRACTION="${WAIT_GOF_LOAD_FRACTION:-0.9}"
 
 if [[ "$VALIDATE_ONLY" != "0" && "$VALIDATE_ONLY" != "1" ]]; then
@@ -48,8 +48,8 @@ if [[ -z "$SERVICE_RUN_DIR" && -z "$SERVICE_JOB_ID" ]]; then
   echo "[ERROR] Set SERVICE_RUN_DIR or SERVICE_JOB_ID." >&2
   exit 1
 fi
-if ! [[ "$NUM_REQUESTS" =~ ^[1-9][0-9]*$ ]]; then
-  echo "[ERROR] NUM_REQUESTS must be a positive integer." >&2
+if [[ "$NUM_REQUESTS" != 16000 ]]; then
+  echo "[ERROR] This paper evaluation requires NUM_REQUESTS=16000." >&2
   exit 1
 fi
 
@@ -72,7 +72,7 @@ PREDICTOR_RUN_DIR="$(cd "$PREDICTOR_RUN_DIR" && pwd)"
 METRICS_JSON="$SERVICE_RUN_DIR/model_metrics.json"
 OUTPUT_PREDICTOR="$PREDICTOR_RUN_DIR/output_length_predictor"
 ACCURACY_PREDICTOR="$PREDICTOR_RUN_DIR/accuracy_predictor"
-HOLDOUT_CACHE_DIR="$SFS_ROOT/experiments/data/prompts/ministral3/holdout_cache_2000"
+HOLDOUT_CACHE_DIR="$SFS_ROOT/experiments/data/prompts/ministral3/holdout_cache_4000"
 HOLDOUT_SOURCE_DIR="$PROJECT_ROOT/vllm_utils/bucketed_prompts_0.6B"
 TOKENIZER_PATH="$PROJECT_ROOT/.cache/huggingface/hub/models--mistralai--Ministral-3-8B-Instruct-2512-BF16/snapshots/f6fae9795746f63c9be8344932f01275f3c63734"
 
@@ -110,6 +110,8 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate vllm
 export PYTHONPATH="$SFS_ROOT/src:${PYTHONPATH:-}"
 export SFS_ROOT
+export TMPDIR="$SFS_ROOT/experiments/methodology_baselines/scratch"
+mkdir -p "$TMPDIR"
 
 EXPECTED_VLLM_COMMIT="$(git -C "$SFS_ROOT/vllm" rev-parse HEAD)"
 ACTIVE_VLLM_ROOT="$(cd "$SFS_ROOT/src" && python - <<'PY'
@@ -120,6 +122,10 @@ print(Path(vllm.__file__).resolve().parent.parent)
 PY
 )"
 ACTIVE_VLLM_COMMIT="$(git -C "$ACTIVE_VLLM_ROOT" rev-parse HEAD)"
+if [[ "$ACTIVE_VLLM_ROOT" != "$SFS_ROOT/vllm" ]]; then
+  echo "[ERROR] Active editable vLLM root differs from $SFS_ROOT/vllm: $ACTIVE_VLLM_ROOT" >&2
+  exit 1
+fi
 if [[ "$ACTIVE_VLLM_COMMIT" != "$EXPECTED_VLLM_COMMIT" ]]; then
   echo "[ERROR] Active vLLM commit $ACTIVE_VLLM_COMMIT does not match recorded $EXPECTED_VLLM_COMMIT." >&2
   exit 1
@@ -202,6 +208,9 @@ for required_file in config.json params.json tekken.json consolidated.safetensor
 done
 
 JOB_LOCAL="/local/$USER/$RUN_ID"
+source "$SFS_ROOT/src/slurm/runs/ministral3_router_common.sh"
+MINISTRAL_JOB_LOCAL="$JOB_LOCAL"
+ministral3_configure_ipc
 MODEL_DST="$JOB_LOCAL/$MODEL_CACHE/snapshots/$MODEL_SNAPSHOT"
 mkdir -p "$MODEL_DST" "$JOB_LOCAL/.cache/vllm" "$JOB_LOCAL/.triton" "$JOB_LOCAL/.nv"
 rsync -aL --delete --delete-excluded \
@@ -356,9 +365,10 @@ python -m scripts.runs.experiments \
   --accuracy-model-path "$ACCURACY_PREDICTOR" \
   --output-length-model-path "$OUTPUT_PREDICTOR" \
   --bucket-dir "$HOLDOUT_CACHE_DIR" \
-  --holdout-prompts-per-bucket 2000 \
+  --holdout-prompts-per-bucket 4000 \
   --holdout-bucket-dir "$HOLDOUT_SOURCE_DIR" \
   --holdout-cache-dir "$HOLDOUT_CACHE_DIR" \
+  --require-existing-holdout-cache \
   --holdout-start-index 2500 \
   --holdout-context-length 65536 \
   --tokenizer-id "$TOKENIZER_PATH" \

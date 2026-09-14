@@ -294,15 +294,21 @@ def iter_mixed_then_random_bucketed_prompts(
 
 async def warm_up_instances(clients: list[Any]) -> None:
     """Send a warm-up request to each instance to seed wait-time snapshots."""
-    messages = [{"role": "user", "content": "warm-up", "temperature": 0}]
+    messages = [{"role": "user", "content": "warm-up"}]
     tasks = []
     for client in clients:
         tasks.append(
             asyncio.create_task(
-                client.submit_request(messages=messages, max_completion_tokens=1)
+                client.submit_request(messages=messages, temperature=0, top_p=1,
+                                      max_completion_tokens=1)
             )
         )
-    await asyncio.gather(*tasks, return_exceptions=True)
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    failures = [(getattr(client, "instance_id", str(index)), str(result))
+                for index, (client, result) in enumerate(zip(clients, results))
+                if isinstance(result, BaseException)]
+    if failures:
+        raise RuntimeError(f"Instance warm-up failed; snapshots are not ready: {failures}")
 
 
 def select_prompt_subset(

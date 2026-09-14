@@ -1,0 +1,12 @@
+{
+  "commit": "544ce4f15eb5d04c1efaa597660c4a8ed042e22c",
+  "repository": "https://github.com/vllm-project/semantic-router",
+  "file_sha256": {
+    "cache.go": "d48ee98d61e8adafdb2896208f6f10732ab458887a1be9b05f20b9618152b884",
+    "processor_res_header_runtime.go": "ffde6f43acb8897f76db1cd68cb70be517bda972789f682903d419f1534ac537",
+    "processor_res_usage.go": "19fdc2f64b411424fc30754a400c55f2518dacb3b0920aab300f9d1270ebc10b",
+    "processor_res_semantic_stream.go": "2e50761b4fe4b3e4a49ee68b5806e84a0590fb0638693b24ecd24edbf2c0b3cb",
+    "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "latency_aware.go": "9182b487e0feb218e05a930ac44bc0aa0d6f4e671151360b6240edf216c2640c"
+  }
+}

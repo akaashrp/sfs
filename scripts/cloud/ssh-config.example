@@ -1,0 +1,20 @@
+# Place these entries in ~/.ssh/config on the machine running the controller.
+# Substitute the exact SSH username, public address, port, and private key path
+# supplied by the provider. The private key stays on the controller.
+Host sfs-cloud-a
+    HostName REPLACE_ADDRESS_A
+    User REPLACE_SSH_USER
+    Port 22
+    IdentityFile ~/.ssh/REPLACE_KEY
+    IdentitiesOnly yes
+    ServerAliveInterval 30
+    ServerAliveCountMax 6
+
+Host sfs-cloud-b
+    HostName REPLACE_ADDRESS_B
+    User REPLACE_SSH_USER
+    Port 22
+    IdentityFile ~/.ssh/REPLACE_KEY
+    IdentitiesOnly yes
+    ServerAliveInterval 30
+    ServerAliveCountMax 6

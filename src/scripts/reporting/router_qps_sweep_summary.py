@@ -23,17 +23,26 @@ DEFAULT_UTILITIES = [
     "hard_prefill_tps",
     "hard_score_proxy",
     "score",
+    "lmdeploy_proxy",
+    "mooncake_prefill",
+    "routebalance",
+    "vllm_sr_latency",
     "shortest_queue",
     "latency_agnostic",
     "round_robin",
     "instance_affinity",
 ]
 
+DISPLAY_LABELS = {"vllm_sr_latency": "vLLM-SR latency-aware selector adaptation", "hard": "SFS", "score": "SCORE", "lmdeploy_proxy": "LMDeploy proxy adaptation",
+                  "mooncake_prefill": "Mooncake prefill adaptation", "routebalance": "RouteBalance adaptation",
+                  "shortest_queue": "Shortest queue", "latency_agnostic": "Latency agnostic",
+                  "round_robin": "Round robin"}
+
 
 def _format_qps(qps: float | int | str) -> str:
     if isinstance(qps, str):
         return qps
-    return f"{float(qps):g}"
+    return f"{float(qps):.12g}"
 
 
 def aggregate_jsons(input_dirs: list[Path]) -> tuple[dict[str, Any], list[str]]:
@@ -126,7 +135,7 @@ def _plot_metric(
             y_values.append(float(qps_key))
         if not x_values:
             continue
-        plt.plot(x_values, y_values, marker="o", linewidth=1.8, label=utility)
+        plt.plot(x_values, y_values, marker="o", linewidth=1.8, label=DISPLAY_LABELS.get(utility, utility))
 
     if x_log_scale:
         plt.xscale("log")
@@ -162,7 +171,7 @@ def _plot_utility_vs_qps(
             y_values.append(float(metric_value))
         if not x_values:
             continue
-        plt.plot(x_values, y_values, marker="o", linewidth=1.8, label=utility)
+        plt.plot(x_values, y_values, marker="o", linewidth=1.8, label=DISPLAY_LABELS.get(utility, utility))
 
     plt.xlabel("Queries per second")
     plt.ylabel("OnTimeUtility (accuracy - lambda * cost)")
@@ -208,6 +217,10 @@ def parse_args() -> argparse.Namespace:
         default="router_qps_sweep_summary.json",
         help="Filename for consolidated JSON output.",
     )
+    parser.add_argument(
+        "--retain-all-qps", action="store_true",
+        help="Plot every measured point for each policy, including incomplete shared grids.",
+    )
     return parser.parse_args()
 
 
@@ -224,7 +237,7 @@ def main() -> None:
         json.dump(summary, f, indent=2, sort_keys=False)
         f.write("\n")
 
-    plot_qps_keys = _qps_with_all_utilities_present(summary, qps_keys)
+    plot_qps_keys = qps_keys if args.retain_all_qps else _qps_with_all_utilities_present(summary, qps_keys)
 
     _plot_utility_vs_qps(
         summary=summary,
@@ -260,7 +273,7 @@ def main() -> None:
     )
 
     print(f"Wrote summary JSON: {summary_path}")
-    print(f"Plot QPS keys (all utilities present): {plot_qps_keys}")
+    print(f"Plot QPS keys: {plot_qps_keys}")
     print(f"Wrote plots to: {output_dir}")
 
 

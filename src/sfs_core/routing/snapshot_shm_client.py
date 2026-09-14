@@ -6,16 +6,18 @@ import threading
 import time
 from dataclasses import dataclass
 from multiprocessing import shared_memory
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from .pending_dispatch_ledger import PendingDispatch
-from vllm.v1.engine.scheduler_simulator import SimulationStopMode
+from .methodology_snapshot import BaselineSnapshot, parse_baseline_snapshot
 from vllm.v1.engine.snapshot_shm import (
     SnapshotShmHeader,
     read_snapshot_shm_header_once,
+    read_snapshot_shm_once,
 )
 
-from vllm.v1.engine import _scheduler_sim as _scheduler_sim_native
+if TYPE_CHECKING:
+    from vllm.v1.engine.scheduler_simulator import SimulationStopMode
 
 
 @dataclass(slots=True)
@@ -42,8 +44,10 @@ class SnapshotShmClient:
         self._shm: Optional[shared_memory.SharedMemory] = None
         self._worker = None
         self._worker_coefficients: Optional[tuple[float, ...]] = None
+        self._baseline_cache: Optional[BaselineSnapshot] = None
 
     def close(self) -> None:
+        self._baseline_cache = None
         if self._worker is not None:
             self._worker.stop()
             self._worker = None
@@ -56,6 +60,39 @@ class SnapshotShmClient:
         with self._lock:
             header = self._read_latest_header()
             self._ensure_worker(header)
+
+    def baseline_state(self, *, now: Optional[float] = None) -> BaselineSnapshot:
+        """Read observed baseline telemetry without native simulation/overlays.
+
+        The transport's seqlock protects the complete header and payload pair.
+        Decode msgpack directly: native snapshot summaries contain SFS output
+        reserve heuristics and intentionally do not supply baseline work.
+        """
+        import msgspec
+
+        with self._lock:
+            result = read_snapshot_shm_once(self._ensure_shm())
+            if result is None:
+                raise RuntimeError("Failed to read consistent baseline scheduler snapshot")
+            header, payload = result
+            if not payload:
+                raise RuntimeError("Baseline scheduler snapshot is not published yet")
+            observed_at = time.monotonic() if now is None else float(now)
+            cached = self._baseline_cache
+            if cached is not None and header.snapshot_version < cached.version:
+                raise RuntimeError("Baseline scheduler snapshot version regressed; restart the client")
+            if cached is not None and header.snapshot_version == cached.version:
+                if header.created_at != cached.created_at:
+                    raise RuntimeError("Baseline scheduler snapshot timestamp changed without version increment")
+                return cached.observed_again(observed_at)
+            state = parse_baseline_snapshot(
+                msgspec.msgpack.decode(payload),
+                observed_at=observed_at,
+                expected_version=int(header.snapshot_version),
+                expected_created_at=float(header.created_at),
+            )
+            self._baseline_cache = state
+            return state
 
     def estimate(
         self,
@@ -92,6 +129,8 @@ class SnapshotShmClient:
             observed_pending_request_ids: tuple[str, ...] = ()
 
             if prompt_tokens is not None:
+                from vllm.v1.engine.scheduler_simulator import SimulationStopMode
+
                 resolved_stop_mode = SimulationStopMode.from_value(
                     stop_mode,
                     default=SimulationStopMode.PREFILL_DONE,
@@ -187,6 +226,8 @@ class SnapshotShmClient:
         return header
 
     def _ensure_worker(self, header: SnapshotShmHeader) -> None:
+        from vllm.v1.engine import _scheduler_sim as _scheduler_sim_native
+
         coefficients = (
             float(header.simulation_intercept),
             float(header.simulation_prefill_coeff),

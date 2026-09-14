@@ -306,6 +306,8 @@ def prepare_holdout_prompt_cache(
     max_completion_tokens: int,
     prompt_token_limit: int = 32768,
     rebuild: bool = False,
+    require_existing: bool = False,
+    frozen_legacy: bool = False,
     system_prompt: str = DEFAULT_SYSTEM_PROMPT,
     chat_template_kwargs: dict[str, Any] | None = None,
     tokenizer: Any | None = None,
@@ -323,6 +325,8 @@ def prepare_holdout_prompt_cache(
 
     source_bucket_dir = source_bucket_dir.expanduser().resolve()
     cache_dir = cache_dir.expanduser().resolve()
+    if require_existing and (rebuild or not cache_dir.is_dir()):
+        raise ValueError("Existing-only holdout cache mode forbids creation or rebuilding")
     cache_dir.mkdir(parents=True, exist_ok=True)
     resolved_chat_template_kwargs = resolve_chat_template_kwargs(
         chat_template_kwargs
@@ -346,6 +350,24 @@ def prepare_holdout_prompt_cache(
 
     manifest_path = cache_dir / MANIFEST_FILENAME
     existing_manifest = _load_manifest(manifest_path)
+    if frozen_legacy:
+        if not require_existing or rebuild:
+            raise ValueError("Frozen legacy caches require existing-only mode and forbid rebuilding")
+        # A derived paper cache can intentionally retain the original routing
+        # token counts. Validate its separate contract rather than relabeling
+        # those counts as the current tokenizer version.
+        legacy = dict(existing_manifest or {})
+        if legacy.get("data_role") != "frozen_canonical_paper_holdout" or not legacy.get("file_sha256"):
+            raise ValueError("Missing frozen canonical paper cache provenance")
+        from hashlib import sha256
+        for name, expected in legacy["file_sha256"].items():
+            if Path(name).name != name or sha256((cache_dir/name).read_bytes()).hexdigest() != expected:
+                raise ValueError("Frozen canonical cache contents changed")
+        comparable = {k:v for k,v in expected_manifest_config.items() if k != "prompt_tokenization_version"}
+        if not _is_cache_reusable(manifest=legacy, expected_manifest_config=comparable, cache_dir=cache_dir,
+                holdout_prompts_per_bucket=holdout_prompts_per_bucket, bucket_files=bucket_files):
+            raise ValueError("Frozen canonical cache does not match the requested experiment")
+        return cache_dir, existing_manifest, False
     if not rebuild and _is_cache_reusable(
         manifest=existing_manifest,
         expected_manifest_config=expected_manifest_config,
@@ -354,6 +376,9 @@ def prepare_holdout_prompt_cache(
         bucket_files=bucket_files,
     ):
         return cache_dir, existing_manifest, False
+
+    if require_existing:
+        raise ValueError("Existing holdout cache is incompatible; refusing to rebuild or modify it")
 
     if tokenizer is None:
         tokenizer = _load_tokenizer(

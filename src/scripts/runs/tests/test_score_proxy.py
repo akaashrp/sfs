@@ -9,6 +9,18 @@ from scripts.runs import experiments
 from sfs_core.routing.wait_time_scheduler import WaitTimeResult
 
 
+def test_calibrated_metrics_do_not_alias_ministral_8b_to_qwen(tmp_path):
+    path = tmp_path/"metrics.json"
+    path.write_text(json.dumps({
+        "mistralai/Ministral-3-8B-Instruct-2512-BF16": {"prefill_tps": 1234},
+        "qwen3-8b": {"prefill_tps": 5678},
+    }))
+    rows = experiments._load_calibrated_service_metrics(path)
+    assert rows["ministral3-8b"]["prefill_tps"] == 1234
+    assert rows["qwen3-8b"]["prefill_tps"] == 5678
+    assert experiments._normalize_prefill_tps_key("vllm-ministral3-8b") == "ministral3-8b"
+
+
 def _wait_result(
     instance_id: str,
     *,

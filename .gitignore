@@ -2,5 +2,11 @@ __pycache__/
 *.pyc
 *.pyo
 
+.scratch/
+.tools/
+.pytest_cache/
+.build-tmp/
+experiments/
+
 experiments/data/prompts/
 experiments/bucketed_prompt_outputs/

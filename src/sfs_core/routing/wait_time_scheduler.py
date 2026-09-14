@@ -353,6 +353,14 @@ class InstanceClient:
             return await self._client.chat.completions.create(**args)
         return await self._client.completions.create(**args)
 
+    async def refresh_baseline_state(self):
+        """Read committed engine state without a scheduler simulation."""
+        if self._snapshot_client is None:
+            raise ValueError(
+                f"Methodology baseline {self.instance_id} requires local SHM telemetry"
+            )
+        return await asyncio.to_thread(self._snapshot_client.baseline_state)
+
     def _parse_wait_ms(self, payload: Dict[str, Any]) -> float:
         """Extract wait time from the wait_time endpoint payload."""
         reports = payload.get("reports")
@@ -546,6 +554,21 @@ class WaitTimeScheduler:
                 )
                 if not queued.result_future.done():
                     queued.result_future.set_exception(exc)
+                    # Fire-and-forget routing still exposes its error through
+                    # the harness completion future below. Mark this separate
+                    # dispatch future observed without changing await behavior.
+                    queued.result_future.exception()
+                completion = queued.payload.get("_completion_future")
+                if completion is not None and not completion.done():
+                    completed = time.perf_counter()
+                    started = float(queued.payload.get("_started_perf", completed))
+                    completion.set_result({
+                        "request_id": queued.request_id,
+                        "system_entry_perf": queued.payload.get("_system_entry_perf", started),
+                        "started_perf": started, "completed_perf": completed,
+                        "latency_ms": (completed-started)*1000,
+                        "error": f"{type(exc).__name__}: {exc}",
+                    })
             finally:
                 self._queue.task_done()
 

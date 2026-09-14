@@ -1,0 +1,12 @@
+{
+  "two_4gpu_instances": [
+    {"lane": "a", "host": "sfs-cloud-a", "gpus": "0,1,2,3", "sequence": ["qwen/canonical", "qwen/mlp_quality"]},
+    {"lane": "b", "host": "sfs-cloud-b", "gpus": "0,1,2,3", "sequence": ["ministral/canonical", "qwen/mlp_length", "qwen/flash_quality"]}
+  ],
+  "one_8gpu_instance": [
+    {"lane": "a", "host": "sfs-cloud-a", "gpus": "0,1,2,3", "sequence": ["qwen/canonical", "qwen/mlp_quality"]},
+    {"lane": "b", "host": "sfs-cloud-a", "gpus": "4,5,6,7", "sequence": ["ministral/canonical", "qwen/mlp_length", "qwen/flash_quality"]}
+  ],
+  "cpu_assignment": "Split the actual sched_getaffinity CPU set into disjoint halves on an 8-GPU host; pass --cpus. On separate hosts use each host's full assigned affinity.",
+  "shared_storage": "Use separate host state directories even if the artifact volume is shared. On one 8-GPU host both lanes use the same state directory for GPU/cell ownership and completed-cell accounting."
+}

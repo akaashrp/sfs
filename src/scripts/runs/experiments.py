@@ -112,6 +112,10 @@ BUILTIN_UTILITIES = (
     "hard_prefill_tps",
     "hard_score_proxy",
     "score",
+    "vllm_sr_latency",
+    "lmdeploy_proxy",
+    "mooncake_prefill",
+    "routebalance",
     "hard_pk_mg1",
     "slo_aware",
     "latency_agnostic",
@@ -2731,7 +2735,14 @@ def load_instances(
         if not isinstance(raw_instances, list) or not raw_instances:
             raise ValueError("instances-config must contain a non-empty 'instances' list")
         instance_costs = payload.get("instance_costs", DEFAULT_INSTANCE_COSTS)
-        metadata = {"instances_config_path": str(instances_config_path)}
+        # Preserve the serving/provenance contract consumed by stage validation
+        # and result collation. Dropping these fields made valid pools fail only
+        # after the servers had loaded, and also stripped results of provenance.
+        metadata = {key: value for key, value in payload.items()
+                    if key not in ("instances", "instance_costs")}
+        if "serving_profile" in metadata and not isinstance(metadata["serving_profile"], dict):
+            raise ValueError("instances-config 'serving_profile' must be an object")
+        metadata["instances_config_path"] = str(instances_config_path)
     else:
         raw_instances = build_default_instance_defs()
         instance_costs = DEFAULT_INSTANCE_COSTS
@@ -3127,9 +3138,16 @@ def _as_nonnegative_float(value: Any) -> Optional[float]:
 
 
 def _normalize_prefill_tps_key(value: Any) -> str:
+    from sfs_core.shared.model_label_helpers import resolve_model_label
     raw = str(value or "").strip().lower()
     if not raw:
         return raw
+    # Resolve the explicit family before the historical bare-size aliases.
+    # Otherwise Ministral 8B aliases overwrite Qwen 8B metrics and can fall
+    # back to Qwen defaults when family calibration is missing.
+    family_label = resolve_model_label(raw, raw)
+    if family_label is not None:
+        return family_label
     if raw in PREFILL_TPS_ALIASES:
         return PREFILL_TPS_ALIASES[raw]
     if "qwen3-0.6b" in raw or "qwen3-0_6b" in raw or "0.6b" in raw or "0_6b" in raw:
@@ -4390,6 +4408,15 @@ async def run_policy(
     score_total_cost_budget: Optional[float] = None,
     close_instances_on_stop: bool = True,
     decouple_arrivals: bool = True,
+    methodology_calibration_path: Optional[str] = None,
+    methodology_serving_profile: Optional[Dict[str, Any]] = None,
+    routebalance_predictor_path: Optional[str] = None,
+    routebalance_weights: tuple[float, float, float] = (1/3, 1/3, 1/3),
+    routebalance_batch_max_size: int = 16,
+    routebalance_batch_wait_ms: float = 25.0,
+    methodology_snapshot_max_age_ms: float = 1000.0,
+    trial_monitor: Any = None,
+    latency_warmup_requests: Optional[str] = None,
 ) -> Dict[str, Any]:
     resolved_chat_template_kwargs = resolve_chat_template_kwargs(
         chat_template_kwargs
@@ -4410,8 +4437,10 @@ async def run_policy(
         else None
     )
     utility_state = UtilityState(score_policy_state=score_policy_state)
+    is_latency_history = utility_name == "vllm_sr_latency"
+    is_methodology = utility_name in {"lmdeploy_proxy", "mooncake_prefill", "routebalance"}
     utility_fn = build_utility_fn(
-        utility_name,
+        "hard" if (is_methodology or is_latency_history) else utility_name,
         lambda_weight=lambda_weight,
         delta_weight=delta_weight,
         instance_costs=instance_costs,
@@ -4419,41 +4448,86 @@ async def run_policy(
         score_cost_weight=score_cost_weight,
         score_latency_weight=score_latency_weight,
     )
-    scheduler = CollectingWaitTimeScheduler(
-        instances,
+    scheduler_kwargs = dict(
         defer_sidecar_writes=True,
         worker_count=worker_count,
         max_queue_size=max_queue_size,
-        accuracy_model_path=accuracy_model_path,
-        output_length_model_path=output_length_model_path,
-        lambda_weight=lambda_weight,
-        delta_weight=delta_weight,
         instance_costs=instance_costs,
-        utility_fn=utility_fn,
         tokenizer_id=tokenizer_id,
         tokenizer_mode=tokenizer_mode,
         response_map_path=response_map_path,
         request_log_path=request_log_path,
-        utility_state=utility_state,
-        route_strategy=route_strategy,
-        route_random_seed=route_random_seed,
-        affinity_bucket_to_instances=affinity_bucket_to_instances,
-        affinity_global_fallback_instances=affinity_global_fallback_instances,
-        affinity_upgrade_margin=affinity_upgrade_margin,
-        score_cost_weight=score_cost_weight,
-        score_latency_weight=score_latency_weight,
-        wait_estimator=wait_estimator,
-        wait_estimator_name=wait_estimator_name,
-        wait_estimator_context=wait_estimator_context,
-        wait_estimators=wait_estimators,
-        wait_estimator_contexts=wait_estimator_contexts,
-        skip_wait_result_build=skip_wait_result_build,
-        include_unconditional_live_fetch=include_unconditional_live_fetch,
-        readiness_diagnostics=readiness_diagnostics,
-        readiness_predictor_path=readiness_predictor_path,
-        enable_wait_time_polling=enable_wait_time_polling,
-        critical_wait_time_timeout_s=critical_wait_time_timeout_s,
     )
+    if is_latency_history:
+        from sfs_core.routing.latency_history_scheduler import LatencyHistoryScheduler
+        from sfs_core.routing.latency_warmup import load_warmup
+        scheduler = LatencyHistoryScheduler(instances, **scheduler_kwargs)
+        warmup_rows = load_warmup(latency_warmup_requests)
+        await scheduler.warmup([{
+            "messages": build_messages(prompt=row["prompt"], system_prompt=system_prompt),
+            "max_completion_tokens": max_completion_tokens, "temperature": temperature, "top_p": top_p,
+            "extra_body": {"chat_template_kwargs": dict(resolved_chat_template_kwargs)},
+        } for row in warmup_rows])
+    elif is_methodology:
+        from sfs_core.routing.methodology_calibration import MethodologyCalibration
+        from sfs_core.routing.methodology_policies import RouteBalanceWeights
+        from sfs_core.routing.methodology_scheduler import MethodologyScheduler
+        if methodology_calibration_path is None:
+            raise ValueError(f"{utility_name} requires --methodology-calibration-json")
+        calibration = MethodologyCalibration.load(methodology_calibration_path)
+        if methodology_serving_profile is not None:
+            calibration.validate_runtime_profile(methodology_serving_profile)
+        predictor = None
+        if utility_name == "routebalance":
+            from sfs_core.routing.routebalance_predictor import RouteBalancePredictor
+            if routebalance_predictor_path is None:
+                raise ValueError("RouteBalance requires --routebalance-predictor-path")
+            predictor = RouteBalancePredictor.load(routebalance_predictor_path)
+        scheduler = MethodologyScheduler(
+            instances, policy=utility_name, calibration=calibration, predictor=predictor,
+            weights=RouteBalanceWeights(*routebalance_weights),
+            batch_max_size=routebalance_batch_max_size,
+            batch_wait_ms=routebalance_batch_wait_ms,
+            snapshot_max_age_ms=methodology_snapshot_max_age_ms,
+            route_random_seed=69 if route_random_seed is None else route_random_seed,
+            **scheduler_kwargs,
+        )
+    else:
+        scheduler = CollectingWaitTimeScheduler(
+            instances,
+            defer_sidecar_writes=True,
+            worker_count=worker_count,
+            max_queue_size=max_queue_size,
+            accuracy_model_path=accuracy_model_path,
+            output_length_model_path=output_length_model_path,
+            lambda_weight=lambda_weight,
+            delta_weight=delta_weight,
+            instance_costs=instance_costs,
+            utility_fn=utility_fn,
+            tokenizer_id=tokenizer_id,
+            tokenizer_mode=tokenizer_mode,
+            response_map_path=response_map_path,
+            request_log_path=request_log_path,
+            utility_state=utility_state,
+            route_strategy=route_strategy,
+            route_random_seed=route_random_seed,
+            affinity_bucket_to_instances=affinity_bucket_to_instances,
+            affinity_global_fallback_instances=affinity_global_fallback_instances,
+            affinity_upgrade_margin=affinity_upgrade_margin,
+            score_cost_weight=score_cost_weight,
+            score_latency_weight=score_latency_weight,
+            wait_estimator=wait_estimator,
+            wait_estimator_name=wait_estimator_name,
+            wait_estimator_context=wait_estimator_context,
+            wait_estimators=wait_estimators,
+            wait_estimator_contexts=wait_estimator_contexts,
+            skip_wait_result_build=skip_wait_result_build,
+            include_unconditional_live_fetch=include_unconditional_live_fetch,
+            readiness_diagnostics=readiness_diagnostics,
+            readiness_predictor_path=readiness_predictor_path,
+            enable_wait_time_polling=enable_wait_time_polling,
+            critical_wait_time_timeout_s=critical_wait_time_timeout_s,
+        )
 
     loop = asyncio.get_running_loop()
     arrival_rng = random.Random(arrival_seed)
@@ -4474,9 +4548,12 @@ async def run_policy(
             f"Supported: {', '.join(ARRIVAL_PROCESSES)}."
         )
     completion_futures: list[asyncio.Future] = []
-    await warm_up_instances(list(instances.values()))
+    if not is_latency_history:
+        await warm_up_instances(list(instances.values()))
     await scheduler.start()
     run_start_perf = time.perf_counter()
+    if trial_monitor is not None:
+        await trial_monitor.start(run_start_perf, scheduler, instances)
 
     def _selected_slo_ms(req: ExperimentRequest) -> float:
         if resolved_feasible_slo_mode == "queue":
@@ -4547,10 +4624,16 @@ async def run_policy(
             async def _producer() -> None:
                 for idx, req in enumerate(requests):
                     await _sleep_for_interarrival(idx)
+                    if trial_monitor is not None and trial_monitor.stop_reason():
+                        break
                     completion_future: asyncio.Future = loop.create_future()
                     completion_futures.append(completion_future)
                     system_entry_perf = time.perf_counter()
+                    if trial_monitor is not None:
+                        trial_monitor.arrived(req, completion_future, system_entry_perf)
                     await ingress_queue.put((req, completion_future, system_entry_perf))
+                if trial_monitor is not None:
+                    trial_monitor.end_arrivals()
                 await ingress_queue.put(None)
 
             async def _submitter() -> None:
@@ -4569,21 +4652,31 @@ async def run_policy(
         else:
             for idx, req in enumerate(requests):
                 await _sleep_for_interarrival(idx)
+                if trial_monitor is not None and trial_monitor.stop_reason():
+                    break
                 completion_future: asyncio.Future = loop.create_future()
                 completion_futures.append(completion_future)
                 system_entry_perf = time.perf_counter()
+                if trial_monitor is not None:
+                    trial_monitor.arrived(req, completion_future, system_entry_perf)
                 await _route_single_request(
                     req,
                     completion_future=completion_future,
                     system_entry_perf=system_entry_perf,
                     started_perf=system_entry_perf,
                 )
+            if trial_monitor is not None:
+                trial_monitor.end_arrivals()
 
+        if is_methodology:
+            scheduler.finish_arrivals()
         raw_results = await asyncio.gather(*completion_futures)
         await scheduler.drain()
         await scheduler.flush_sidecar_logs()
     finally:
         await scheduler.stop(close_instances=close_instances_on_stop)
+        if trial_monitor is not None:
+            await trial_monitor.close()
 
     response_latency_components: dict[str, RequestLatencyComponents] = {}
     if per_request_wait_logs:
@@ -4888,6 +4981,9 @@ async def run_policy(
             "queue_slo_ms": req.queue_slo_ms,
             "ttft_slo_ms": req.ttft_slo_ms,
             "latency_ms": latency_ms,
+            "system_entry_offset_s": (
+                system_entry_perf - run_start_perf if system_entry_perf is not None else None
+            ),
             "arrival_to_dispatch_ms": arrival_to_dispatch_ms,
             "system_entry_to_dispatch_ms": system_entry_to_dispatch_ms,
             "queue_delay_ms": queue_delay_ms,
@@ -4922,6 +5018,7 @@ async def run_policy(
             "wait_estimates_ms": item.get("wait_estimates_ms"),
             "score_candidate_terms": item.get("score_candidate_terms"),
             "score_policy_terms": item.get("score_policy_terms"),
+            "methodology_terms": item.get("methodology_terms"),
             "wait_estimator": item.get("wait_estimator", wait_estimator_name),
             "route_strategy": item.get("route_strategy", route_strategy),
             "feasible_slo_mode": resolved_feasible_slo_mode,
@@ -5042,6 +5139,8 @@ async def run_policy(
     }
     if score_policy_state is not None:
         run_result["score_policy_state"] = score_policy_state.as_dict()
+    if is_methodology or is_latency_history:
+        run_result["methodology_config"] = scheduler.run_metadata()
     return run_result
 
 
@@ -5107,6 +5206,10 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Force rebuilding converted holdout cache files even when manifest matches.",
     )
+    parser.add_argument("--require-existing-holdout-cache", action="store_true",
+                        help="Fail instead of rebuilding an incompatible holdout cache.")
+    parser.add_argument("--frozen-legacy-holdout-cache", action="store_true",
+                        help="Use a checksummed derived cache retaining original paper token counts.")
     parser.add_argument(
         "--slo-min-ms",
         type=float,
@@ -5413,6 +5516,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--instances-config", type=Path, default=None)
     parser.add_argument("--accuracy-model-path", type=str, default=None)
     parser.add_argument("--output-length-model-path", type=str, default=None)
+    parser.add_argument("--latency-warmup-requests", type=str, default=None)
+    parser.add_argument("--methodology-calibration-json", type=str, default=None,
+                        help="Audited request-speed, Mooncake prefill, and RouteBalance TPOT artifact.")
+    parser.add_argument("--routebalance-predictor-path", type=str, default=None,
+                        help="Native CPU MiniLM/FAISS KNN artifact; no SFS predictor fallback.")
+    parser.add_argument("--routebalance-weights", nargs=3, type=float,
+                        default=(1/3, 1/3, 1/3), metavar=("QUALITY", "COST", "LATENCY"))
+    parser.add_argument("--routebalance-batch-max-size", type=int, default=16)
+    parser.add_argument("--routebalance-batch-wait-ms", type=float, default=25.0)
+    parser.add_argument("--methodology-snapshot-max-age-ms", type=float, default=1000.0)
     parser.add_argument("--lambda-weight", type=float, default=0.3)
     parser.add_argument("--delta-weight", type=float, default=0.5)
     parser.add_argument(
@@ -5535,6 +5648,28 @@ def parse_args() -> argparse.Namespace:
 
     args = parser.parse_args()
     try:
+        from sfs_core.routing.methodology_policies import RouteBalanceWeights
+        RouteBalanceWeights(*args.routebalance_weights)
+    except ValueError as exc:
+        parser.error(str(exc))
+    if args.routebalance_batch_max_size < 1:
+        parser.error("--routebalance-batch-max-size must be >= 1.")
+    for name in ("routebalance_batch_wait_ms", "methodology_snapshot_max_age_ms"):
+        value = getattr(args, name)
+        if not math.isfinite(value) or value < 0:
+            parser.error(f"--{name.replace('_', '-')} must be finite and nonnegative.")
+    if "vllm_sr_latency" in args.utilities:
+        from sfs_core.routing.latency_warmup import load_warmup
+        try:
+            load_warmup(args.latency_warmup_requests)
+        except (ValueError, OSError, KeyError) as exc:
+            parser.error(str(exc))
+    methodology_selected = set(args.utilities) & {"lmdeploy_proxy", "mooncake_prefill", "routebalance"}
+    if methodology_selected and not args.methodology_calibration_json:
+        parser.error("Methodology baselines require --methodology-calibration-json.")
+    if "routebalance" in methodology_selected and not args.routebalance_predictor_path:
+        parser.error("RouteBalance requires --routebalance-predictor-path.")
+    try:
         args.prefill_tps_overrides = _parse_prefill_tps_overrides(args.prefill_tps)
         args.calibrated_service_metrics = _load_calibrated_service_metrics(
             args.service_metrics_json
@@ -5651,6 +5786,8 @@ def _resolve_prompt_source(
         holdout_context_length=args.holdout_context_length,
         max_completion_tokens=args.max_completion_tokens,
         rebuild=args.rebuild_holdout_cache,
+        require_existing=getattr(args, "require_existing_holdout_cache", False),
+        frozen_legacy=getattr(args, "frozen_legacy_holdout_cache", False),
         system_prompt=args.system_prompt,
         chat_template_kwargs=args.chat_template_kwargs,
     )
@@ -6081,6 +6218,8 @@ def _baseline_runtime_params(
     delta_weight: float,
 ) -> tuple[float, float, str, Optional[WaitEstimatorCallable], str, bool]:
     utility = utility_name.strip().lower()
+    if utility in {"lmdeploy_proxy", "mooncake_prefill", "routebalance", "vllm_sr_latency"}:
+        return lambda_weight, 0.0, utility, None, utility, True
     if utility == "round_robin":
         return (
             lambda_weight,
@@ -6208,6 +6347,7 @@ async def run_router_experiment(
     instance_metadata: Dict[str, Any],
     response_map_base_path: Path,
     request_log_base_path: Path,
+    trial_monitor: Any = None,
 ) -> Dict[str, Any]:
     normalized_utilities = [str(name).strip().lower() for name in args.utilities]
     for utility_name in args.utilities:
@@ -6444,6 +6584,15 @@ async def run_router_experiment(
             score_cost_weight=float(args.score_cost_weight),
             score_latency_weight=float(args.score_latency_weight),
             score_total_cost_budget=args.score_total_cost_budget,
+            latency_warmup_requests=getattr(args, "latency_warmup_requests", None),
+            methodology_calibration_path=getattr(args, "methodology_calibration_json", None),
+            methodology_serving_profile=instance_metadata.get("serving_profile", {}),
+            routebalance_predictor_path=getattr(args, "routebalance_predictor_path", None),
+            routebalance_weights=tuple(getattr(args, "routebalance_weights", (1/3, 1/3, 1/3))),
+            routebalance_batch_max_size=getattr(args, "routebalance_batch_max_size", 16),
+            routebalance_batch_wait_ms=getattr(args, "routebalance_batch_wait_ms", 25.0),
+            methodology_snapshot_max_age_ms=getattr(args, "methodology_snapshot_max_age_ms", 1000.0),
+            trial_monitor=trial_monitor,
             close_instances_on_stop=False,
         )
         run["baseline_config"] = {
@@ -6453,6 +6602,8 @@ async def run_router_experiment(
             "wait_estimator": wait_estimator_name,
             "feasible_slo_mode": args.feasible_slo_mode,
         }
+        if "methodology_config" in run:
+            run["baseline_config"]["methodology"] = run["methodology_config"]
         if utility_name == "score":
             run["baseline_config"]["score"] = {
                 "published_fixed_lambda_argmax": True,
@@ -6997,6 +7148,13 @@ async def async_main(args: argparse.Namespace) -> None:
             "feasible_slo_mode": args.feasible_slo_mode,
             "accuracy_model_path": args.accuracy_model_path,
             "output_length_model_path": args.output_length_model_path,
+            "latency_warmup_requests": args.latency_warmup_requests,
+            "methodology_calibration_json": args.methodology_calibration_json,
+            "routebalance_predictor_path": args.routebalance_predictor_path,
+            "routebalance_weights": list(args.routebalance_weights),
+            "routebalance_batch_max_size": args.routebalance_batch_max_size,
+            "routebalance_batch_wait_ms": args.routebalance_batch_wait_ms,
+            "methodology_snapshot_max_age_ms": args.methodology_snapshot_max_age_ms,
             "lambda_weight": args.lambda_weight,
             "delta_weight": args.delta_weight,
             "score_cost_weight": args.score_cost_weight,
@@ -7014,7 +7172,9 @@ async def async_main(args: argparse.Namespace) -> None:
             "response_map_base_path": str(response_map_base_path),
             "request_log_base_path": str(request_log_base_path),
             "bucket_dir": str(args.bucket_dir.expanduser().resolve()),
-            "bucket_files": get_prompt_bucket_files(args.bucket_dir.expanduser().resolve()),
+            # Populated from the actual request source below. Batch-fit runs
+            # have no prompt dependency; holdout caches may not exist yet.
+            "bucket_files": [],
             "affinity_scored_root": str(args.affinity_scored_root.expanduser().resolve()),
             "affinity_quality_epsilon": float(args.affinity_quality_epsilon),
             "affinity_upgrade_margin": float(args.affinity_upgrade_margin),

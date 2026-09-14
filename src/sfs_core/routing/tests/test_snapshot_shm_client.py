@@ -11,6 +11,7 @@ from vllm.v1.core.sched.snapshot_serialization import (
     encode_scheduler_state_snapshot,
 )
 from vllm.v1.core.sched.state_snapshot import (
+    InflightBatchSnapshot,
     RequestStateSnapshot,
     SchedulerConfigSnapshot,
     SchedulerKVCacheSnapshot,
@@ -272,6 +273,48 @@ def test_snapshot_shm_client_never_returns_older_than_sampled_header():
         estimate = client.estimate(prompt_tokens=32)
 
         assert estimate.payload["reports"][0]["snapshot_version"] >= 56
+    finally:
+        client.close()
+        publisher.close()
+
+
+def test_extended_inflight_payload_remains_compatible_with_native_reader():
+    snapshot = _build_snapshot(version=57, created_at=57.0)
+    request_id = snapshot.waiting_request_ids[0]
+    request = snapshot.requests[request_id]
+    request.status = "RUNNING"
+    request.num_computed_tokens = 32
+    request.num_prompt_processed_tokens = 32
+    snapshot.running_request_ids = [request_id]
+    snapshot.waiting_request_ids = []
+    snapshot.num_running = 1
+    snapshot.num_waiting = 0
+    snapshot.inflight_batch = InflightBatchSnapshot(
+        batch_prefill_tokens=32,
+        batch_prefill_tokens_sq=1024,
+        batch_decode_tokens=0,
+        batch_total_context_len=32,
+        batch_sq_sum_context_len=1024,
+        projected_output_request_indices=(0,),
+        scheduled_tokens_by_request={request_id: 32},
+    )
+    publisher = SnapshotShmPublisher(
+        name=_publisher_name(),
+        size_bytes=1024 * 1024,
+        simulation_intercept=1.0,
+        simulation_prefill_coeff=0.1,
+        simulation_prefill_sq_coeff=0.0,
+        simulation_decode_coeff=0.2,
+        simulation_sum_coeff=0.0,
+        simulation_sum_sq_coeff=0.0,
+    )
+    client = SnapshotShmClient(shm_name=publisher.name)
+    try:
+        assert publisher.publish(snapshot, encode_scheduler_state_snapshot(snapshot))
+        baseline = client.baseline_state(now=57.0)
+        assert baseline.requests[request_id].remaining_prompt_tokens == 32
+        native = _eventually_estimate(client, prompt_tokens=None)
+        assert native.payload["reports"][0]["snapshot_version"] == 57
     finally:
         client.close()
         publisher.close()

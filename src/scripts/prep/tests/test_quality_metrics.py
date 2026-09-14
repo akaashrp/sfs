@@ -11,6 +11,23 @@ from scripts.prep import quality_metrics
 MODELS = ("ministral3-3b", "ministral3-8b", "ministral3-14b")
 
 
+def test_gemini_payload_uses_supported_system_instruction(monkeypatch):
+    calls = []
+    def generate(**payload):
+        calls.append(payload)
+        assert all(c["role"] in ("user", "model") for c in payload["contents"])
+        assert payload["config"]["system_instruction"] in (
+            quality_metrics.JUDGE_SYSTEM_PROMPT, quality_metrics.JUDGE_GROUP_SYSTEM_PROMPT)
+        text = '{"scores":{"A":1,"B":2,"C":3}}' if len(calls) == 1 else '7'
+        return SimpleNamespace(candidates=[SimpleNamespace(content=SimpleNamespace(parts=[SimpleNamespace(text=text)]))])
+    monkeypatch.setattr(quality_metrics, "_get_gemini_client",
+                        lambda: SimpleNamespace(models=SimpleNamespace(generate_content=generate)))
+    quality_metrics.judge_scores_for_prompt_group(prompt="p", gold="g", example_id="x",
+                                                  candidates_by_model=dict(zip(MODELS, ("a","b","c"))))
+    assert quality_metrics.judge_score("p", "a", "g", "x") == 7
+    assert len(calls) == 2
+
+
 def _write_generation_file(path: Path, model_name: str, count: int = 4) -> None:
     with path.open("w", encoding="utf-8") as dst:
         for index in range(count):

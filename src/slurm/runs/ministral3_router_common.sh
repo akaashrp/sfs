@@ -302,6 +302,32 @@ output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 PY
 }
 
+ministral3_configure_ipc() {
+  # TMPDIR may be a long Lustre workspace path. vLLM appends a UUID for
+  # Unix-domain sockets, whose pathname limit is only 107 bytes on Linux.
+  export VLLM_RPC_BASE_PATH="${MINISTRAL_JOB_LOCAL:?}/ipc"
+  mkdir -p "$VLLM_RPC_BASE_PATH"
+  python - <<'PY'
+import os
+from pathlib import Path
+from uuid import uuid4
+import zmq
+
+path = Path(os.environ["VLLM_RPC_BASE_PATH"]) / str(uuid4())
+if len(os.fsencode(path)) > zmq.IPC_PATH_MAX_LEN:
+    raise RuntimeError(f"vLLM IPC pathname exceeds {zmq.IPC_PATH_MAX_LEN} bytes: {path}")
+context = zmq.Context()
+socket = context.socket(zmq.PULL)
+try:
+    socket.bind(f"ipc://{path}")
+finally:
+    socket.close(linger=0)
+    context.term()
+    path.unlink(missing_ok=True)
+print(f"[PASS] vLLM IPC bind: {path.parent}")
+PY
+}
+
 ministral3_start_router_pool() {
   if [[ -z "${MINISTRAL_RUN_ROOT:-}" ]]; then
     echo "[ERROR] Set MINISTRAL_RUN_ROOT before starting the router pool." >&2
@@ -336,6 +362,7 @@ PY
 
   local job_id="${SLURM_JOB_ID:?Router pool requires a Slurm job ID}"
   MINISTRAL_JOB_LOCAL="/local/$USER/$job_id"
+  ministral3_configure_ipc
   mkdir -p \
     "$MINISTRAL_JOB_LOCAL/.cache/vllm" \
     "$MINISTRAL_JOB_LOCAL/.triton" \
@@ -416,6 +443,7 @@ PY
     echo "recorded_vllm_commit=$MINISTRAL_EXPECTED_VLLM_COMMIT"
     echo "active_vllm_root=$MINISTRAL_ACTIVE_VLLM_ROOT"
     echo "active_vllm_commit=$MINISTRAL_ACTIVE_VLLM_COMMIT"
+    echo "vllm_rpc_base_path=$VLLM_RPC_BASE_PATH"
     echo "service_run_dir=$MINISTRAL_SERVICE_RUN_DIR"
     echo "predictor_run_dir=$MINISTRAL_PREDICTOR_RUN_DIR"
     echo "gpu_mapping_3b=${MINISTRAL_GPU_IDS[0]}"

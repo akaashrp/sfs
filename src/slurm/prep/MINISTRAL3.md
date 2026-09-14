@@ -1,5 +1,19 @@
 # Ministral 3 calibration generations
 
+For the current Mooncake, LMDeploy, and RouteBalance implementation plan, read
+[the baseline audit, updated September 7](MINISTRAL3_BASELINE_AUDIT.md). It supersedes
+the legacy Figure 5 policy/load plan below. The three policies and CPU tooling
+are implemented; see the [baseline run guide](MINISTRAL3_BASELINES.md).
+Corrected service calibration and holdout generation/judging have completed.
+Interactive job `45367216` failed at metadata validation; the loader bug is now
+fixed and CPU-tested. Job `45365762` remains held for prefill probes, timing
+fits, eight-policy smoke and capacity scouting. The obsolete Figure 5 jobs
+`45091769`, `45091770`, and `45197570` were cancelled; their artifacts remain.
+The replacement uses 16,000 requests/cell (updated September 8) and awaits measured loads. Figure 3 was repaired from
+existing traces on CPU; Figure 2 startup fixes await GPU validation.
+The [current paper-job guide](PAPER_ABLATIONS.md) covers all four experiment
+tracks, the 16k canonical Qwen budget, and the recorded validation gates.
+
 The family-specific preparation launchers generate aligned calibration outputs
 for the official BF16 Ministral 3 Instruct variants:
 
@@ -234,9 +248,12 @@ paper comparisons:
 - `ministral3_batch_fit.sbatch` performs an 80/20 held-out batch-time fit for
   all three models and emits the Figure 3 parity plots.
 - `ministral3_router_sweep.sbatch` runs the Figure 5 offered-load sweep, the
-  Figure 6 delta sweep, and the Figure 7 Poisson/MMPP-2 comparison. QPS values
-  are expressed as fractions of the measured three-server capacity so the load
-  regimes remain comparable after changing model family.
+  Figure 6 delta sweep, and the Figure 7 Poisson/MMPP-2 comparison. The existing
+  wrapper expresses QPS as fractions of the sum of standalone service rates.
+  That sum is not a measured router capacity. The revised Figure 5 plan requires
+  a shortest-queue scout under the final serving profile before choosing rates;
+  see the baseline audit linked above. Figures 6 and 7 are outside the current
+  baseline ablation.
 
 Run the router wrapper twice for Figure 5 (`SWEEP_KIND=qps`, snapshot and
 baseline utility groups), once for Figure 6 (`SWEEP_KIND=delta`, combined), and

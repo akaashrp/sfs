@@ -215,7 +215,8 @@ def judge_score(prompt: str, prediction: str, gold: Optional[str], example_id: O
 
     response = client.models.generate_content(
         model=DEFAULT_JUDGE_MODEL,
-        contents=[{"role": "system", "parts": [{"text": JUDGE_SYSTEM_PROMPT}]}, {"role": "user", "parts": [{"text": judge_input}]}],
+        config={"system_instruction": JUDGE_SYSTEM_PROMPT},
+        contents=[{"role": "user", "parts": [{"text": judge_input}]}],
     )
     try:
         content = response.candidates[0].content.parts[0].text if response.candidates else ""
@@ -267,8 +268,8 @@ def judge_scores_for_prompt_group(
 
     response = client.models.generate_content(
         model=DEFAULT_JUDGE_MODEL,
+        config={"system_instruction": JUDGE_GROUP_SYSTEM_PROMPT},
         contents=[
-            {"role": "system", "parts": [{"text": JUDGE_GROUP_SYSTEM_PROMPT}]},
             {"role": "user", "parts": [{"text": judge_input}]},
         ],
     )

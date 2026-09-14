@@ -28,6 +28,26 @@ else
   fi
 fi
 
+# A frozen manifest replaces the historical 13-rate/four-policy matrix.
+# This mode handles Figure 5 only and accepts one or more completed raw runs.
+if [[ -n "${FIGURE5_MANIFEST:-}" ]]; then
+  source "$(conda info --base)/etc/profile.d/conda.sh"
+  conda activate vllm
+  export PYTHONPATH="$SFS_ROOT/experiments/methodology_baselines/deps:$SFS_ROOT/src:${PYTHONPATH:-}"
+  export TMPDIR="$SFS_ROOT/experiments/methodology_baselines/scratch"
+  mkdir -p "$TMPDIR"
+  export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 MPLBACKEND=Agg
+  FIGURE5_MANIFEST="$(realpath "$FIGURE5_MANIFEST")"
+  cd "$SFS_ROOT/src"
+  python -m scripts.runs.ministral3_figure5 validate --manifest "$FIGURE5_MANIFEST"
+  if [[ "${VALIDATE_ONLY:-0}" == "1" ]]; then exit 0; fi
+  read -r -a figure5_raw_runs <<< "${FIGURE5_RAW_RUNS:?Set absolute raw run roots separated by spaces}"
+  python -m scripts.runs.ministral3_figure5 collate --manifest "$FIGURE5_MANIFEST" \
+    --raw-runs "${figure5_raw_runs[@]}" \
+    --output-root "${OUTPUT_ROOT:-$SFS_ROOT/experiments/ministral3_paper/paper_figures/measured_run_${SLURM_JOB_ID:?}}"
+  exit 0
+fi
+
 QPS_SNAPSHOT_JOB_ID="${QPS_SNAPSHOT_JOB_ID:-}"
 QPS_BASELINE_JOB_ID="${QPS_BASELINE_JOB_ID:-}"
 DELTA_JOB_ID="${DELTA_JOB_ID:-}"
