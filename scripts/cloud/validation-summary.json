@@ -1,0 +1,107 @@
+{
+  "status": "PASS_LOCAL_PREPARATION",
+  "created_utc": "2026-09-14T11:18:05.087023+00:00",
+  "sfs_commit": "db2586a7390ccdd4338d7a26ff865249d89a3b12",
+  "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
+  "regression_tests_passed": 76,
+  "regression_tests_failed_or_skipped": 0,
+  "cpu_serving_model_variant_combinations": 9,
+  "cpu_serving_cases": 27,
+  "cpu_inputs": {
+    "qwen": {
+      "requests": 16000,
+      "calibration": 10000,
+      "warmup": 32,
+      "variants": [
+        "canonical",
+        "mlp_quality",
+        "mlp_length",
+        "flash_quality"
+      ]
+    },
+    "ministral": {
+      "requests": 8000,
+      "calibration": 10000,
+      "warmup": 32,
+      "variants": [
+        "canonical"
+      ]
+    }
+  },
+  "cells": 68,
+  "evaluation_requests": 800000,
+  "source_fingerprint_sha256": "ad077866a40dbf6ebfa572a560d4e8ca785c2dd13af0f386b0cbf5d55015b221",
+  "github_clone": {
+    "status": "PASS",
+    "sfs_commit": "db2586a7390ccdd4338d7a26ff865249d89a3b12",
+    "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
+    "tracked_blobs_match": true,
+    "protected_files": 35,
+    "original_sfs_branch": "experiments/model-family-port",
+    "original_sfs_commit": "133d100f738dcb705dc0c1c0594505f8cc15c09e",
+    "original_vllm_commit": "e5233a4abbad78c793b694ffe643a7675633b22c"
+  },
+  "artifact_archive": {
+    "status": "PASS",
+    "files": 178,
+    "archive": "/ocean/projects/cis250162p/aparthas/sfs-cloud-inputs-20260914.tar.gz",
+    "bytes": 1625709166,
+    "sha256": "92cc9d17b665cd0b655258a3112c36e3323ed368edbc694940d6d48d9d8b0e6e",
+    "bundle_sha256": "c78584caf97874f83de8953a29cb2e824c3bda04ff883b74ba662e6ce09dc924"
+  },
+  "dependency_resolution": {
+    "conda_cuda_toolkit": "12.9.1",
+    "conda_dry_run": "PASS",
+    "pip_dry_run": "PASS"
+  },
+  "local_environment": "Existing conda vllm plus the dedicated methodology dependency target; matching existing native binaries. This was not a fresh cloud installation.",
+  "resolved_preparation_findings": [
+    "Explicit CUDA toolkit version prevents the solver selecting CUDA 13 from another channel.",
+    "Local rerun required the existing methodology dependency target for faiss and xgboost; both are explicitly pinned in the cloud lock."
+  ],
+  "evidence": {
+    "regression-release-with-deps/gate.json": {
+      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/regression-release-with-deps/gate.json",
+      "sha256": "fa20c065c58380856563f0d79e2bd61c53b18a33c3a394713a0e1c1fe16c63c1"
+    },
+    "regression-release-with-deps/results.xml": {
+      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/regression-release-with-deps/results.xml",
+      "sha256": "2f0ce0aaf2a695f2e173695865bb1fe2bca0b807f4d92a3ba71649966e05ea34"
+    },
+    "cpu-inputs-release.json": {
+      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/cpu-inputs-release.json",
+      "sha256": "b186dc4dd777b2eec5425428dcaa123795e765553d03f69e9a74cea6179af54f"
+    },
+    "cpu-serving-release.json": {
+      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/cpu-serving-release.json",
+      "sha256": "b162595ee7df727c56724bb6bda8e9940f4d7dfc152364bc48c096cea86b27a6"
+    },
+    "github-clone-proof.json": {
+      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/github-clone-proof.json",
+      "sha256": "1bd4ac1e63726c8dff97933de4e3cbcddd2bdea7503f1bf87fc10276663d03af"
+    },
+    "archive-proof.json": {
+      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/archive-proof.json",
+      "sha256": "5805c008b470d6ba30504de843073336689085925de2930639ba55603965641b"
+    },
+    "bootstrap-pinned-solve.log": {
+      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/bootstrap-pinned-solve.log",
+      "sha256": "046e7063af8cb0895b3d1e14d85311aff495f8dab4e79e6642378579e48b796f"
+    },
+    "pip-final-dry-run.json": {
+      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/pip-final-dry-run.json",
+      "sha256": "7a289ff9f76a4bf52c313e4e9c86a98f2f84f3e347f9f7d242f6c79603c3b595"
+    },
+    "ministral-selector-extension/manifest.json": {
+      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/ministral-selector-extension/manifest.json",
+      "sha256": "a893904b5c73bbb39d50ff08ce28489c10b6fe78cff3304c38bdca5b1a738fd8"
+    }
+  },
+  "not_exercised": [
+    "Fresh provider environment installation and native build",
+    "Destination GPU inference and NCCL",
+    "Destination timing calibration and load qualification",
+    "The 68 evaluation cells"
+  ],
+  "next_step": "Rent the documented H100 layout, attach storage, configure controller SSH aliases, then execute the destination bootstrap and qualification workflow."
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "sfs_branch": "experiments/cloud-68-20260914",
+  "sfs_commit": "db2586a7390ccdd4338d7a26ff865249d89a3b12",
+  "vllm_branch": "experiments/sfs-cloud-20260914",
+  "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
+  "artifact_archive": {
+    "status": "PASS",
+    "files": 178,
+    "archive": "/ocean/projects/cis250162p/aparthas/sfs-cloud-inputs-20260914.tar.gz",
+    "bytes": 1625709166,
+    "sha256": "92cc9d17b665cd0b655258a3112c36e3323ed368edbc694940d6d48d9d8b0e6e",
+    "bundle_sha256": "c78584caf97874f83de8953a29cb2e824c3bda04ff883b74ba662e6ce09dc924"
+  },
+  "bundle_directory": "/ocean/projects/cis250162p/aparthas/sfs_cloud_artifacts_20260914",
+  "cells": 68,
+  "requests_total": 800000,
+  "deployment_status": "Prepared; destination GPU validation requires SSH access",
+  "metadata_note": "This file is a metadata-only handoff committed after the executable release it pins.",
+  "validation_summary": "scripts/cloud/validation-summary.json"
+}
