@@ -1,13 +1,11 @@
 {
   "status": "PASS_LOCAL_PREPARATION",
-  "created_utc": "2026-09-14T11:18:05.087023+00:00",
-  "sfs_commit": "db2586a7390ccdd4338d7a26ff865249d89a3b12",
-  "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
-  "regression_tests_passed": 76,
+  "created_utc": "2026-09-15T19:31:03.502638+00:00",
+  "sfs_commit": "e117dac2511dd985c01cb7caef6267395bf9ca84",
+  "regression_tests_passed": 90,
   "regression_tests_failed_or_skipped": 0,
-  "cpu_serving_model_variant_combinations": 9,
   "cpu_serving_cases": 27,
-  "cpu_inputs": {
+  "cpu_input_families": {
     "qwen": {
       "requests": 16000,
       "calibration": 10000,
@@ -30,78 +28,81 @@
   },
   "cells": 68,
   "evaluation_requests": 800000,
-  "source_fingerprint_sha256": "ad077866a40dbf6ebfa572a560d4e8ca785c2dd13af0f386b0cbf5d55015b221",
+  "source_fingerprint_sha256": "bd8225117ae177b7059e07122b74bf8127818ce358350a78dd712a2489c70733",
   "github_clone": {
     "status": "PASS",
-    "sfs_commit": "db2586a7390ccdd4338d7a26ff865249d89a3b12",
-    "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
-    "tracked_blobs_match": true,
-    "protected_files": 35,
-    "original_sfs_branch": "experiments/model-family-port",
-    "original_sfs_commit": "133d100f738dcb705dc0c1c0594505f8cc15c09e",
-    "original_vllm_commit": "e5233a4abbad78c793b694ffe643a7675633b22c"
+    "sfs_commit": "e117dac2511dd985c01cb7caef6267395bf9ca84",
+    "clean_checkout_paths": [
+      "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914",
+      "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/github-clone-proof",
+      "/ocean/projects/cis250162p/aparthas/sfs_ministral_recovery_20260915"
+    ],
+    "remote_clone_matches": true
   },
-  "artifact_archive": {
-    "status": "PASS",
-    "files": 178,
-    "archive": "/ocean/projects/cis250162p/aparthas/sfs-cloud-inputs-20260914.tar.gz",
-    "bytes": 1625709166,
-    "sha256": "92cc9d17b665cd0b655258a3112c36e3323ed368edbc694940d6d48d9d8b0e6e",
-    "bundle_sha256": "c78584caf97874f83de8953a29cb2e824c3bda04ff883b74ba662e6ce09dc924"
+  "recovery": {
+    "job_id": "46077428",
+    "state_at_submission": "HELD_FOR_STORED_SCRIPT_VERIFICATION",
+    "command": [
+      "sbatch",
+      "--hold",
+      "--parsable",
+      "--account=cis260115p",
+      "--chdir=/ocean/projects/cis250162p/aparthas/sfs_model_family",
+      "--export=ALL",
+      "/ocean/projects/cis250162p/aparthas/sfs_ministral_recovery_20260915/scripts/cloud/ministral-recovery.sbatch"
+    ],
+    "code_root": "/ocean/projects/cis250162p/aparthas/sfs_ministral_recovery_20260915",
+    "plan": "/ocean/projects/cis250162p/aparthas/sfs_model_family/experiments/campaign_recovery_20260915/plan.json",
+    "plan_sha256": "a61340f0f830a74d94c6ab5b897c9757c3cc64b96d5778c4481372aeac2d2e29",
+    "replaces_job": "45842584",
+    "reruns_failed_cells_from_job": "45842572",
+    "new_cells": 20,
+    "reused_cells": 12,
+    "required_gpu_smoke": true,
+    "stored_script_sha256": "e8c2126584b38520a6eaad910a23328a4825deeb24f9297f88f8b6397b8215ad",
+    "stored_script_matches": true,
+    "released": true,
+    "replaced_job_cancelled": true,
+    "updated_utc": "2026-09-15T19:31:03.502638+00:00"
   },
-  "dependency_resolution": {
-    "conda_cuda_toolkit": "12.9.1",
-    "conda_dry_run": "PASS",
-    "pip_dry_run": "PASS"
+  "salvaged_cells": 12,
+  "salvaged_requests": 96000,
+  "salvage_quality_audit": "PASS",
+  "salvage_audit": {
+    "path": "/ocean/projects/cis250162p/aparthas/sfs_model_family/experiments/campaign_recovery_20260915/reused_baselines/audit.json",
+    "sha256": "4fda26e8b29ef72d7be68e5ac696f0a21f49f7f0c115f9ea5a5dbd1f4bc11fcc"
   },
-  "local_environment": "Existing conda vllm plus the dedicated methodology dependency target; matching existing native binaries. This was not a fresh cloud installation.",
-  "resolved_preparation_findings": [
-    "Explicit CUDA toolkit version prevents the solver selecting CUDA 13 from another channel.",
-    "Local rerun required the existing methodology dependency target for faiss and xgboost; both are explicitly pinned in the cloud lock."
-  ],
+  "empty_environment_launcher_preflight": {
+    "status": "PASS_EMPTY_ENV_PREFLIGHT",
+    "plan_sha256": "a61340f0f830a74d94c6ab5b897c9757c3cc64b96d5778c4481372aeac2d2e29",
+    "launcher_sha256": "e8c2126584b38520a6eaad910a23328a4825deeb24f9297f88f8b6397b8215ad"
+  },
+  "original_bridges_source": "All 35 previously protected files unchanged; shared scheduler and Qwen launch paths unchanged.",
+  "local_environment": "Existing conda vllm plus the methodology dependency target and matching existing native binaries.",
   "evidence": {
-    "regression-release-with-deps/gate.json": {
-      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/regression-release-with-deps/gate.json",
-      "sha256": "fa20c065c58380856563f0d79e2bd61c53b18a33c3a394713a0e1c1fe16c63c1"
+    "regression-release/gate.json": {
+      "path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/recovery-20260915/regression-release/gate.json",
+      "sha256": "ad1efd440526e48078b5d62cb0b7f47735c06dff4de6345313b0887af3d39e3d"
     },
-    "regression-release-with-deps/results.xml": {
-      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/regression-release-with-deps/results.xml",
-      "sha256": "2f0ce0aaf2a695f2e173695865bb1fe2bca0b807f4d92a3ba71649966e05ea34"
+    "regression-release/results.xml": {
+      "path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/recovery-20260915/regression-release/results.xml",
+      "sha256": "e745c49c426af8094e9acc65aee900b653fa8c405d01581429b360856a98dd8f"
     },
     "cpu-inputs-release.json": {
-      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/cpu-inputs-release.json",
-      "sha256": "b186dc4dd777b2eec5425428dcaa123795e765553d03f69e9a74cea6179af54f"
+      "path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/recovery-20260915/cpu-inputs-release.json",
+      "sha256": "b3c7d323fd3bf39611523a96440ab09498746cbbd846301efec7459f23e950f4"
     },
-    "cpu-serving-release.json": {
-      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/cpu-serving-release.json",
-      "sha256": "b162595ee7df727c56724bb6bda8e9940f4d7dfc152364bc48c096cea86b27a6"
+    "cpu-serving.json": {
+      "path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/recovery-20260915/cpu-serving.json",
+      "sha256": "48e79439d870200d6ead2589729bfdf9a79173b572b4bcd5f8bfac81c0e98d0c"
     },
-    "github-clone-proof.json": {
-      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/github-clone-proof.json",
-      "sha256": "1bd4ac1e63726c8dff97933de4e3cbcddd2bdea7503f1bf87fc10276663d03af"
-    },
-    "archive-proof.json": {
-      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/archive-proof.json",
-      "sha256": "5805c008b470d6ba30504de843073336689085925de2930639ba55603965641b"
-    },
-    "bootstrap-pinned-solve.log": {
-      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/bootstrap-pinned-solve.log",
-      "sha256": "046e7063af8cb0895b3d1e14d85311aff495f8dab4e79e6642378579e48b796f"
-    },
-    "pip-final-dry-run.json": {
-      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/pip-final-dry-run.json",
-      "sha256": "7a289ff9f76a4bf52c313e4e9c86a98f2f84f3e347f9f7d242f6c79603c3b595"
-    },
-    "ministral-selector-extension/manifest.json": {
-      "local_path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/ministral-selector-extension/manifest.json",
-      "sha256": "a893904b5c73bbb39d50ff08ce28489c10b6fe78cff3304c38bdca5b1a738fd8"
+    "github-proof.json": {
+      "path": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/recovery-20260915/github-proof.json",
+      "sha256": "25e2056f7acb5eefc2ecf7a67558a010f4b270bb5522d0427047db5a15c332af"
     }
   },
   "not_exercised": [
-    "Fresh provider environment installation and native build",
-    "Destination GPU inference and NCCL",
-    "Destination timing calibration and load qualification",
-    "The 68 evaluation cells"
-  ],
-  "next_step": "Rent the documented H100 layout, attach storage, configure controller SSH aliases, then execute the destination bootstrap and qualification workflow."
+    "New Ministral GPU stress and repaired evaluation (submitted as gated Slurm job 46077428)",
+    "Fresh cloud installation, destination GPU/NCCL and cloud qualification"
+  ]
 }
