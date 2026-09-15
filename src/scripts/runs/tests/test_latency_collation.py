@@ -45,7 +45,7 @@ def test_multiple_raw_roots_join_selector_and_preserve_originals(tmp_path,monkey
                    'system_entry_offset_s':i/rate,'system_entry_to_dispatch_ms':1.,'queue_delay_ms':1.,'ttft_ms':2.,
                    'system_entry_e2e_ttft_ms':3.,'system_entry_e2e_ttft_slo_met':True,'actual_cost':.01,'usage_completion_tokens':2,
                    'methodology_terms':terms[i] if terms else {}} for i in range(3)]
-            run={'utility':policy,'per_request':rows,'summary':{'succeeded_requests':3,'failed_requests':0,'system_entry_e2e_ttft_missing_count':0,'system_entry_e2e_ttft_slo_attainment_pct':100.,'system_entry_e2e_ttft_ms':{'mean':3.,'p50':3.,'p90':3.}}}
+            run={'utility':policy,'per_request':rows,'summary':{'succeeded_requests':3,'failed_requests':0,'system_entry_e2e_ttft_slo_missing_count':0,'system_entry_e2e_ttft_slo_attainment_pct':100.,'system_entry_e2e_ttft_ms':{'mean':3.,'p50':3.,'p90':3.}}}
             if metadata:run['methodology_config']=metadata
             payload={'config':{**real_contract(manifest)['configuration'],'request_rate_qps':rate,'seed':69,'arrival_process':'poisson',
                                'prompt_source':{'holdout_prompts_per_bucket':4000},'instance_metadata':{'serving_profile':qwen.PROFILE}},

@@ -4,7 +4,6 @@
   "src/scripts/runs/experiments_sweep.py": "4a090258f7c9d222825847bf3959384c3812070cd15716c8092753922c059d32",
   "src/scripts/runs/experiments.py": "54d3fc4711f84b3962e792230a991950f2af8800a096ee27e47e6ab8ba7a9e6f",
   "src/scripts/runs/qwen_baselines.py": "7ca18c369b3c76e5636e1a9dfb7f38b1413fdf3b521fe479847c1ee2c13406f8",
-  "src/scripts/runs/ministral3_figure5.py": "7c94ff26737acb06b76ebc16aafb2c086a958a6158d98d2490b064e1badd72c3",
   "src/scripts/runs/ministral3_methodology_stage.py": "41faace220aaf6db149e7a77892e530c849e54986c4dd506001fd5e046482cf7",
   "src/scripts/runs/qwen_predictor_variants.py": "8a1e32920833665ddedd1707a3cb7be06a0816953d82644ad18aab269666e9b5",
   "src/slurm/runs/qwen_predictor_smoke.sbatch": "69922bc6e7836ef102c1188b861d88383e26266ed85627d8d10d84eece3d5db0",

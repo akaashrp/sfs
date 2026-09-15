@@ -149,7 +149,7 @@ def main():
             if o.mode == 'smoke':
                 requests=smoke_requests([exp.ExperimentRequest(**json.loads(line)) for line in Path(manifest['calibration_requests']).read_text().splitlines()])
                 args.num_requests=192;args.request_rate_qps=2.
-                payload=await run_point('ministral',args,requests,clients,costs,metadata,o.output/'smoke')
+                payload=await run_point('ministral',args,requests,clients,costs,metadata,o.output/'smoke',data_role='calibration')
                 audit_run(payload['router']['runs'][0],192)
                 write(o.output/'audit.json',{'status':'PASS_GPU_SMOKE','source_sha256':source_hashes(),
                     'manifest_sha256':digest(o.manifest),'point_sha256':digest(o.output/'smoke/point.json')})

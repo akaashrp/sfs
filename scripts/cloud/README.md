@@ -19,6 +19,26 @@ smoke, and load-probe traffic are separate and excluded from those counts.
 
 ## What to rent
 
+September 15 recovery update: the real producer emits
+`system_entry_e2e_ttft_slo_missing_count`; the corrected consumer also checks
+every measured TTFT value. The Ministral-only scheduler waits for fresh busy
+snapshots while retaining the 1,000 ms age limit, with a 10 s stall timeout and
+25 ms polling. Waiting is included in end-to-end TTFT and recorded in each
+decision. It releases the routing lock between retries so completions can drain.
+The original shared scheduler and Qwen launch paths remain unchanged.
+Ministral cloud smoke now uses the maximum evaluation load and adds 512-request
+calibration stress for Mooncake and RouteBalance. These are required GPU gates,
+not evidence that the new path has already run on a GPU.
+
+The additive Bridges recovery entry point is
+`scripts.runs.ministral3_recovery` and its launcher is
+`scripts/cloud/ministral-recovery.sbatch`. It reuses the 12 audited non-Mooncake
+cells from job 45842572, reruns the four failed Mooncake cells, and runs the
+16 formerly pending snapshot-policy cells. It audits each cell immediately,
+preserves its raw checkpoint, and collates all 32 after completion. It uses the
+original immutable manifest and serving checkout plus a separately checksummed
+repair plan. Qwen jobs keep their existing sources and manifests.
+
 - Two **4 × H100 80GB** instances or one **8 × H100 80GB** instance, Linux x86_64.
   Prefer the same H100 SXM configuration on both hosts; inspect `nvidia-smi topo -m`.
   A Qwen pool always stays within one host: TP 1/1/2. No cross-host NCCL is needed.

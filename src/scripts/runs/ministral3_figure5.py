@@ -20,6 +20,7 @@ import sys
 from scripts.prep.prepare_methodology_service import MODELS, PROFILE, sha256
 from scripts.runs.capacity_scout import freeze_loads
 from scripts.runs.ministral3_methodology_stage import BUCKETS, POLICIES, write_json
+from scripts.runs.measured_audit import require_complete_ttft
 
 EVALUATION_REQUESTS_PER_CELL = 8000
 HOLDOUT_PROMPTS_PER_BUCKET = 2000
@@ -195,10 +196,11 @@ def audit_points(paths, manifest, policies, *, augmented=False):
             rows, summary = run["per_request"], run["summary"]
             if (len(rows) != len(wanted_ids) or {r["request_id"] for r in rows} != wanted_ids or
                     summary.get("succeeded_requests") != len(rows) or summary.get("failed_requests") != 0 or
-                    summary.get("system_entry_e2e_ttft_missing_count") != 0 or
+                    summary.get("system_entry_e2e_ttft_slo_missing_count") != 0 or
                     len({r.get("response_id") for r in rows}) != len(rows) or
                     any(r.get("error") or not r.get("response_id") for r in rows)):
                 raise ValueError(f"Incomplete/failed measured cell: {cell}")
+            require_complete_ttft(run)
             arrivals = [r.get("system_entry_offset_s") for r in rows]
             if any(not isinstance(t, (int, float)) or not math.isfinite(t) or t < 0 for t in arrivals):
                 raise ValueError(f"Missing measured arrival timestamps: {cell}")
@@ -231,7 +233,7 @@ def run_sweep(options, manifest):
     outputs = root/"outputs"
     outputs.mkdir(exist_ok=False)
     shutil.copy2(options.manifest, root/"figure5_manifest.json")
-    argv = [sys.executable, "-m", "scripts.runs.experiments_sweep", "--sweep", "qps",
+    argv = [sys.executable, "-m", "scripts.runs.ministral3_reliable", "--sweep", "qps",
         "--qps-values", *map(str, manifest["loads"]["qps_values"]),
         "--qps-utilities", *GROUPS[options.group], "--output-dir", str(outputs),
         "--output-prefix", "ministral3_measured_"+options.group,

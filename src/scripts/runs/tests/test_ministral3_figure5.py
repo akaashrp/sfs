@@ -25,13 +25,13 @@ def points(tmp_path, manifest):
     paths = []
     for index, rate in enumerate(manifest["loads"]["qps_values"]):
         rows = [{"request_id": f"req-{i}", "response_id": f"response-{i}",
-                 "system_entry_offset_s": i/rate, "actual_accuracy": .8}
+                 "system_entry_offset_s": i/rate, "system_entry_e2e_ttft_ms": 12., "actual_accuracy": .8}
                 for i in range(manifest["requests_per_cell"]) ]
         payload = {"config": {**manifest["configuration"], "request_rate_qps": rate,
             "seed": 69, "arrival_process": "poisson", "instance_metadata": {"serving_profile": PROFILE}},
             "request_set": {"num_requests": len(rows)}, "router": {"runs": [
                 {"utility": p, "summary": {"succeeded_requests": len(rows), "failed_requests": 0,
-                    "system_entry_e2e_ttft_missing_count": 0}, "per_request": deepcopy(rows)} for p in POLICIES]}}
+                    "system_entry_e2e_ttft_slo_missing_count": 0}, "per_request": deepcopy(rows)} for p in POLICIES]}}
         path = tmp_path/f"point_{index}.json"
         path.write_text(json.dumps(payload))
         paths.append(path)

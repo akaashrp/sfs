@@ -150,6 +150,14 @@ def test_ministral_alias_runs_through_shared_scheduler(tmp_path,monkeypatch):
     kwargs=_run_kwargs('vllm_sr_latency',ministral.selector_clients(clients),tmp_path/'missing',tmp_path)
     kwargs['latency_warmup_requests']=str(warmup_file(tmp_path))
     result=asyncio.run(experiments.run_policy(**kwargs))
+    # Exercise the real producer's summary schema, not a hand-written fixture.
+    from scripts.runs.measured_audit import require_complete_ttft
+    assert result['summary']['system_entry_e2e_ttft_slo_missing_count'] == 3
+    # This transport-only fixture has no engine timing sidecar. The real
+    # producer correctly reports missing TTFT, which the consumer must reject.
+    with pytest.raises(ValueError, match='TTFT'):
+        require_complete_ttft(result)
+    assert 'system_entry_e2e_ttft_missing_count' not in result['summary']
     assert result['summary']['failed_requests']==0
     assert result['methodology_config']['warmup_completions']==96
     assert audit_history(result['methodology_config'])['selections']==3

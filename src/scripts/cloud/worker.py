@@ -43,6 +43,7 @@ def parse(argv):
 
 def audit_cell(payload, cell):
     from scripts.runs.ministral3_methodology_stage import audit_run
+    from scripts.runs.measured_audit import require_complete_ttft
     if len(payload['router']['runs']) != 1:
         raise ValueError('Expected exactly one policy per checkpoint')
     run = payload['router']['runs'][0]
@@ -53,8 +54,9 @@ def audit_cell(payload, cell):
     if {r['request_id'] for r in rows} != {f'req-{i}' for i in range(cell['requests'])}:
         raise ValueError('Missing or duplicate evaluation request identities')
     summary = run['summary']
-    if summary.get('failed_requests') != 0 or summary.get('succeeded_requests') != len(rows) or summary.get('system_entry_e2e_ttft_missing_count') != 0:
+    if summary.get('failed_requests') != 0 or summary.get('succeeded_requests') != len(rows):
         raise ValueError('Incomplete requests or end-to-end TTFT')
+    require_complete_ttft(run)
     arrivals = [r.get('system_entry_offset_s') for r in rows]
     if any(not isinstance(t, (float, int)) or not math.isfinite(t) or t < 0 for t in arrivals):
         raise ValueError('Missing arrival telemetry')
@@ -64,21 +66,37 @@ def audit_cell(payload, cell):
     return {'status': 'PASS_CELL', 'requests': len(rows), 'realized_qps': realized}
 
 
-async def run_point(family, args, requests, clients, costs, metadata, folder, monitor=None):
+async def run_point(family, args, requests, clients, costs, metadata, folder, monitor=None, *, data_role='evaluation'):
     from scripts.runs import experiments as exp
     from scripts.runs.ministral3_methodology_stage import wait_drained
     folder.mkdir(parents=True, exist_ok=False)
     await wait_drained(clients, timeout_s=120)
+    if family == 'ministral' and monitor is None:
+        from scripts.runs.capacity_scout import TrialMonitor
+        # Stop new arrivals after a terminal routing failure, retain the partial
+        # point, and let its completeness audit stop the job. Do not cap a
+        # successful full evaluation's outstanding request budget.
+        monitor = TrialMonitor(folder/'events.jsonl', duration_s=10800,
+                               max_outstanding=len(requests)+1)
     function = exp.run_router_experiment
     if family == 'ministral' and args.utilities == ['vllm_sr_latency']:
         from scripts.runs.ministral3_latency import run_selector
         function = run_selector
+    elif family == 'ministral':
+        from scripts.runs.ministral3_reliable import run_router_experiment
+        function = run_router_experiment
     result = await asyncio.wait_for(function(args=args, requests=requests, instances=clients,
         instance_costs=costs, instance_metadata=metadata, response_map_base_path=folder/'responses.log',
         request_log_base_path=folder/'predicted_waits.log', trial_monitor=monitor), timeout=10800)
     await wait_drained(clients, timeout_s=120)
     config = {k: v for k, v in vars(args).items() if isinstance(v, (str, int, float, bool, list, dict, type(None)))}
     config['instance_metadata'] = metadata
+    config['prompt_source'] = {'data_role': data_role}
+    if data_role == 'evaluation':
+        # The existing quality join resolves its request map through this
+        # nested field, as written by the original experiment sweep producer.
+        config['prompt_source'].update({name: getattr(args, name, None) for name in
+            ('holdout_prompts_per_bucket', 'holdout_start_index', 'holdout_cache_dir', 'tokenizer_id')})
     payload = {'config': config, 'request_set': {'num_requests': len(requests)}, 'router': result}
     # Some argparse metadata contains Paths; preserve them as strings.
     payload = json.loads(json.dumps(payload, default=str))
@@ -205,9 +223,22 @@ async def execute(options, manifest, definition, model_paths, output):
             # Every new pool passes matching smoke, including resumption on the same host.
             smoke = smoke_requests(calibration)
             for policy in policies:
-                payload = await run_point(options.family, args_for(policy, 2., 192), smoke, clients, costs, metadata,
-                                          output/'smoke'/policy)
+                smoke_rate = definition['qps'][-1] if options.family == 'ministral' else 2.
+                payload = await run_point(options.family, args_for(policy, smoke_rate, 192), smoke, clients, costs, metadata,
+                                          output/'smoke'/policy, data_role='calibration')
                 audit_run(payload['router']['runs'][0], 192)
+                from scripts.runs.measured_audit import require_complete_ttft
+                require_complete_ttft(payload['router']['runs'][0])
+            if options.family == 'ministral' and options.variant == 'canonical':
+                # The former 192-request/2-QPS smoke missed long busy iterations.
+                # Exercise both snapshot baselines with 512 balanced calibration
+                # prompts at the actual maximum offered load before evaluation.
+                stress = smoke_requests(calibration, per_bucket=128)
+                for policy in ('mooncake_prefill', 'routebalance'):
+                    payload = await run_point('ministral', args_for(policy, definition['qps'][-1], len(stress)),
+                        stress, clients, costs, metadata, output/'snapshot_stress'/policy, data_role='calibration')
+                    audit_run(payload['router']['runs'][0], len(stress))
+                    require_complete_ttft(payload['router']['runs'][0])
             if options.mode == 'qualify':
                 from scripts.runs.capacity_scout import TrialMonitor, classify_trial
                 load_probes = []
@@ -215,7 +246,7 @@ async def execute(options, manifest, definition, model_paths, output):
                     folder = output/'load_probes'/f'{rate:g}'
                     monitor = TrialMonitor(folder/'events.jsonl', duration_s=360, max_outstanding=1024)
                     payload = await run_point(options.family, args_for('shortest_queue', rate, len(calibration)), calibration,
-                        clients, costs, metadata, folder, monitor)
+                        clients, costs, metadata, folder, monitor, data_role='calibration')
                     audit_run(payload['router']['runs'][0])
                     probe = classify_trial(monitor.events, requested_qps=rate)
                     load_probes.append(probe)
