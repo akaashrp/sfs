@@ -17,9 +17,10 @@ def short_local():
 
 
 def test_torch_socket_limit_is_checked_independently_of_vllm(short_local):
-    root = Path(__file__).resolve().parents[4]
+    # Exceed the limit independently of the checkout's pathname length.
+    temporary = short_local / ('x' * 108)
     with pytest.raises(ValueError, match="107 bytes"):
-        validate_ipc_paths(short_local/"ipc", root/"experiments/methodology_baselines/scratch")
+        validate_ipc_paths(short_local/"ipc", temporary)
 
 
 def test_worker_environment_overrides_long_inherited_temp_and_binds(short_local):
