@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "sfs_branch": "experiments/cloud-68-20260914",
-  "sfs_commit": "7de39931e5aff7e48782a6abe09eb029d13ed3e6",
+  "sfs_commit": "d2b456739dfd8c96780b99effaf0b45e9850924f",
   "vllm_branch": "experiments/sfs-cloud-20260914",
   "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
   "artifact_archive": {
@@ -20,5 +20,18 @@
   "validation_summary": "scripts/cloud/refresh-validation-20260916.json",
   "bridges_recovery_branch": "experiments/ministral-recovery-20260915",
   "bridges_recovery_commit": "e117dac2511dd985c01cb7caef6267395bf9ca84",
-  "bridges_recovery_job": "46077428"
+  "bridges_recovery_job": "46077428",
+  "canonical_controls": {
+    "qps": [
+      8.6,
+      8.9
+    ],
+    "requests_per_point": 16000,
+    "gpus": [
+      "0,1,2,3",
+      "4,5,6,7"
+    ],
+    "reference_slurm_job": "46116020",
+    "validation": "scripts/cloud/control-validation-20260916.json"
+  }
 }
