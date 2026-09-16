@@ -36,7 +36,7 @@ fi
 conda activate vllm
 [[ "$CONDA_PREFIX" == "$SFS_STORAGE/miniforge/envs/vllm" ]]
 # Keep provider drivers/system CUDA intact (including Thunder's CUDA 13 image).
-conda install -y -p "$SFS_STORAGE/miniforge/envs/vllm" -c nvidia/label/cuda-12.9.1 cuda-toolkit=12.9.1
+conda install -y -p "$SFS_STORAGE/miniforge/envs/vllm" -c nvidia/label/cuda-12.9.1 cuda-toolkit=12.9.1 python=3.12.11 pip=25.2 'setuptools>=77,<80'
 set -u
 export CUDA_HOME="$CONDA_PREFIX" CUDA_PATH="$CONDA_PREFIX" CUDACXX="$CONDA_PREFIX/bin/nvcc"
 export PATH="$CONDA_PREFIX/bin:$PATH" LD_LIBRARY_PATH="$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}"
