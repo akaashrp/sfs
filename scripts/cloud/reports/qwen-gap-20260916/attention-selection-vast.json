@@ -1,0 +1,10 @@
+{
+  "attention_version": 3,
+  "torch": "2.8.0+cu129",
+  "cuda": "12.9",
+  "gpu_capability": [
+    9,
+    0
+  ],
+  "scope": "Queried deployed selector after diagnostic cleanup; historical Bridges logs record backend but not internal FA version"
+}
