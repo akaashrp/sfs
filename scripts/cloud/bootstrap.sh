@@ -36,6 +36,13 @@ export PATH="$CONDA_PREFIX/bin:$PATH" LD_LIBRARY_PATH="$CONDA_PREFIX/lib:${LD_LI
 python -m pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu129
 python -m pip install -r "$SFS_ROOT/scripts/cloud/requirements-lock.txt"
 export SFS_ROOT SFS_BUNDLE
+# Allow the environment installation to overlap a verified background transfer.
+if [[ -n "${SFS_BUNDLE_READY:-}" ]]; then
+  while [[ ! -f "$SFS_BUNDLE_READY" ]]; do
+    echo "Waiting for verified input bundle: $SFS_BUNDLE_READY"
+    sleep 30
+  done
+fi
 python - <<'PY'
 import os, pathlib, shutil, zipfile
 bundle=pathlib.Path(os.environ['SFS_BUNDLE'])

@@ -285,3 +285,36 @@ four-cell selector manifest. Its `smoke` and `sweep` modes use an explicitly
 supplied existing three-model pool and three wait logs. It does not rewrite
 the legacy manifest, change the shared policy tuple, or submit/cancel Slurm jobs.
 For cloud use the destination-qualified worker above.
+
+## Canonical Qwen controls, September 16
+
+The two requested controls are additive to the frozen 68-cell campaign. They use
+`scripts.cloud.canonical_control`, the unchanged Qwen pool and sweep producer,
+canonical quality/length predictors, and the original batch coefficients. The
+preflight checks all 16,000 request identities and SLOs against the reference used
+by Bridges job 46116020. Every pool must pass a 192-request canonical SFS smoke
+using calibration prompts before the measured run. Destination CPU regression,
+input and serving gates are required. Complete all model downloads and GPU/NCCL
+preflight before launch. These controls do not refit the SFS coefficients.
+
+On the Taiwan 8-H100 host, use disjoint CPU allocations (0–47 and 48–95) with:
+
+```bash
+export SFS_STORAGE=/workspace/sfs
+source /workspace/sfs/repo/scripts/cloud/env.sh
+# Launch each command under its own Supervisor program, with separate logs.
+taskset -c 0-47 python -m scripts.cloud.canonical_control run \
+  --bundle /workspace/sfs/bundle --models /workspace/sfs/models.json \
+  --state /workspace/sfs/state --output /workspace/sfs/state/controls/qps8p6 \
+  --qps 8.6 --gpus 0,1,2,3
+taskset -c 48-95 python -m scripts.cloud.canonical_control run \
+  --bundle /workspace/sfs/bundle --models /workspace/sfs/models.json \
+  --state /workspace/sfs/state --output /workspace/sfs/state/controls/qps8p9 \
+  --qps 8.9 --gpus 4,5,6,7
+```
+
+Raw points, per-request responses, server/driver logs, hardware and source
+provenance stay in each output directory. `result_summary.json` reports TTFT
+attainment over all 16,000 requests and both Pro/Flash OnTimeUtility on the common
+15,996 observed scored queries; Pro is primary for these canonical controls.
+Historical Bridges results remain a separate hardware comparison.
