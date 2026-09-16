@@ -19,3 +19,11 @@ This can make future memory availability and queue delay too optimistic. Its mag
 ## Historical difference
 
 Git commit `58bcdc931d4a4bba8ee5c059724b4cd00a55d60a` dated May 2, 2026 changed the minimum target from `generated_so_far + adaptive_reserve` to `generated_so_far + 1`, removed the per-request overshoot contribution to the reserve, and reduced residual quantiles. July's refactoring moved the target logic into a helper. This is a relevant source-history difference for the April comparison; it does not establish the precise deployed source of the archived April job. Recent Bridges and Vast share the current rule.
+
+## Native binary replay
+
+Replayed the two captured 0.6B states using both the existing Bridges native extension and the deployed Vast native extension; their replay outputs matched exactly. Each replay adds a hypothetical 4096-token prompt, stops at its prefill completion, keeps snapshot timing and coefficients fixed, and supplies no additional pending router overlay. The counterfactual changes only the total-output targets of already-running requests that were represented as having at most one token remaining but actually had at least 128 tokens left. Those targets use eventual observed lengths; this is a hindsight sensitivity analysis, not a deployable predictor or a measured request latency.
+
+For the first snapshot, the estimate rises from 1.216 seconds to 27.385 seconds when 11 running overrun targets are corrected. For the second, it rises from 12.044 to 52.667 seconds when 16 targets are corrected. With the original targets, the simulator marks these requests finished while materializing the in-flight batch output. With corrected targets, none of these requests is marked finished at that step. Native parsing preserves all original request targets exactly. The current binary is therefore following the published premature-completion estimates in these cases.
+
+Raw replay output is `native-replay-results.json`; `replay_snapshot.py` accepts explicit extension, point, snapshot-directory and output paths. Runtime and raw result artifacts were not modified. The difference demonstrates a material effect on the simulator estimate, not the fraction of the full-run attainment gap attributable to this issue.
