@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_epoch": 1789545444.0567517,
+  "updated_epoch": 1789547162.970441,
   "identity_fields": [
     "family",
     "variant",
@@ -256,6 +256,31 @@
           "realized_qps": 8.644344199098644
         }
       }
+    },
+    {
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 8.6,
+      "requests": 16000,
+      "provider": "vast",
+      "status": "STARTING_SERVERS_PREFLIGHT_PASSED",
+      "source_commit": "09b04788440ed7bc5a278b6e73c00eed414daf77",
+      "remote_output": "/workspace/sfs/state/controls/qps8p6-repeat1",
+      "supervisor_program": "sfs-control-8p6-repeat1",
+      "gpus": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "cpu_affinity": "0-47",
+      "user_authorization": "Repeat the earlier 8.6 QPS canonical configuration with 16000 requests",
+      "same_smoke_sequence": true,
+      "comparison_difference": "Only one active pool; GPUs 4-7 idle, whereas earlier run had a concurrent 8.75 QPS pool.",
+      "action": "EXPLICITLY_AUTHORIZED_REPEAT_PRESERVE_ALL_ATTEMPTS",
+      "live_status_source": "/workspace/sfs/state/monitor/latest.json",
+      "request_identity_slo_sha256": "611f7b53a01c71c6fd8bd3d3b67249689d554b62301e9b2d4cbee402a31d4fb2"
     }
   ],
   "pending_bridges_jobs": [

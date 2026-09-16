@@ -1,0 +1,18 @@
+{
+  "created_epoch": 1789547090.6311026,
+  "user_authorization": "Another canonical run at 8.6 QPS with 16000 requests, basically the same as earlier",
+  "source_commit": "09b04788440ed7bc5a278b6e73c00eed414daf77",
+  "output": "/workspace/sfs/state/controls/qps8p6-repeat1",
+  "gpus": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "cpu_affinity": "0-47",
+  "requests": 16000,
+  "qps": 8.6,
+  "same_smoke_sequence": true,
+  "comparison_difference": "Only this pool is active; GPUs 4-7 remain idle. Earlier control had concurrent 8.75 QPS pool.",
+  "previous_results_preserved": true
+}

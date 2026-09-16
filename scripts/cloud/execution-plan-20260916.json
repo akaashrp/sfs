@@ -1,5 +1,5 @@
 {
-  "status": "QWEN_PERFORMANCE_GAP_DIAGNOSIS_MAIN_RUNS_PAUSED",
+  "status": "AUTHORIZED_QWEN_8P6_REPEAT_MAIN_MATRIX_PAUSED",
   "priority_1": {
     "purpose": "Establish the baseline comparison before selecting variant comparators",
     "qwen": {
@@ -108,7 +108,7 @@
     ],
     "meaning": "A historical queue stability bracket, not a general model-family throughput ordering or a verified Vast capacity"
   },
-  "main_launch_status": "Measured runs paused while diagnosing the Qwen Vast/Bridges performance gap. Short isolated GPU diagnostics authorized.",
+  "main_launch_status": "One explicitly authorized canonical Qwen 8.6 repeat is active. Remaining main experiments stay paused.",
   "baseline_review": "scripts/cloud/baseline-and-reuse-review-20260916.md",
   "next_authorized_measured_runs": {
     "family": "ministral",
@@ -184,6 +184,23 @@
         6,
         7
       ]
+    }
+  ],
+  "active_controls": [
+    {
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 8.6,
+      "requests": 16000,
+      "gpus": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "output": "/workspace/sfs/state/controls/qps8p6-repeat1",
+      "purpose": "Full-length reproducibility check explicitly requested after short diagnostics"
     }
   ]
 }
