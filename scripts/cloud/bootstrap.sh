@@ -38,8 +38,10 @@ conda activate vllm
 # Keep provider drivers/system CUDA intact (including Thunder's CUDA 13 image).
 conda install -y -p "$SFS_STORAGE/miniforge/envs/vllm" -c nvidia/label/cuda-12.9.1 cuda-toolkit=12.9.1 python=3.12.11 pip=25.2 'setuptools>=77,<80'
 set -u
-export CUDA_HOME="$CONDA_PREFIX" CUDA_PATH="$CONDA_PREFIX" CUDACXX="$CONDA_PREFIX/bin/nvcc"
-export PATH="$CONDA_PREFIX/bin:$PATH" LD_LIBRARY_PATH="$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}"
+export CUDA_HOME="$CONDA_PREFIX/targets/x86_64-linux"
+export CUDA_PATH="$CUDA_HOME" CUDACXX="$CUDA_HOME/bin/nvcc"
+[[ -f "$CUDA_HOME/include/cuda_runtime.h" && -x "$CUDACXX" ]]
+export PATH="$CONDA_PREFIX/bin:$PATH" LD_LIBRARY_PATH="$CUDA_HOME/lib:$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}"
 python -m pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu129
 python -m pip install -r "$SFS_ROOT/scripts/cloud/requirements-lock.txt"
 export SFS_ROOT SFS_BUNDLE

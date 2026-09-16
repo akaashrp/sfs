@@ -12,8 +12,9 @@ conda activate vllm
 if $_sfs_restore_nounset; then set -u; fi
 unset _sfs_restore_nounset
 [[ "$CONDA_PREFIX" == "$SFS_STORAGE/miniforge/envs/vllm" ]]
-export CUDA_HOME="$CONDA_PREFIX" CUDA_PATH="$CONDA_PREFIX" CUDACXX="$CONDA_PREFIX/bin/nvcc"
-export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}"
+export CUDA_HOME="$CONDA_PREFIX/targets/x86_64-linux"
+export CUDA_PATH="$CUDA_HOME" CUDACXX="$CUDA_HOME/bin/nvcc"
+export LD_LIBRARY_PATH="$CUDA_HOME/lib:$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}"
 export PYTHONPATH="$SFS_ROOT/vllm:$SFS_ROOT/src"
 export HF_HOME="$SFS_STORAGE/hf" HF_HUB_CACHE="$SFS_STORAGE/hf/hub"
 export SFS_INPUTS="$SFS_STORAGE/inputs"
