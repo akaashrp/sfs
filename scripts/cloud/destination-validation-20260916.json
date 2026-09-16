@@ -1,0 +1,69 @@
+{
+  "sfs_commit": "09b04788440ed7bc5a278b6e73c00eed414daf77",
+  "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
+  "evidence": {
+    "tests/gate.json": {
+      "sha256": "6e2aadb0d349b91f033d32a05f2d61bc78def0ab44f1f88d32c0eef60ad615b9",
+      "status": "PASS_CPU_REGRESSION"
+    },
+    "tests/results.xml": {
+      "sha256": "00651245369bcffa055e6f9aa9f45a16877f888afd9daebdd731268301319231"
+    },
+    "cpu-inputs.json": {
+      "sha256": "d88cc31bc3eb083c0807d6e8d5b8e59e013fef7c608f0088bec676f327da9137",
+      "status": "PASS_CPU_INPUTS",
+      "bundle_sha256": "4e36359aaa8dce4c833b854a553b5f6afc9aafaa8f57e6ef2b58a49864bbf60d"
+    },
+    "cpu-serving.json": {
+      "sha256": "aba388070a88df39725bc13a2535f027b8f14b1afc111ca015b5b95a29c6ded5",
+      "status": "PASS_CPU_SERVING",
+      "bundle_sha256": "4e36359aaa8dce4c833b854a553b5f6afc9aafaa8f57e6ef2b58a49864bbf60d"
+    },
+    "diagnostics.json": {
+      "sha256": "e9efc78d2de5d91e95dfe77fbc0524c9417c1ee0895a5f94b35d5f3ab0753c1c",
+      "status": "PASS_GPU_PREFLIGHT",
+      "torch": "2.8.0+cu129",
+      "vllm": "0.1.dev10221+g28bbf9226"
+    },
+    "nccl-23.json": {
+      "sha256": "0c0b5289bb8fb7f47f0c5ca8adcc8dd27ddb179f6045d67c27abf63a93cb48c1",
+      "status": "PASS_GPU_PREFLIGHT",
+      "torch": "2.8.0+cu129",
+      "vllm": "0.1.dev10221+g28bbf9226",
+      "nccl_pair": "2,3"
+    },
+    "nccl-67.json": {
+      "sha256": "c30a81bb8df7dd5ccdea32bdbdb3eccf6bbea6b6ea9b57cbe843d20cff76428c",
+      "status": "PASS_GPU_PREFLIGHT",
+      "torch": "2.8.0+cu129",
+      "vllm": "0.1.dev10221+g28bbf9226",
+      "nccl_pair": "6,7"
+    },
+    "pip-check.txt": {
+      "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09"
+    },
+    "installed.txt": {
+      "sha256": "589a79c7321f218b8ae08bcc72dc67b1a4f08bed0b5a52c10a83252ffe78d471"
+    },
+    "rate-update.json": {
+      "sha256": "2bc30d0f74b057f59d9874bc8271cbb34ea9d43b2f35ebf6e3f275efb27a7481",
+      "status": "PASS_QWEN_RATE_UPDATE",
+      "qwen_qps": [
+        7.0,
+        8.0,
+        8.6,
+        8.75
+      ],
+      "bundle_sha256": "4e36359aaa8dce4c833b854a553b5f6afc9aafaa8f57e6ef2b58a49864bbf60d"
+    }
+  },
+  "status": "PASS_DESTINATION_SETUP",
+  "regression_tests_passed": 103,
+  "smoke_requests_per_pool": 192,
+  "smoke_failures_per_pool": 0,
+  "smoke_ttft_slo_attainment_pct_per_pool": 100,
+  "active_control_rates": [
+    8.6,
+    8.75
+  ]
+}

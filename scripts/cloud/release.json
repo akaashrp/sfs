@@ -1,21 +1,21 @@
 {
   "schema_version": 1,
   "sfs_branch": "experiments/cloud-68-20260914",
-  "sfs_commit": "d2b456739dfd8c96780b99effaf0b45e9850924f",
+  "sfs_commit": "09b04788440ed7bc5a278b6e73c00eed414daf77",
   "vllm_branch": "experiments/sfs-cloud-20260914",
   "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
   "artifact_archive": {
     "status": "PASS",
     "files": 178,
-    "archive": "/ocean/projects/cis250162p/aparthas/sfs-cloud-inputs-20260914.tar.gz",
-    "bytes": 1625709166,
-    "sha256": "92cc9d17b665cd0b655258a3112c36e3323ed368edbc694940d6d48d9d8b0e6e",
-    "bundle_sha256": "c78584caf97874f83de8953a29cb2e824c3bda04ff883b74ba662e6ce09dc924"
+    "archive": "/ocean/projects/cis250162p/aparthas/sfs-cloud-inputs-20260916.tar.gz",
+    "bytes": 1625725127,
+    "sha256": "04e36415b1d58c8369a90c224b05c824d36716adbec5bd81768c86c122a3c14c",
+    "bundle_sha256": "4e36359aaa8dce4c833b854a553b5f6afc9aafaa8f57e6ef2b58a49864bbf60d"
   },
-  "bundle_directory": "/ocean/projects/cis250162p/aparthas/sfs_cloud_artifacts_20260914",
+  "bundle_directory": "/ocean/projects/cis250162p/aparthas/sfs_cloud_artifacts_20260916",
   "cells": 68,
   "requests_total": 800000,
-  "deployment_status": "Taiwan instance provisioned; background model downloads and deployment in progress; fresh serving qualification pending",
+  "deployment_status": "Destination verification and both 192-request canonical smokes passed; controls running; main matrix paused for review",
   "metadata_note": "This file is a metadata-only handoff committed after the executable release it pins.",
   "validation_summary": "scripts/cloud/refresh-validation-20260916.json",
   "bridges_recovery_branch": "experiments/ministral-recovery-20260915",
@@ -24,7 +24,7 @@
   "canonical_controls": {
     "qps": [
       8.6,
-      8.9
+      8.75
     ],
     "requests_per_point": 16000,
     "gpus": [
@@ -33,5 +33,10 @@
     ],
     "reference_slurm_job": "46116020",
     "validation": "scripts/cloud/control-validation-20260916.json"
-  }
+  },
+  "execution_plan": "scripts/cloud/execution-plan-20260916.json",
+  "main_execution_status": "PAUSED_FOR_BASELINE_AND_REUSE_REVIEW",
+  "planned_main_cells_before_reuse": 59,
+  "planned_main_requests_before_reuse": 728000,
+  "artifact_inventory_note": "68 cells describes the preserved active-control artifact. Prospective main execution follows execution-plan-20260916.json, with Ministral fourth point unscheduled and variants deferred. Final execution bundle must be reconciled after review."
 }

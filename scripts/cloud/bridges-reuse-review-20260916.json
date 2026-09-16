@@ -1,0 +1,132 @@
+{
+  "status": "PASS_EXISTING_BRIDGES_CELLS",
+  "source_audit": "/ocean/projects/cis250162p/aparthas/sfs_model_family/experiments/campaign_recovery_20260915/reused_baselines/audit.json",
+  "source_audit_sha256": "4fda26e8b29ef72d7be68e5ac696f0a21f49f7f0c115f9ea5a5dbd1f4bc11fcc",
+  "original_and_salvaged_point_hashes_verified": true,
+  "metrics_recomputed_from_rows": true,
+  "cells": [
+    {
+      "policy": "lmdeploy_proxy",
+      "qps": 6.0125,
+      "requests": 8000,
+      "ttft_slo_attainment_pct": 98.5375,
+      "ontimeutility": 0.5007944261523046,
+      "quality_point_sha256": "2370b1b6c0e81a0b2b61b83189e53c9c5d818ebb82c85f5fa505c0cbb54d3b39"
+    },
+    {
+      "policy": "latency_agnostic",
+      "qps": 6.0125,
+      "requests": 8000,
+      "ttft_slo_attainment_pct": 73.1875,
+      "ontimeutility": 0.49256882041583167,
+      "quality_point_sha256": "ac85f56872b9093b22a6f2eed3374cb001e72b4df8cf390a13afe9ecb1338b3d"
+    },
+    {
+      "policy": "round_robin",
+      "qps": 6.0125,
+      "requests": 8000,
+      "ttft_slo_attainment_pct": 68.16250000000001,
+      "ontimeutility": 0.3486458730273046,
+      "quality_point_sha256": "b364953f85fff83a0ee7e4592846de36eea9745e60a7aebd1140753e754f0255"
+    },
+    {
+      "policy": "lmdeploy_proxy",
+      "qps": 7.8625,
+      "requests": 8000,
+      "ttft_slo_attainment_pct": 97.875,
+      "ontimeutility": 0.49812111243111223,
+      "quality_point_sha256": "b16a546dfc7f02156821ed07648a2bdd339c162087ec3694ecd2de5c314d4aa9"
+    },
+    {
+      "policy": "latency_agnostic",
+      "qps": 7.8625,
+      "requests": 8000,
+      "ttft_slo_attainment_pct": 72.275,
+      "ontimeutility": 0.4904901110408317,
+      "quality_point_sha256": "d1ea9de76485e51b2cb740aa67572a702a8425d28a8c97be7da74657e6c5453a"
+    },
+    {
+      "policy": "round_robin",
+      "qps": 7.8625,
+      "requests": 8000,
+      "ttft_slo_attainment_pct": 59.5375,
+      "ontimeutility": 0.3018394417773046,
+      "quality_point_sha256": "12187baa0f827dbde86e8eaecd704b10b0ba7e532c131375f745d65313d3b6c2"
+    },
+    {
+      "policy": "lmdeploy_proxy",
+      "qps": 8.7875,
+      "requests": 8000,
+      "ttft_slo_attainment_pct": 80.0625,
+      "ontimeutility": 0.4091568155561122,
+      "quality_point_sha256": "915a98c60addea20886c7d5a59a874d2ce55848856a6ea5e6b7b4d2518d93a61"
+    },
+    {
+      "policy": "latency_agnostic",
+      "qps": 8.7875,
+      "requests": 8000,
+      "ttft_slo_attainment_pct": 72.0,
+      "ontimeutility": 0.48950530791583163,
+      "quality_point_sha256": "0131a405daa8cc70580442b5184e7cbc0739dd5e0c9ae043e98aa770c19196ad"
+    },
+    {
+      "policy": "round_robin",
+      "qps": 8.7875,
+      "requests": 8000,
+      "ttft_slo_attainment_pct": 37.4,
+      "ontimeutility": 0.1856045796530561,
+      "quality_point_sha256": "07498d9eac9c79038ddf2c0205b72398fc49ebf3d2a0d6b3f6b268bb28a8492a"
+    },
+    {
+      "policy": "lmdeploy_proxy",
+      "qps": 9.7125,
+      "requests": 8000,
+      "ttft_slo_attainment_pct": 11.4875,
+      "ontimeutility": 0.059994515625,
+      "quality_point_sha256": "b96ce54856c4f8ad615ee315b43327d36fa95d22146393829b4bc350998d4bef"
+    },
+    {
+      "policy": "latency_agnostic",
+      "qps": 9.7125,
+      "requests": 8000,
+      "ttft_slo_attainment_pct": 72.1375,
+      "ontimeutility": 0.4903835454158317,
+      "quality_point_sha256": "b7abd6c37ee734219da2473f175e2b6e75dc690422abfc10d97232d54cbd4add"
+    },
+    {
+      "policy": "round_robin",
+      "qps": 9.7125,
+      "requests": 8000,
+      "ttft_slo_attainment_pct": 37.05,
+      "ontimeutility": 0.1835902327780561,
+      "quality_point_sha256": "8a5975bae4d75cd7e402ed34d9154eedb6f5591680d23dc07c751d08db1c26d4"
+    }
+  ],
+  "excluded_mooncake": [
+    {
+      "qps": 6.0125,
+      "policy": "mooncake_prefill",
+      "failed_requests": 1
+    },
+    {
+      "qps": 7.8625,
+      "policy": "mooncake_prefill",
+      "failed_requests": 7
+    },
+    {
+      "qps": 8.7875,
+      "policy": "mooncake_prefill",
+      "failed_requests": 19
+    },
+    {
+      "qps": 9.7125,
+      "policy": "mooncake_prefill",
+      "failed_requests": 43
+    }
+  ],
+  "recovery_job": {
+    "id": "46077428",
+    "observed_state": "PENDING"
+  },
+  "reuse_scope": "Valid Bridges measurements with original SLOs. Cross-host pooling requires overlap validation; no automatic promotion to Vast cells."
+}

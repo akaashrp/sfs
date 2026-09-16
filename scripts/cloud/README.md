@@ -1,4 +1,14 @@
-# SFS cloud handoff: 68 evaluation cells
+# SFS cloud handoff: active controls and paused main campaign
+
+**September 16 execution plan:** main jobs are paused for baseline and Bridges-result
+reuse review. Qwen stays at 7 / 8 / 8.6 / 8.75 QPS. Ministral commits to
+6.0125 / 7.8625 / 8.7875 QPS; the fourth point is an unscheduled follow-up.
+This makes 47 first-priority cells plus 12 deferred predictor/judge cells before
+any reuse savings. See `execution-plan-20260916.json` and
+`baseline-and-reuse-review-20260916.md`. The 68-cell inventory below describes
+the preserved artifact used by the running controls, **not permission to run
+all of it**. Reconcile the final main execution bundle after review; leave the
+active controls and their checkout/bundle untouched.
 
 This checkout adds the vLLM-SR latency-aware selector to Ministral at
 6.0125 / 7.8625 / 8.7875 / 9.7125 QPS, 8,000 requests each. Qwen's existing
@@ -6,6 +16,8 @@ implementation, policy tuple, launchers, grids, and source-bound Bridges
 artifacts are preserved. All new cloud code lives under `scripts/cloud` and
 `src/scripts/cloud`; the Ministral alias adapter is `src/scripts/runs/ministral3_latency.py`.
 The active Bridges checkout and submitted jobs are separate and unchanged.
+The Qwen cloud rates are **7, 8, 8.6, and 8.75 QPS** for both baselines and
+predictor/judge variants; the Ministral rates above remain unchanged.
 
 | Track | Cells | Requests/cell |
 |---|---:|---:|
@@ -253,9 +265,10 @@ comparison with the implementation/hardware caveats recorded above.
 
 The active Bridges shared router and predictor source matches this release;
 the September 15 Ministral completeness audit, bounded freshness waiting,
-and Ministral vLLM-SR adapter are already included. The new canonical Qwen
-8.6 QPS control is a separate Bridges job, not an extra cell silently added
-to this 68-cell matrix. No submitted Bridges scripts or source files are edited.
+and Ministral vLLM-SR adapter are already included. Bridges job 46116020 is
+the reference for the additive canonical Qwen cloud controls at 8.6 and 8.75 QPS
+described below. These controls are separate from the 68-cell matrix. No
+submitted Bridges scripts or source files are edited.
 
 Pinned model downloads can start before the full serving environment exists:
 
@@ -326,3 +339,14 @@ points to `$CONDA_PREFIX/bin/nvcc` beside its required `nvcc.profile`. Source
 `env.sh` for every session so these paths and the pinned environment remain
 consistent. The bootstrap tolerates optional unset variables in vendor activation
 hooks and preserves Python 3.12.11 when installing the CUDA toolkit.
+
+For an already transferred September 14 bundle, apply the explicit cloud rate
+update before destination verification (the September 16 archive already includes it):
+
+```bash
+python -m scripts.cloud.schedule --bundle "$SFS_BUNDLE" \
+  --audit "$SFS_STORAGE/setup/rate-update.json"
+```
+
+This updates only Qwen rates and cell IDs, preserving every artifact checksum and
+all Ministral settings. It retains the original bundle manifest as a backup.

@@ -1,0 +1,141 @@
+{
+  "status": "MAIN_MATRIX_PAUSED_FOR_REVIEW",
+  "active_controls": [
+    {
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 8.6,
+      "requests": 16000,
+      "gpus": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 8.75,
+      "requests": 16000,
+      "gpus": [
+        4,
+        5,
+        6,
+        7
+      ]
+    }
+  ],
+  "priority_1": {
+    "purpose": "Establish the baseline comparison before selecting variant comparators",
+    "qwen": {
+      "policies": [
+        "score",
+        "lmdeploy_proxy",
+        "mooncake_prefill",
+        "routebalance",
+        "vllm_sr_latency"
+      ],
+      "qps": [
+        7,
+        8,
+        8.6,
+        8.75
+      ],
+      "requests_per_cell": 16000,
+      "cells": 20
+    },
+    "ministral": {
+      "policies": [
+        "hard",
+        "round_robin",
+        "latency_agnostic",
+        "shortest_queue",
+        "score",
+        "lmdeploy_proxy",
+        "mooncake_prefill",
+        "routebalance",
+        "vllm_sr_latency"
+      ],
+      "requests_per_cell": 8000,
+      "cells": 27,
+      "before_full_runs": "Main matrix remains paused for baseline and Bridges-result reuse review. Preserve existing SLOs; qualify destination before any measured runs.",
+      "qps": [
+        6.0125,
+        7.8625,
+        8.7875
+      ],
+      "fourth_point": {
+        "status": "UNSCHEDULED_FOLLOW_UP",
+        "qps": null,
+        "selection": "One common fourth QPS across retained policies, chosen after reviewing 65/85/95 percent TTFT and OnTimeUtility curves. Consider an intermediate point if degradation is severe; 105 percent is optional."
+      },
+      "bridges_reuse": {
+        "status": "12 existing cells audited; cross-host pooling not yet qualified",
+        "policies": [
+          "lmdeploy_proxy",
+          "latency_agnostic",
+          "round_robin"
+        ],
+        "qps": [
+          6.0125,
+          7.8625,
+          8.7875,
+          9.7125
+        ],
+        "audit": "scripts/cloud/bridges-reuse-review-20260916.json",
+        "recommendation": "Preserve all valid Bridges results. Use limited overlap validation before deciding whether missing Vast policies may share a figure; do not automatically rerun the 12 cells."
+      }
+    },
+    "cells": 47,
+    "requests_total": 536000
+  },
+  "priority_2": {
+    "status": "DEFERRED_UNTIL_PRIORITY_1_RESULTS",
+    "family": "qwen",
+    "variants": [
+      "flash_quality",
+      "mlp_quality",
+      "mlp_length"
+    ],
+    "qps": [
+      7,
+      8,
+      8.6,
+      8.75
+    ],
+    "requests_per_cell": 16000,
+    "policies": [
+      "hard"
+    ],
+    "additional_baselines": "Select the highest-value baselines from priority 1; expand the explicit manifest then",
+    "primary_judge": {
+      "flash_quality": "flash",
+      "mlp_quality": "pro",
+      "mlp_length": "pro"
+    },
+    "quality_reporting": "Both judges on the common 15996 observed queries; primary judge matched to each arm"
+  },
+  "scheduling_constraints": [
+    "Do not interrupt either active canonical control pool",
+    "Do not launch the main matrix before the requested configuration review is finished",
+    "GPU/job health monitoring every 30 seconds; Vast rental status every 60 seconds",
+    "No job cancellation without explicit user confirmation"
+  ],
+  "ministral_rate_provenance": {
+    "source": "Bridges campaign_cold_start_fix_20260912/ministral_figure5_manifest.json",
+    "stable_qps": 9.0,
+    "unstable_qps": 9.25,
+    "reference_K_M": 9.25,
+    "fractions": [
+      0.65,
+      0.85,
+      0.95
+    ],
+    "meaning": "A historical queue stability bracket, not a general model-family throughput ordering or a verified Vast capacity"
+  },
+  "main_launch_status": "PAUSED: frozen 68-cell artifact is retained for running controls; this plan restricts prospective main execution to 59 cells (including 12 deferred variants). Reconcile execution bundle after review before any main launch.",
+  "baseline_review": "scripts/cloud/baseline-and-reuse-review-20260916.md"
+}
