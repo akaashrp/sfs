@@ -72,6 +72,8 @@ python -m pip install --no-deps "$(cat "$SFS_STORAGE/setup/wheel-path.txt")"
 export VLLM_TARGET_DEVICE=cuda VLLM_USE_PRECOMPILED=1
 export VLLM_PRECOMPILED_WHEEL_LOCATION="$SFS_BUNDLE/runtime/vllm.whl"
 export TORCH_CUDA_ARCH_LIST=9.0 MAX_JOBS=8
+# setup.py otherwise invokes the toolkit's symlinked nvcc without its profile.
+export CMAKE_ARGS="${CMAKE_ARGS:-} -DCMAKE_CUDA_COMPILER=$CUDACXX"
 python -m pip install --no-deps --no-build-isolation -e "$SFS_ROOT/vllm" --verbose >"$SFS_STORAGE/setup/vllm-build.log" 2>&1
 source "$SFS_ROOT/scripts/cloud/env.sh"
 export SFS_TEST_GO="$CONDA_PREFIX/bin/go"
