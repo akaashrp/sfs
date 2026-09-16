@@ -215,7 +215,42 @@
   "fallback_backlog": {
     "policy": "hard_prefill_tps",
     "campaign_field": "fallback_cells",
-    "condition": "Submit only when model pool would otherwise be idle and has no higher-priority runnable work; keep GPU7 for debugging",
+    "condition": "No higher-priority runnable work, including requested FCFS configuration preparation; keep GPU7 for debugging",
     "reuse_override": "User explicitly authorizes these fallback reruns despite older results"
+  },
+  "next_serving_configuration": {
+    "status": "PREPARATION_AUTHORIZED_FULL_MATRIX_NOT_AUTHORIZED",
+    "id": "qwen-fcfs-unchunked-65536",
+    "priority": "After base Qwen/Ministral work, before hard_prefill_tps fallback",
+    "qps": [
+      6,
+      7,
+      8,
+      8.3
+    ],
+    "requests": 16000,
+    "policies": [
+      "hard",
+      "round_robin",
+      "latency_agnostic",
+      "shortest_queue",
+      "score",
+      "lmdeploy_proxy",
+      "mooncake_prefill",
+      "routebalance",
+      "vllm_sr_latency"
+    ],
+    "config": {
+      "scheduling_policy": "fcfs",
+      "chunked_prefill_enabled": false,
+      "max_num_batched_tokens": 65536,
+      "max_model_len": 65536,
+      "max_num_seqs": 512,
+      "long_prefill_token_threshold": 0,
+      "gpu_memory_utilization": 0.9,
+      "enable_prefix_caching": false
+    },
+    "second_configuration": null,
+    "sfs_score_restrictions": "Unchanged; no unvalidated token prediction change"
   }
 }

@@ -1,0 +1,32 @@
+{
+  "status": "PASS_OFFLINE_LOOKUP",
+  "source_sha256": "865cf85a81d7a9dc1dfcd018c683fe9ba02698401ec967049cc206fd752da00c",
+  "build_seconds": 0.011420292779803276,
+  "python_lookup_nanoseconds": 65.62269944697618,
+  "tables": [
+    {
+      "model": "qwen3-0.6b",
+      "table_bytes": 98304,
+      "min_survivors": 151
+    },
+    {
+      "model": "qwen3-32b",
+      "table_bytes": 98304,
+      "min_survivors": 12
+    },
+    {
+      "model": "qwen3-8b",
+      "table_bytes": 98304,
+      "min_survivors": 14
+    }
+  ],
+  "cap": 8192,
+  "neural_training_required": false,
+  "runtime_deployed": false,
+  "limitations": [
+    "Model-only conditioning; no prompt/initial-prediction features",
+    "Sparse calibration tails fall back to one remaining token and are explicitly counted",
+    "Latency benefit must be tested; low lookup cost does not establish predictor quality"
+  ],
+  "checksum": 3034715092
+}

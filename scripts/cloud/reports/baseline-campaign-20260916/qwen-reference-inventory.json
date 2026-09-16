@@ -1,0 +1,221 @@
+{
+  "cells": [
+    {
+      "family": "qwen",
+      "policy": "shortest_queue",
+      "qps": 6.0,
+      "requests": 16000,
+      "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_38498357_2026-04-06_070030/router_qps_qwen3_lambda5em4_delta0_20260406_070640_qps6_point01.json",
+      "point_sha256": "b580913a2c11de45e1aedc7dc08c10217adebec84a26b41e04b5bbea279e2109",
+      "summary": {
+        "succeeded_requests": 16000,
+        "failed_requests": 0,
+        "slo_attainment_pct": 46.875,
+        "queue_slo_attainment_pct": 99.90625,
+        "ttft_slo_attainment_pct": 94.3,
+        "e2e_ttft_slo_attainment_pct": 94.15625,
+        "system_entry_e2e_ttft_slo_attainment_pct": 94.15625
+      },
+      "status": "EXISTING_REFERENCE_RETAINED"
+    },
+    {
+      "family": "qwen",
+      "policy": "shortest_queue",
+      "qps": 7.0,
+      "requests": 16000,
+      "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_38498357_2026-04-06_070030/router_qps_qwen3_lambda5em4_delta0_20260406_070640_qps7_point02.json",
+      "point_sha256": "471457e82fd426c78c18a18ff2259a8b7837e73739eacd0c1c5387a13ad81710",
+      "summary": {
+        "succeeded_requests": 16000,
+        "failed_requests": 0,
+        "slo_attainment_pct": 39.65625,
+        "queue_slo_attainment_pct": 99.86875,
+        "ttft_slo_attainment_pct": 92.025,
+        "e2e_ttft_slo_attainment_pct": 91.79375,
+        "system_entry_e2e_ttft_slo_attainment_pct": 91.79375
+      },
+      "status": "EXISTING_REFERENCE_RETAINED"
+    },
+    {
+      "family": "qwen",
+      "policy": "shortest_queue",
+      "qps": 8.0,
+      "requests": 16000,
+      "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_38498357_2026-04-06_070030/router_qps_qwen3_lambda5em4_delta0_20260406_070640_qps8_point03.json",
+      "point_sha256": "6db01473eb0634097355c22ee90cebbd31f17969e086fc40bf0ee5c7df618253",
+      "summary": {
+        "succeeded_requests": 16000,
+        "failed_requests": 0,
+        "slo_attainment_pct": 36.10625,
+        "queue_slo_attainment_pct": 99.8125,
+        "ttft_slo_attainment_pct": 91.75,
+        "e2e_ttft_slo_attainment_pct": 91.55625,
+        "system_entry_e2e_ttft_slo_attainment_pct": 91.54375
+      },
+      "status": "EXISTING_REFERENCE_RETAINED"
+    },
+    {
+      "family": "qwen",
+      "policy": "shortest_queue",
+      "qps": 8.3,
+      "requests": 16000,
+      "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_38498366_2026-04-06_222644/router_qps_qwen3_lambda5em4_delta0_20260406_223420_qps8p3_point01.json",
+      "point_sha256": "e5911a137b0a25abaffff405100bfd6a1a90a3fa2e8205a38e30c4f255363d58",
+      "summary": {
+        "succeeded_requests": 16000,
+        "failed_requests": 0,
+        "slo_attainment_pct": 32.86875,
+        "queue_slo_attainment_pct": 99.5125,
+        "ttft_slo_attainment_pct": 90.825,
+        "e2e_ttft_slo_attainment_pct": 90.6375,
+        "system_entry_e2e_ttft_slo_attainment_pct": 90.6375
+      },
+      "status": "EXISTING_REFERENCE_RETAINED"
+    },
+    {
+      "family": "qwen",
+      "policy": "round_robin",
+      "qps": 6.0,
+      "requests": 16000,
+      "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_no_snapshot_38531619_2026-04-07_080337/router_qps_no_snapshot_qwen3_lambda5em4_delta0_20260407_080930_qps6_point01.json",
+      "point_sha256": "2ab50234125e79e07e1c33f7881917c8fdff40fd0d7f5acd27fd104fdf56c6fc",
+      "summary": {
+        "succeeded_requests": 16000,
+        "failed_requests": 0,
+        "slo_attainment_pct": 35.325,
+        "queue_slo_attainment_pct": 68.125,
+        "ttft_slo_attainment_pct": 67.4375,
+        "e2e_ttft_slo_attainment_pct": 67.4125,
+        "system_entry_e2e_ttft_slo_attainment_pct": 67.4125
+      },
+      "status": "EXISTING_REFERENCE_RETAINED"
+    },
+    {
+      "family": "qwen",
+      "policy": "latency_agnostic",
+      "qps": 6.0,
+      "requests": 16000,
+      "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_no_snapshot_38531619_2026-04-07_080337/router_qps_no_snapshot_qwen3_lambda5em4_delta0_20260407_080930_qps6_point01.json",
+      "point_sha256": "2ab50234125e79e07e1c33f7881917c8fdff40fd0d7f5acd27fd104fdf56c6fc",
+      "summary": {
+        "succeeded_requests": 16000,
+        "failed_requests": 0,
+        "slo_attainment_pct": 3.96875,
+        "queue_slo_attainment_pct": 43.41875,
+        "ttft_slo_attainment_pct": 43.35625,
+        "e2e_ttft_slo_attainment_pct": 38.7625,
+        "system_entry_e2e_ttft_slo_attainment_pct": 36.86875
+      },
+      "status": "EXISTING_REFERENCE_RETAINED"
+    },
+    {
+      "family": "qwen",
+      "policy": "round_robin",
+      "qps": 7.0,
+      "requests": 16000,
+      "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_no_snapshot_38531619_2026-04-07_080337/router_qps_no_snapshot_qwen3_lambda5em4_delta0_20260407_080930_qps7_point02.json",
+      "point_sha256": "3fbee017ddfe0ab7b6bc4d76e555ff77fa4855e55a4401870e52858f2c3b036f",
+      "summary": {
+        "succeeded_requests": 16000,
+        "failed_requests": 0,
+        "slo_attainment_pct": 33.19375,
+        "queue_slo_attainment_pct": 67.5375,
+        "ttft_slo_attainment_pct": 66.86875,
+        "e2e_ttft_slo_attainment_pct": 66.81875,
+        "system_entry_e2e_ttft_slo_attainment_pct": 66.81875
+      },
+      "status": "EXISTING_REFERENCE_RETAINED"
+    },
+    {
+      "family": "qwen",
+      "policy": "latency_agnostic",
+      "qps": 7.0,
+      "requests": 16000,
+      "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_no_snapshot_38531619_2026-04-07_080337/router_qps_no_snapshot_qwen3_lambda5em4_delta0_20260407_080930_qps7_point02.json",
+      "point_sha256": "3fbee017ddfe0ab7b6bc4d76e555ff77fa4855e55a4401870e52858f2c3b036f",
+      "summary": {
+        "succeeded_requests": 16000,
+        "failed_requests": 0,
+        "slo_attainment_pct": 3.6875,
+        "queue_slo_attainment_pct": 43.3,
+        "ttft_slo_attainment_pct": 43.20625,
+        "e2e_ttft_slo_attainment_pct": 34.23125,
+        "system_entry_e2e_ttft_slo_attainment_pct": 31.66875
+      },
+      "status": "EXISTING_REFERENCE_RETAINED"
+    },
+    {
+      "family": "qwen",
+      "policy": "round_robin",
+      "qps": 8.0,
+      "requests": 16000,
+      "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_no_snapshot_38531619_2026-04-07_080337/router_qps_no_snapshot_qwen3_lambda5em4_delta0_20260407_080930_qps8_point03.json",
+      "point_sha256": "7d0a147d7269401b09417c64ba2754bd03399ad851b4fe9d2d8af6e6b5c613fd",
+      "summary": {
+        "succeeded_requests": 16000,
+        "failed_requests": 0,
+        "slo_attainment_pct": 31.8125,
+        "queue_slo_attainment_pct": 67.525,
+        "ttft_slo_attainment_pct": 66.74375,
+        "e2e_ttft_slo_attainment_pct": 66.44375,
+        "system_entry_e2e_ttft_slo_attainment_pct": 66.1375
+      },
+      "status": "EXISTING_REFERENCE_RETAINED"
+    },
+    {
+      "family": "qwen",
+      "policy": "latency_agnostic",
+      "qps": 8.0,
+      "requests": 16000,
+      "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_no_snapshot_38531619_2026-04-07_080337/router_qps_no_snapshot_qwen3_lambda5em4_delta0_20260407_080930_qps8_point03.json",
+      "point_sha256": "7d0a147d7269401b09417c64ba2754bd03399ad851b4fe9d2d8af6e6b5c613fd",
+      "summary": {
+        "succeeded_requests": 16000,
+        "failed_requests": 0,
+        "slo_attainment_pct": 3.2875,
+        "queue_slo_attainment_pct": 43.24375,
+        "ttft_slo_attainment_pct": 43.15,
+        "e2e_ttft_slo_attainment_pct": 31.675,
+        "system_entry_e2e_ttft_slo_attainment_pct": 28.63125
+      },
+      "status": "EXISTING_REFERENCE_RETAINED"
+    },
+    {
+      "family": "qwen",
+      "policy": "round_robin",
+      "qps": 8.3,
+      "requests": 16000,
+      "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_no_snapshot_38531626_2026-04-07_081928/router_qps_no_snapshot_qwen3_lambda5em4_delta0_20260407_082207_qps8p3_point01.json",
+      "point_sha256": "6f86537b4899f8430ea3b9f35266baa6b1a503cd13822eecb945f7e8033d6be6",
+      "summary": {
+        "succeeded_requests": 16000,
+        "failed_requests": 0,
+        "slo_attainment_pct": 30.70625,
+        "queue_slo_attainment_pct": 67.525,
+        "ttft_slo_attainment_pct": 66.7,
+        "e2e_ttft_slo_attainment_pct": 66.20625,
+        "system_entry_e2e_ttft_slo_attainment_pct": 65.58125
+      },
+      "status": "EXISTING_REFERENCE_RETAINED"
+    },
+    {
+      "family": "qwen",
+      "policy": "latency_agnostic",
+      "qps": 8.3,
+      "requests": 16000,
+      "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_no_snapshot_38531626_2026-04-07_081928/router_qps_no_snapshot_qwen3_lambda5em4_delta0_20260407_082207_qps8p3_point01.json",
+      "point_sha256": "6f86537b4899f8430ea3b9f35266baa6b1a503cd13822eecb945f7e8033d6be6",
+      "summary": {
+        "succeeded_requests": 16000,
+        "failed_requests": 0,
+        "slo_attainment_pct": 3.1625,
+        "queue_slo_attainment_pct": 43.24375,
+        "ttft_slo_attainment_pct": 43.10625,
+        "e2e_ttft_slo_attainment_pct": 30.24375,
+        "system_entry_e2e_ttft_slo_attainment_pct": 27.3375
+      },
+      "status": "EXISTING_REFERENCE_RETAINED"
+    }
+  ],
+  "purpose": "Confirm existing baseline coverage without rerunning; original host/provenance retained"
+}

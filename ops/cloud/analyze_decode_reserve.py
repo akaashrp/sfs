@@ -119,7 +119,7 @@ def main():
                 replay.append(dict(snapshot=path.name, model=model, prompt_tokens=prompt, estimates_ms=results))
         print(json.dumps(inventory[-1]), flush=True)
     output = dict(raw_point_sha256=hashlib.sha256(args.point.read_bytes()).hexdigest(), inventory=inventory,
-                  scope='15 periodic snapshots from one completed 8.6 repeat; observations are not independent. '
+                  scope=f'{len(inventory)} periodic snapshots from the supplied completed run; observations are not independent. '
                         'Only already-running decode requests change. Waiting/prefill requests retain their original targets. '
                         'Oracle uses hindsight lengths and hypothetical probes; it is not measured latency or a deployable estimator. '
                         'Half/double reserves are sensitivity controls, not fitted recommendations. '
