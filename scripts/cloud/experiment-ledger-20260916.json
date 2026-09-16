@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_epoch": 1789550335.4893742,
+  "updated_epoch": 1789552736.2867806,
   "identity_fields": [
     "family",
     "variant",
@@ -324,11 +324,36 @@
       "cpu_affinity": "0-47",
       "remote_output": "/workspace/sfs/state/controls/qps8-lane-a",
       "supervisor_program": "sfs-control-8-lane-a",
-      "status": "STARTED",
+      "status": "COMPLETED_AUDITED",
       "source_commit": "09b04788440ed7bc5a278b6e73c00eed414daf77",
       "same_smoke_sequence": true,
       "user_authorization": "Two concurrent QPS 8 reruns, GPUs 0-3 and 4-7",
-      "comparison_boundary": "Unchanged canonical execute and runtime; thin wrapper supplies 8 QPS beyond historical CLI choices"
+      "comparison_boundary": "Unchanged canonical execute and runtime; thin wrapper supplies 8 QPS beyond historical CLI choices",
+      "metrics": {
+        "requests": 16000,
+        "observed_scored_queries": 15996,
+        "excluded_queries": 4,
+        "primary_judge": "pro",
+        "primary_ontimeutility": 0.49821154152964797,
+        "ontimeutility": {
+          "pro": 0.49821154152964797,
+          "flash": 0.5347456650412603
+        },
+        "ttft_slo_attainment_pct": 92.1375,
+        "ttft_denominator": 16000,
+        "quality_definition": "Saved candidate scores joined to actual routing decisions; common observed query groups for both judges",
+        "status": "PASS",
+        "qps": 8.0,
+        "raw_point": "/workspace/sfs/state/controls/qps8-lane-a/outputs/current_sfs_control_20260916_091959_qps8_point01.json",
+        "raw_sha256": "c826907fa5f218197242641b011040e61b2a4830352f66a41dc16d60f9605c90",
+        "audit": {
+          "status": "PASS_CELL",
+          "requests": 16000,
+          "realized_qps": 7.919991047571467
+        }
+      },
+      "action": "PRESERVE_NO_AUTOMATIC_RERUN",
+      "independent_controller_audit": "/ocean/projects/cis250162p/aparthas/sfs_cloud_results_20260916/sfs-vast/controls/qps8-lane-a/controller_independent_audit.json"
     },
     {
       "family": "qwen",
@@ -346,11 +371,36 @@
       "cpu_affinity": "48-95",
       "remote_output": "/workspace/sfs/state/controls/qps8-lane-b",
       "supervisor_program": "sfs-control-8-lane-b",
-      "status": "STARTED",
+      "status": "COMPLETED_AUDITED",
       "source_commit": "09b04788440ed7bc5a278b6e73c00eed414daf77",
       "same_smoke_sequence": true,
       "user_authorization": "Two concurrent QPS 8 reruns, GPUs 0-3 and 4-7",
-      "comparison_boundary": "Unchanged canonical execute and runtime; thin wrapper supplies 8 QPS beyond historical CLI choices"
+      "comparison_boundary": "Unchanged canonical execute and runtime; thin wrapper supplies 8 QPS beyond historical CLI choices",
+      "metrics": {
+        "requests": 16000,
+        "observed_scored_queries": 15996,
+        "excluded_queries": 4,
+        "primary_judge": "pro",
+        "primary_ontimeutility": 0.5013760385601556,
+        "ontimeutility": {
+          "pro": 0.5013760385601556,
+          "flash": 0.5381839805263816
+        },
+        "ttft_slo_attainment_pct": 92.90625,
+        "ttft_denominator": 16000,
+        "quality_definition": "Saved candidate scores joined to actual routing decisions; common observed query groups for both judges",
+        "status": "PASS",
+        "qps": 8.0,
+        "raw_point": "/workspace/sfs/state/controls/qps8-lane-b/outputs/current_sfs_control_20260916_091957_qps8_point01.json",
+        "raw_sha256": "d124f212a3f2b94603a4dddb062e70e4fb2e5376928dc9f50da254782fa3ddd5",
+        "audit": {
+          "status": "PASS_CELL",
+          "requests": 16000,
+          "realized_qps": 7.922150661146905
+        }
+      },
+      "action": "PRESERVE_NO_AUTOMATIC_RERUN",
+      "independent_controller_audit": "/ocean/projects/cis250162p/aparthas/sfs_cloud_results_20260916/sfs-vast/controls/qps8-lane-b/controller_independent_audit.json"
     }
   ],
   "pending_bridges_jobs": [

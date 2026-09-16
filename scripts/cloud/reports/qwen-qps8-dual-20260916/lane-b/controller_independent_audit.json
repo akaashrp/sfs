@@ -1,0 +1,37 @@
+{
+  "status": "PASS_INDEPENDENT_CONTROLLER_AUDIT",
+  "raw_point": "/ocean/projects/cis250162p/aparthas/sfs_cloud_results_20260916/sfs-vast/controls/qps8-lane-b/outputs/current_sfs_control_20260916_091957_qps8_point01.json",
+  "raw_sha256": "d124f212a3f2b94603a4dddb062e70e4fb2e5376928dc9f50da254782fa3ddd5",
+  "requests": 16000,
+  "succeeded": 16000,
+  "failed": 0,
+  "scored_queries": 15996,
+  "qps": 8.0,
+  "ttft_slo_attainment_pct": 92.90625,
+  "ontimeutility": {
+    "pro": 0.5013760385601556,
+    "flash": 0.5381839805263816
+  },
+  "arrival_quarters": [
+    {
+      "attainment_pct": 94.77499999999999,
+      "engine_ttft_median_ms": 31.0864201746881,
+      "router_delay_mean_ms": 6.732800882076845
+    },
+    {
+      "attainment_pct": 91.325,
+      "engine_ttft_median_ms": 40.699414908885956,
+      "router_delay_mean_ms": 6.786915511358529
+    },
+    {
+      "attainment_pct": 92.925,
+      "engine_ttft_median_ms": 37.18292620033026,
+      "router_delay_mean_ms": 6.481512771686539
+    },
+    {
+      "attainment_pct": 92.60000000000001,
+      "engine_ttft_median_ms": 41.98848130181432,
+      "router_delay_mean_ms": 6.8022960079833865
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "status": "QWEN_QPS8_DUAL_DIAGNOSTICS_RUNNING_MAIN_MATRIX_PAUSED",
+  "status": "QWEN_QPS8_DUAL_COMPLETE_PERFORMANCE_GAP_UNRESOLVED",
   "priority_1": {
     "purpose": "Establish the baseline comparison before selecting variant comparators",
     "qwen": {
@@ -199,9 +199,7 @@
       ],
       "output": "/workspace/sfs/state/controls/qps8p6-repeat1",
       "purpose": "Full-length reproducibility check explicitly requested after short diagnostics"
-    }
-  ],
-  "active_controls": [
+    },
     {
       "family": "qwen",
       "variant": "canonical",
@@ -218,7 +216,7 @@
       "cpu_affinity": "0-47",
       "remote_output": "/workspace/sfs/state/controls/qps8-lane-a",
       "supervisor_program": "sfs-control-8-lane-a",
-      "status": "STARTED",
+      "status": "COMPLETED_AUDITED",
       "source_commit": "09b04788440ed7bc5a278b6e73c00eed414daf77",
       "same_smoke_sequence": true,
       "user_authorization": "Two concurrent QPS 8 reruns, GPUs 0-3 and 4-7",
@@ -240,7 +238,7 @@
       "cpu_affinity": "48-95",
       "remote_output": "/workspace/sfs/state/controls/qps8-lane-b",
       "supervisor_program": "sfs-control-8-lane-b",
-      "status": "STARTED",
+      "status": "COMPLETED_AUDITED",
       "source_commit": "09b04788440ed7bc5a278b6e73c00eed414daf77",
       "same_smoke_sequence": true,
       "user_authorization": "Two concurrent QPS 8 reruns, GPUs 0-3 and 4-7",
