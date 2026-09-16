@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "sfs_branch": "experiments/cloud-68-20260914",
-  "sfs_commit": "e117dac2511dd985c01cb7caef6267395bf9ca84",
+  "sfs_commit": "7de39931e5aff7e48782a6abe09eb029d13ed3e6",
   "vllm_branch": "experiments/sfs-cloud-20260914",
   "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
   "artifact_archive": {
@@ -15,9 +15,9 @@
   "bundle_directory": "/ocean/projects/cis250162p/aparthas/sfs_cloud_artifacts_20260914",
   "cells": 68,
   "requests_total": 800000,
-  "deployment_status": "Prepared with corrected audits and Ministral freshness waiting; destination GPU validation requires SSH access",
+  "deployment_status": "Taiwan instance provisioned; background model downloads and deployment in progress; fresh serving qualification pending",
   "metadata_note": "This file is a metadata-only handoff committed after the executable release it pins.",
-  "validation_summary": "scripts/cloud/validation-summary.json",
+  "validation_summary": "scripts/cloud/refresh-validation-20260916.json",
   "bridges_recovery_branch": "experiments/ministral-recovery-20260915",
   "bridges_recovery_commit": "e117dac2511dd985c01cb7caef6267395bf9ca84",
   "bridges_recovery_job": "46077428"

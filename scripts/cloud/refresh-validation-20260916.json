@@ -1,0 +1,51 @@
+{
+  "status": "PASS_LOCAL_CLOUD_REFRESH",
+  "sfs_commit": "7de39931e5aff7e48782a6abe09eb029d13ed3e6",
+  "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
+  "regression_tests_passed": 95,
+  "regression_failures_or_skips": 0,
+  "shared_qwen_routing_and_vllm_source_changed": false,
+  "bundle_changed": false,
+  "changes": [
+    "Default Flash-trained quality evaluation to Flash; preserve explicit Pro/Flash comparisons",
+    "Report both utilities on the common 15996 observed queries with 16000-request TTFT denominator",
+    "Parallel pinned model prefetch using final shared cache and complete-file hashes",
+    "Persist pinned CUDA toolkit activation across SSH sessions",
+    "Allow artifact transfer when controller scp is unavailable"
+  ],
+  "real_flash_qps8p6_rehearsal": {
+    "status": "PASS",
+    "source_point": "/ocean/projects/cis250162p/aparthas/sfs_model_family/experiments/predictor_prereqs_20260912/flash_quality_sweep/outputs/flash_quality_20260915_193933_qps8p6_point03.json",
+    "result": {
+      "requests": 16000,
+      "observed_scored_queries": 15996,
+      "excluded_queries": 4,
+      "primary_judge": "flash",
+      "primary_ontimeutility": 0.2724967543448362,
+      "ontimeutility": {
+        "pro": 0.2532341560746807,
+        "flash": 0.2724967543448362
+      },
+      "ttft_slo_attainment_pct": 43.175,
+      "ttft_denominator": 16000,
+      "quality_definition": "Saved candidate scores joined to actual routing decisions; common observed query groups for both judges"
+    }
+  },
+  "regression_gate": "/ocean/projects/cis250162p/aparthas/sfs_cloud_20260914/.scratch/refresh-20260916/regression/gate.json",
+  "destination": {
+    "provider": "Vast",
+    "instance_id": 51183839,
+    "location": "Taiwan",
+    "gpus": "8 x H100 SXM 80 GB",
+    "volume_id": 51183838,
+    "volume_gb": 1000,
+    "storage": "/workspace/sfs",
+    "downloads": "Background Supervisor worker; serving qualification not yet run"
+  },
+  "not_yet_validated": [
+    "Fresh serving environment installation",
+    "Destination NCCL",
+    "Destination calibrated policy smoke and offered-load qualification",
+    "Measured cloud evaluation cells"
+  ]
+}
