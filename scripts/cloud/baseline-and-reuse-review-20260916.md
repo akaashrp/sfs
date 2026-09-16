@@ -94,3 +94,33 @@ limited overlapping policy/load measurements to assess a combined comparison
 before pooling Vast and Bridges results. The Qwen controls do not establish
 Ministral cross-host equivalence. No automatic reruns or job cancellations
 are authorized by this review.
+
+## Does latency-agnostic performance justify different SLOs?
+
+Recomputing attainment on the saved latency-agnostic request rows gives:
+
+| QPS | Original SLO | 2x SLO | 5x SLO | 10x SLO |
+|---|---:|---:|---:|---:|
+| 6.0125 | 73.188% | 73.275% | 73.500% | 73.638% |
+| 7.8625 | 72.275% | 72.338% | 72.375% | 72.487% |
+| 8.7875 | 72.000% | 72.088% | 72.188% | 72.225% |
+| 9.7125 | 72.138% | 72.162% | 72.188% | 72.200% |
+
+These are retrospective threshold sensitivities on identical measured rows,
+not fresh runs under modified SLOs. GovReport has 2,000 requests at each load;
+1,908 are routed to 3B, 91 to 8B, and one to 14B. Its median TTFT grows from
+151.65 seconds to 618.77 seconds, against a median SLO of 455.99 milliseconds.
+Alpaca and WritingPrompts median TTFTs remain approximately 14-17 milliseconds
+with roughly 159-160 millisecond median SLOs. GovReport attainment is already
+11.3% at the lowest load and 7.45% at the highest. The bucket mix is fixed.
+
+This is consistent with a policy that overloads one model while most requests
+on other models continue meeting their deadlines. The 65% label references
+the historical shortest-queue capacity scout, not latency-agnostic capacity.
+Binary attainment therefore conceals substantial worsening within the
+already-failing group. Keep the current SLOs for the committed experiment;
+report latency quantiles or bucket breakdowns alongside attainment. If needed,
+a lower-load calibration probe can locate latency-agnostic saturation without
+changing the committed grid. Revisit SLOs only for an independently motivated
+latency target or calibration finding. SFS uses SLOs for decisions, so a changed
+SLO experiment cannot in general be obtained by rescoring its old routing.
