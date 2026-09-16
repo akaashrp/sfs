@@ -138,6 +138,9 @@ BUILTIN_WAIT_ESTIMATORS = (
 )
 EXPERIMENT_MODES = ("router", "wait_gof", "batch_fit", "all")
 ARRIVAL_PROCESSES = ("poisson", "deterministic", "mmpp2")
+# Arrival generator provenance recorded per run: absolute schedule (sleep until
+# origin + cumulative sampled offset) rather than per-gap relative sleeps.
+ARRIVAL_TIMING = "absolute_schedule"
 FEASIBLE_SLO_MODES = ("queue", "ttft", "e2e")
 SHORTEST_QUEUE_SENTINEL = 10**12
 DEFAULT_AFFINITY_QUALITY_EPSILON = 0.40
@@ -1835,6 +1838,32 @@ def _sample_mmpp2_interarrival_s(
             state["current_state"] = current_state
             return float(elapsed_s)
         current_state = switched_state
+
+
+class _ArrivalSchedule:
+    """Absolute arrival timeline: sleep until origin + cumulative sampled offset.
+
+    A late event-loop wakeup (e.g. under heavy streaming load) delays only the
+    current arrival instead of shifting every later one, so lag never
+    accumulates into the realized rate. The sampled gap sequence is unchanged.
+    """
+
+    def __init__(self, *, clock=time.perf_counter, sleep=asyncio.sleep) -> None:
+        self._clock = clock
+        self._sleep = sleep
+        self.origin_perf: Optional[float] = None
+        self.offset_s = 0.0
+
+    def start(self) -> None:
+        self.origin_perf = self._clock()
+
+    async def wait(self, interarrival_s: float) -> None:
+        if self.origin_perf is None:
+            self.start()
+        if interarrival_s <= 0:
+            return
+        self.offset_s += float(interarrival_s)
+        await self._sleep(max(self.origin_perf + self.offset_s - self._clock(), 0.0))
 
 
 def _sample_interarrival_s(
@@ -4602,8 +4631,11 @@ async def run_policy(
             **payload,
         )
 
+    arrival_schedule = _ArrivalSchedule()
+
     async def _sleep_for_interarrival(idx: int) -> None:
         if idx <= 0:
+            arrival_schedule.start()
             return
         interarrival_s = _sample_interarrival_s(
             request_rate_qps=request_rate_qps,
@@ -4612,8 +4644,7 @@ async def run_policy(
             mmpp2_params=mmpp2_params,
             mmpp2_state=mmpp2_state,
         )
-        if interarrival_s > 0:
-            await asyncio.sleep(interarrival_s)
+        await arrival_schedule.wait(interarrival_s)
 
     try:
         if decouple_arrivals:
@@ -5063,6 +5094,7 @@ async def run_policy(
         "label": run_label or utility_name,
         "utility": utility_name,
         "arrival_process": resolved_arrival_process,
+        "arrival_timing": ARRIVAL_TIMING,
         "route_strategy": route_strategy,
         "wait_estimator": wait_estimator_name,
         "feasible_slo_mode": resolved_feasible_slo_mode,

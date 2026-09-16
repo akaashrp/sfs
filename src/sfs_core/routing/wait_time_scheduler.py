@@ -25,6 +25,7 @@ from vllm.v1.engine.scheduler_simulator import SimulationStopMode
 
 import sys
 
+from .latency_stream import RawChunks
 from .snapshot_shm_client import SnapshotShmClient
 from .pending_dispatch_ledger import PendingDispatch, PendingDispatchLedger
 from .readiness_predictor import ReadinessDelayPredictor
@@ -350,8 +351,11 @@ class InstanceClient:
         args = dict(payload)
         args.setdefault("model", self.default_model)
         if "messages" in args:
-            return await self._client.chat.completions.create(**args)
-        return await self._client.completions.create(**args)
+            response = await self._client.chat.completions.create(**args)
+        else:
+            response = await self._client.completions.create(**args)
+        # Streams bypass per-chunk SDK model construction on the event loop.
+        return RawChunks(response) if args.get("stream") else response
 
     async def refresh_baseline_state(self):
         """Read committed engine state without a scheduler simulation."""

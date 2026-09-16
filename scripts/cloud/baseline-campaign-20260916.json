@@ -321,5 +321,8 @@
       "priority": "FALLBACK_ONLY",
       "submission": "UNSUBMITTED_UNTIL_NO_HIGHER_PRIORITY_WORK"
     }
-  ]
+  ],
+  "accepted_prior_source_digests": {
+    "cb1b4d856ebcf7f2d9cc96aca0b25d2d81e0485a82d4c5e76d9936a58178943e": "Source pin of checkout da1c78b under which the nine audited cells (Qwen LMDeploy 6/7/8/8.3, Qwen vLLM-SR 6, Ministral shortest queue 6.0125/7.8625/8.7875, Ministral vLLM-SR 6.0125) and the Mooncake/RouteBalance resumption pools completed. Accepted after the arrival-schedule and raw-SSE changes: the sampled arrival sequence is unchanged and non-streaming policies are unaffected; those cells realized 0.6-1.0 percent below target (vLLM-SR 6: 7.9 and 5.2 percent) and are retained, not rerun."
+  }
 }

@@ -115,7 +115,7 @@ def test_real_ministral_openai_sse_alias():
         client=InstanceClient.__new__(InstanceClient);client._client=sdk;client.default_model='ministral3-3b-instruct';client.model_id='ministral3-3b'
         try:
             result=await submit_latency_stream(ministral.AliasClient(client),{'messages':[{'role':'user','content':'test'}]},started_perf=0,on_first=lambda _:None)
-            assert result['model']=='ministral3-3b' and result['usage'].completion_tokens==2
+            assert result['model']=='ministral3-3b' and result['usage']['completion_tokens']==2
         finally:await sdk.close()
     asyncio.run(run())
 
