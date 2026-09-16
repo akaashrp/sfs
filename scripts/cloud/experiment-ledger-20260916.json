@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_epoch": 1789549412.1970222,
+  "updated_epoch": 1789550335.4893742,
   "identity_fields": [
     "family",
     "variant",
@@ -307,6 +307,50 @@
       },
       "raw_point_sha256": "1f6099fff5b066736da2d8ffc2df285494902210d6584916fe02a84dc924224a",
       "independent_controller_audit": "/ocean/projects/cis250162p/aparthas/sfs_cloud_results_20260916/sfs-vast/controls/qps8p6-repeat1/controller_independent_audit.json"
+    },
+    {
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "provider": "vast",
+      "qps": 8.0,
+      "requests": 16000,
+      "gpus": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "cpu_affinity": "0-47",
+      "remote_output": "/workspace/sfs/state/controls/qps8-lane-a",
+      "supervisor_program": "sfs-control-8-lane-a",
+      "status": "STARTED",
+      "source_commit": "09b04788440ed7bc5a278b6e73c00eed414daf77",
+      "same_smoke_sequence": true,
+      "user_authorization": "Two concurrent QPS 8 reruns, GPUs 0-3 and 4-7",
+      "comparison_boundary": "Unchanged canonical execute and runtime; thin wrapper supplies 8 QPS beyond historical CLI choices"
+    },
+    {
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "provider": "vast",
+      "qps": 8.0,
+      "requests": 16000,
+      "gpus": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "cpu_affinity": "48-95",
+      "remote_output": "/workspace/sfs/state/controls/qps8-lane-b",
+      "supervisor_program": "sfs-control-8-lane-b",
+      "status": "STARTED",
+      "source_commit": "09b04788440ed7bc5a278b6e73c00eed414daf77",
+      "same_smoke_sequence": true,
+      "user_authorization": "Two concurrent QPS 8 reruns, GPUs 0-3 and 4-7",
+      "comparison_boundary": "Unchanged canonical execute and runtime; thin wrapper supplies 8 QPS beyond historical CLI choices"
     }
   ],
   "pending_bridges_jobs": [

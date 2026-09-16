@@ -1,0 +1,534 @@
+[
+  {
+    "snapshot": "1789548216429795210-qwen3-0.6b.bin",
+    "running": 32,
+    "waiting": 19,
+    "decode_reserve_tokens": 532,
+    "decode_requests": 32,
+    "remaining_le1_but_actual_ge128": 11,
+    "held_context_in_these": 282034,
+    "running_context": 625127,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-7291",
+        "predicted_remaining": 1,
+        "actual_remaining": 6558,
+        "context_tokens": 11857,
+        "actual_total": 8192,
+        "predicted_total_router": 1.0
+      },
+      {
+        "id": "chatcmpl-hard-req-7025",
+        "predicted_remaining": 1,
+        "actual_remaining": 5733,
+        "context_tokens": 24935,
+        "actual_total": 8192,
+        "predicted_total_router": 786.8309476268051
+      },
+      {
+        "id": "chatcmpl-hard-req-6812",
+        "predicted_remaining": 1,
+        "actual_remaining": 5002,
+        "context_tokens": 17744,
+        "actual_total": 8192,
+        "predicted_total_router": 1.0
+      }
+    ]
+  },
+  {
+    "snapshot": "1789548216429795210-qwen3-32b.bin",
+    "running": 99,
+    "waiting": 21,
+    "decode_reserve_tokens": 818,
+    "decode_requests": 99,
+    "remaining_le1_but_actual_ge128": 5,
+    "held_context_in_these": 22776,
+    "running_context": 295675,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-6040",
+        "predicted_remaining": 1,
+        "actual_remaining": 4085,
+        "context_tokens": 4197,
+        "actual_total": 8192,
+        "predicted_total_router": 358.8891811687445
+      },
+      {
+        "id": "chatcmpl-hard-req-5321",
+        "predicted_remaining": 1,
+        "actual_remaining": 1627,
+        "context_tokens": 6648,
+        "actual_total": 8192,
+        "predicted_total_router": 247.1738940125761
+      },
+      {
+        "id": "chatcmpl-hard-req-7360",
+        "predicted_remaining": 1,
+        "actual_remaining": 279,
+        "context_tokens": 1311,
+        "actual_total": 1493,
+        "predicted_total_router": 330.8536891471584
+      }
+    ]
+  },
+  {
+    "snapshot": "1789548216429795210-qwen3-8b.bin",
+    "running": 83,
+    "waiting": 29,
+    "decode_reserve_tokens": 638,
+    "decode_requests": 83,
+    "remaining_le1_but_actual_ge128": 6,
+    "held_context_in_these": 21169,
+    "running_context": 376955,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-7499",
+        "predicted_remaining": 1,
+        "actual_remaining": 770,
+        "context_tokens": 1049,
+        "actual_total": 1775,
+        "predicted_total_router": 628.7447327730134
+      },
+      {
+        "id": "chatcmpl-hard-req-7485",
+        "predicted_remaining": 1,
+        "actual_remaining": 230,
+        "context_tokens": 15067,
+        "actual_total": 1265,
+        "predicted_total_router": 258.3848817015611
+      },
+      {
+        "id": "chatcmpl-hard-req-7434",
+        "predicted_remaining": 1,
+        "actual_remaining": 225,
+        "context_tokens": 1231,
+        "actual_total": 1382,
+        "predicted_total_router": 393.22056193478335
+      }
+    ]
+  },
+  {
+    "snapshot": "1789548426884476737-qwen3-0.6b.bin",
+    "running": 29,
+    "waiting": 5,
+    "decode_reserve_tokens": 545,
+    "decode_requests": 29,
+    "remaining_le1_but_actual_ge128": 18,
+    "held_context_in_these": 442328,
+    "running_context": 607499,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-9404",
+        "predicted_remaining": 1,
+        "actual_remaining": 7121,
+        "context_tokens": 11900,
+        "actual_total": 8192,
+        "predicted_total_router": 323.9710764111704
+      },
+      {
+        "id": "chatcmpl-hard-req-9247",
+        "predicted_remaining": 1,
+        "actual_remaining": 6492,
+        "context_tokens": 21958,
+        "actual_total": 8191,
+        "predicted_total_router": 322.1941842940769
+      },
+      {
+        "id": "chatcmpl-hard-req-9008",
+        "predicted_remaining": 1,
+        "actual_remaining": 5686,
+        "context_tokens": 21825,
+        "actual_total": 8192,
+        "predicted_total_router": 1667.3274552983335
+      }
+    ]
+  },
+  {
+    "snapshot": "1789548426884476737-qwen3-32b.bin",
+    "running": 75,
+    "waiting": 0,
+    "decode_reserve_tokens": 566,
+    "decode_requests": 75,
+    "remaining_le1_but_actual_ge128": 11,
+    "held_context_in_these": 22709,
+    "running_context": 65214,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-8307",
+        "predicted_remaining": 1,
+        "actual_remaining": 2267,
+        "context_tokens": 5967,
+        "actual_total": 8192,
+        "predicted_total_router": 359.9259173687246
+      },
+      {
+        "id": "chatcmpl-hard-req-8222",
+        "predicted_remaining": 1,
+        "actual_remaining": 1977,
+        "context_tokens": 6260,
+        "actual_total": 8192,
+        "predicted_total_router": 363.850768101061
+      },
+      {
+        "id": "chatcmpl-hard-req-9440",
+        "predicted_remaining": 1,
+        "actual_remaining": 1370,
+        "context_tokens": 1140,
+        "actual_total": 2464,
+        "predicted_total_router": 302.8141293526268
+      }
+    ]
+  },
+  {
+    "snapshot": "1789548426884476737-qwen3-8b.bin",
+    "running": 48,
+    "waiting": 0,
+    "decode_reserve_tokens": 645,
+    "decode_requests": 48,
+    "remaining_le1_but_actual_ge128": 2,
+    "held_context_in_these": 2481,
+    "running_context": 350589,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-9199",
+        "predicted_remaining": 1,
+        "actual_remaining": 877,
+        "context_tokens": 1330,
+        "actual_total": 2163,
+        "predicted_total_router": 1030.7682916881704
+      },
+      {
+        "id": "chatcmpl-hard-req-9267",
+        "predicted_remaining": 1,
+        "actual_remaining": 424,
+        "context_tokens": 1151,
+        "actual_total": 1527,
+        "predicted_total_router": 745.7202811447106
+      }
+    ]
+  },
+  {
+    "snapshot": "1789548676071481607-qwen3-0.6b.bin",
+    "running": 24,
+    "waiting": 0,
+    "decode_reserve_tokens": 284,
+    "decode_requests": 24,
+    "remaining_le1_but_actual_ge128": 12,
+    "held_context_in_these": 255930,
+    "running_context": 472470,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-11260",
+        "predicted_remaining": 1,
+        "actual_remaining": 5786,
+        "context_tokens": 10626,
+        "actual_total": 8192,
+        "predicted_total_router": 152.74738151250367
+      },
+      {
+        "id": "chatcmpl-hard-req-11104",
+        "predicted_remaining": 1,
+        "actual_remaining": 5081,
+        "context_tokens": 23559,
+        "actual_total": 8087,
+        "predicted_total_router": 1.0
+      },
+      {
+        "id": "chatcmpl-hard-req-10799",
+        "predicted_remaining": 1,
+        "actual_remaining": 4433,
+        "context_tokens": 19534,
+        "actual_total": 8192,
+        "predicted_total_router": 2294.6208659200356
+      }
+    ]
+  },
+  {
+    "snapshot": "1789548676071481607-qwen3-32b.bin",
+    "running": 61,
+    "waiting": 0,
+    "decode_reserve_tokens": 575,
+    "decode_requests": 61,
+    "remaining_le1_but_actual_ge128": 6,
+    "held_context_in_these": 6747,
+    "running_context": 37087,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-11570",
+        "predicted_remaining": 1,
+        "actual_remaining": 726,
+        "context_tokens": 1068,
+        "actual_total": 1751,
+        "predicted_total_router": 265.77262014496176
+      },
+      {
+        "id": "chatcmpl-hard-req-11576",
+        "predicted_remaining": 1,
+        "actual_remaining": 650,
+        "context_tokens": 1102,
+        "actual_total": 1655,
+        "predicted_total_router": 407.53490488106166
+      },
+      {
+        "id": "chatcmpl-hard-req-11582",
+        "predicted_remaining": 1,
+        "actual_remaining": 520,
+        "context_tokens": 1031,
+        "actual_total": 1465,
+        "predicted_total_router": 401.1142587501335
+      }
+    ]
+  },
+  {
+    "snapshot": "1789548676071481607-qwen3-8b.bin",
+    "running": 45,
+    "waiting": 0,
+    "decode_reserve_tokens": 519,
+    "decode_requests": 45,
+    "remaining_le1_but_actual_ge128": 4,
+    "held_context_in_these": 42537,
+    "running_context": 310908,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-11288",
+        "predicted_remaining": 1,
+        "actual_remaining": 1595,
+        "context_tokens": 1445,
+        "actual_total": 2995,
+        "predicted_total_router": 970.3602102331674
+      },
+      {
+        "id": "chatcmpl-hard-req-11453",
+        "predicted_remaining": 1,
+        "actual_remaining": 333,
+        "context_tokens": 11520,
+        "actual_total": 1196,
+        "predicted_total_router": 329.1589064200061
+      },
+      {
+        "id": "chatcmpl-hard-req-11444",
+        "predicted_remaining": 1,
+        "actual_remaining": 227,
+        "context_tokens": 11967,
+        "actual_total": 1145,
+        "predicted_total_router": 323.2979298061121
+      }
+    ]
+  },
+  {
+    "snapshot": "1789548919290306853-qwen3-0.6b.bin",
+    "running": 29,
+    "waiting": 78,
+    "decode_reserve_tokens": 607,
+    "decode_requests": 29,
+    "remaining_le1_but_actual_ge128": 16,
+    "held_context_in_these": 361510,
+    "running_context": 625825,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-12933",
+        "predicted_remaining": 1,
+        "actual_remaining": 5561,
+        "context_tokens": 19567,
+        "actual_total": 8192,
+        "predicted_total_router": 729.4811001842285
+      },
+      {
+        "id": "chatcmpl-hard-req-12956",
+        "predicted_remaining": 1,
+        "actual_remaining": 4928,
+        "context_tokens": 12603,
+        "actual_total": 7455,
+        "predicted_total_router": 425.0878287173094
+      },
+      {
+        "id": "chatcmpl-hard-req-12835",
+        "predicted_remaining": 1,
+        "actual_remaining": 4816,
+        "context_tokens": 18241,
+        "actual_total": 8192,
+        "predicted_total_router": 2157.8876379882972
+      }
+    ]
+  },
+  {
+    "snapshot": "1789548919290306853-qwen3-32b.bin",
+    "running": 66,
+    "waiting": 39,
+    "decode_reserve_tokens": 845,
+    "decode_requests": 66,
+    "remaining_le1_but_actual_ge128": 8,
+    "held_context_in_these": 39191,
+    "running_context": 293740,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-12493",
+        "predicted_remaining": 1,
+        "actual_remaining": 5078,
+        "context_tokens": 3178,
+        "actual_total": 8192,
+        "predicted_total_router": 585.6981704420509
+      },
+      {
+        "id": "chatcmpl-hard-req-12172",
+        "predicted_remaining": 1,
+        "actual_remaining": 3526,
+        "context_tokens": 4722,
+        "actual_total": 8192,
+        "predicted_total_router": 479.2681708427582
+      },
+      {
+        "id": "chatcmpl-hard-req-11914",
+        "predicted_remaining": 1,
+        "actual_remaining": 2298,
+        "context_tokens": 5971,
+        "actual_total": 8192,
+        "predicted_total_router": 384.37716297771584
+      }
+    ]
+  },
+  {
+    "snapshot": "1789548919290306853-qwen3-8b.bin",
+    "running": 118,
+    "waiting": 16,
+    "decode_reserve_tokens": 637,
+    "decode_requests": 118,
+    "remaining_le1_but_actual_ge128": 3,
+    "held_context_in_these": 19138,
+    "running_context": 377798,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-13454",
+        "predicted_remaining": 1,
+        "actual_remaining": 322,
+        "context_tokens": 12573,
+        "actual_total": 1414,
+        "predicted_total_router": 344.91980246851097
+      },
+      {
+        "id": "chatcmpl-hard-req-13469",
+        "predicted_remaining": 1,
+        "actual_remaining": 283,
+        "context_tokens": 1133,
+        "actual_total": 1344,
+        "predicted_total_router": 421.10809517574376
+      },
+      {
+        "id": "chatcmpl-hard-req-13508",
+        "predicted_remaining": 1,
+        "actual_remaining": 142,
+        "context_tokens": 5432,
+        "actual_total": 1029,
+        "predicted_total_router": 229.43470175134024
+      }
+    ]
+  },
+  {
+    "snapshot": "1789549168354986428-qwen3-0.6b.bin",
+    "running": 53,
+    "waiting": 22,
+    "decode_reserve_tokens": 520,
+    "decode_requests": 53,
+    "remaining_le1_but_actual_ge128": 11,
+    "held_context_in_these": 303771,
+    "running_context": 627345,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-14952",
+        "predicted_remaining": 1,
+        "actual_remaining": 5151,
+        "context_tokens": 21642,
+        "actual_total": 8192,
+        "predicted_total_router": 590.7216545482038
+      },
+      {
+        "id": "chatcmpl-hard-req-14921",
+        "predicted_remaining": 1,
+        "actual_remaining": 5046,
+        "context_tokens": 30118,
+        "actual_total": 8192,
+        "predicted_total_router": 286.6922063292468
+      },
+      {
+        "id": "chatcmpl-hard-req-14832",
+        "predicted_remaining": 1,
+        "actual_remaining": 4531,
+        "context_tokens": 25476,
+        "actual_total": 8192,
+        "predicted_total_router": 2072.5092572781923
+      }
+    ]
+  },
+  {
+    "snapshot": "1789549168354986428-qwen3-32b.bin",
+    "running": 103,
+    "waiting": 9,
+    "decode_reserve_tokens": 844,
+    "decode_requests": 103,
+    "remaining_le1_but_actual_ge128": 4,
+    "held_context_in_these": 34820,
+    "running_context": 295564,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-12493",
+        "predicted_remaining": 1,
+        "actual_remaining": 474,
+        "context_tokens": 7782,
+        "actual_total": 8192,
+        "predicted_total_router": 585.6981704420509
+      },
+      {
+        "id": "chatcmpl-hard-req-15279",
+        "predicted_remaining": 1,
+        "actual_remaining": 390,
+        "context_tokens": 1391,
+        "actual_total": 1734,
+        "predicted_total_router": 325.6356977880566
+      },
+      {
+        "id": "chatcmpl-hard-req-15321",
+        "predicted_remaining": 1,
+        "actual_remaining": 305,
+        "context_tokens": 11028,
+        "actual_total": 1516,
+        "predicted_total_router": 314.58598183402137
+      }
+    ]
+  },
+  {
+    "snapshot": "1789549168354986428-qwen3-8b.bin",
+    "running": 100,
+    "waiting": 18,
+    "decode_reserve_tokens": 654,
+    "decode_requests": 100,
+    "remaining_le1_but_actual_ge128": 8,
+    "held_context_in_these": 22895,
+    "running_context": 381032,
+    "examples": [
+      {
+        "id": "chatcmpl-hard-req-14911",
+        "predicted_remaining": 1,
+        "actual_remaining": 5355,
+        "context_tokens": 2878,
+        "actual_total": 8192,
+        "predicted_total_router": 677.6343275475841
+      },
+      {
+        "id": "chatcmpl-hard-req-14786",
+        "predicted_remaining": 1,
+        "actual_remaining": 5046,
+        "context_tokens": 3186,
+        "actual_total": 8192,
+        "predicted_total_router": 375.111337579951
+      },
+      {
+        "id": "chatcmpl-hard-req-14619",
+        "predicted_remaining": 1,
+        "actual_remaining": 4590,
+        "context_tokens": 3652,
+        "actual_total": 8192,
+        "predicted_total_router": 557.8155752361572
+      }
+    ]
+  }
+]
