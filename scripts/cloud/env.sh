@@ -3,8 +3,15 @@
 SFS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 : "${SFS_STORAGE:?Set SFS_STORAGE to the provisioned persistent storage directory}"
 export SFS_ROOT SFS_STORAGE
+export CONDA_ENVS_PATH="$SFS_STORAGE/miniforge/envs"
+export CONDA_PKGS_DIRS="$SFS_STORAGE/miniforge/pkgs"
+_sfs_restore_nounset=false
+case $- in *u*) _sfs_restore_nounset=true; set +u ;; esac
 source "$SFS_STORAGE/miniforge/etc/profile.d/conda.sh"
 conda activate vllm
+if $_sfs_restore_nounset; then set -u; fi
+unset _sfs_restore_nounset
+[[ "$CONDA_PREFIX" == "$SFS_STORAGE/miniforge/envs/vllm" ]]
 export CUDA_HOME="$CONDA_PREFIX" CUDA_PATH="$CONDA_PREFIX" CUDACXX="$CONDA_PREFIX/bin/nvcc"
 export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}"
 export PYTHONPATH="$SFS_ROOT/vllm:$SFS_ROOT/src"

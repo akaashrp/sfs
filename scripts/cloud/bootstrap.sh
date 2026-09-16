@@ -9,6 +9,10 @@ export SFS_STORAGE
 export TMPDIR="$SFS_STORAGE/scratch"
 export TMP="$TMPDIR" TEMP="$TMPDIR"
 export PIP_CACHE_DIR="$SFS_STORAGE/pip-cache"
+# Provider-wide Conda configuration may otherwise redirect named environments
+# into the ephemeral /venv filesystem.
+export CONDA_ENVS_PATH="$SFS_STORAGE/miniforge/envs"
+export CONDA_PKGS_DIRS="$SFS_STORAGE/miniforge/pkgs"
 command -v git >/dev/null
 command -v curl >/dev/null
 command -v nvidia-smi >/dev/null
@@ -24,13 +28,16 @@ if [[ ! -f "$SFS_STORAGE/miniforge/etc/profile.d/conda.sh" ]]; then
   (cd "$SFS_STORAGE/setup" && sha256sum -c "$installer.sha256")
   bash "$SFS_STORAGE/setup/$installer" -b -p "$SFS_STORAGE/miniforge"
 fi
+set +u # Third-party Conda activation hooks read optional unset variables.
 source "$SFS_STORAGE/miniforge/etc/profile.d/conda.sh"
 if [[ ! -d "$SFS_STORAGE/miniforge/envs/vllm" ]]; then
-  conda create -y -n vllm -c conda-forge python=3.12.11 pip=25.2 'setuptools>=77,<80' cmake ninja ccache git rsync tmux go libnuma libgomp gcc_linux-64=13 gxx_linux-64=13
+  conda create -y -p "$SFS_STORAGE/miniforge/envs/vllm" -c conda-forge python=3.12.11 pip=25.2 'setuptools>=77,<80' cmake ninja ccache git rsync tmux go libnuma libgomp gcc_linux-64=13 gxx_linux-64=13
 fi
 conda activate vllm
+[[ "$CONDA_PREFIX" == "$SFS_STORAGE/miniforge/envs/vllm" ]]
 # Keep provider drivers/system CUDA intact (including Thunder's CUDA 13 image).
-conda install -y -n vllm -c nvidia/label/cuda-12.9.1 cuda-toolkit=12.9.1
+conda install -y -p "$SFS_STORAGE/miniforge/envs/vllm" -c nvidia/label/cuda-12.9.1 cuda-toolkit=12.9.1
+set -u
 export CUDA_HOME="$CONDA_PREFIX" CUDA_PATH="$CONDA_PREFIX" CUDACXX="$CONDA_PREFIX/bin/nvcc"
 export PATH="$CONDA_PREFIX/bin:$PATH" LD_LIBRARY_PATH="$CONDA_PREFIX/lib:${LD_LIBRARY_PATH:-}"
 python -m pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu129
