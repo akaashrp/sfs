@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 
@@ -12,6 +13,16 @@ import sys
 def ssh(host, script):
     subprocess.run(['ssh','-o','BatchMode=yes','-o','ConnectTimeout=20',host,
                     'bash -lc '+shlex.quote(script)],check=True)
+
+
+def transfer(host, source, destination):
+    """Use an SSH stream when the controller does not provide scp."""
+    if shutil.which('scp'):
+        subprocess.run(['scp', str(source), f'{host}:{destination}'], check=True)
+    else:
+        with Path(source).open('rb') as stream:
+            subprocess.run(['ssh', '-o', 'BatchMode=yes', host,
+                            'cat > ' + shlex.quote(destination)], stdin=stream, check=True)
 
 
 def main():
@@ -33,7 +44,7 @@ def main():
         if not a.archive or not a.archive_sha256:p.error('Deployment needs the frozen archive and SHA256')
         if not re.fullmatch('[a-f0-9]{64}',a.archive_sha256):p.error('Invalid archive SHA256')
         ssh(a.host,f'mkdir -p {storage}/transfer')
-        subprocess.run(['scp',str(Path(a.archive).resolve()),f'{a.host}:{a.storage}/transfer/inputs.tar.gz'],check=True)
+        transfer(a.host, Path(a.archive).resolve(), f'{a.storage}/transfer/inputs.tar.gz')
         script=prefix+f'''set -euo pipefail
 cd "$SFS_STORAGE/transfer"
 echo '{a.archive_sha256}  inputs.tar.gz' | sha256sum -c -

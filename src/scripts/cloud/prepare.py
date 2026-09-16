@@ -96,25 +96,10 @@ def seed_encoder(bundle, cache):
 
 
 def download(bundle, cache, output, family):
-    from huggingface_hub import snapshot_download
+    from scripts.cloud.model_downloads import download_models
     m = validate_bundle(bundle)
     seed_encoder(bundle, cache)
-    paths = {}
-    for key, model in m['models'].items():
-        if family != 'all' and model['family'] != family: continue
-        patterns = ['*.json', '*.jinja', '*.model', '*.tiktoken', 'tekken.json']
-        patterns += ['consolidated.safetensors'] if model['family'] == 'ministral' else ['*.safetensors']
-        path = Path(snapshot_download(repo_id=model['repo'], revision=model['revision'],
-            cache_dir=cache, allow_patterns=patterns))
-        if not list(path.glob('*.safetensors')): raise ValueError('Missing model weights')
-        index = path/'model.safetensors.index.json'
-        if model['family'] == 'qwen' and index.exists():
-            for shard in set(read(index)['weight_map'].values()):
-                if not (path/shard).is_file(): raise ValueError('Incomplete model shard set')
-        paths[key] = str(path)
-    write(output, paths)
-    write(str(output)+'.audit.json', {'revisions': {k:m['models'][k] for k in paths},
-        'file_sha256': {str(p): digest(p) for root in paths.values() for p in Path(root).iterdir() if p.is_file()}})
+    download_models(m['models'], cache, output, family=family)
 
 
 if __name__ == '__main__':

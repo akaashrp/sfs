@@ -62,7 +62,7 @@ Storage is provider-specific; the mounted path must be checked after creation.
 | Provider | Steps before deployment |
 |---|---|
 | Prime Intellect | For independent persistence, create a persistent disk in the **same provider and datacenter** as the GPU offer; select a compatible offer with **Add Shared Filesystem**, attach the disk, and note its actual mount path. Set `SFS_STORAGE` underneath that mount. Instance-local disk is not a substitute for a persistent disk. |
-| Thunder Compute | The home directory is on persistent disk. Current docs include 100 GB per GPU (400 GB for four, 800 GB for eight); expand if needed. Put `SFS_STORAGE` under the home directory. Create a snapshot and wait for READY before deleting/replacing an instance; maintain off-host result copies regardless. |
+| Thunder Compute | Check the actual instance quote for included disk capacity and expansion charges; do not assume 100 GB per GPU is included. Put `SFS_STORAGE` on persistent storage and expand to the planned capacity if needed. Create a snapshot and wait for READY before deleting/replacing an instance; maintain off-host result copies regardless. |
 | Vast | Set disk size at creation; container disk cannot subsequently grow and is lost on destroy. To survive instance deletion, create/attach a **volume on the same physical host** and put `SFS_STORAGE` under its mount. A Vast volume cannot migrate to another host. Maintain off-host copies. |
 
 Sources checked September 14, 2026:
@@ -71,7 +71,11 @@ Sources checked September 14, 2026:
 [Thunder specifications](https://www.thundercompute.com/docs/technical-specs),
 [Thunder snapshots](https://www.thundercompute.com/docs/cli/operations/snapshots),
 [Vast storage](https://docs.vast.ai/guides/instances/storage/types).
-Check offer-specific capacity before purchasing; no instance has been provisioned by this preparation.
+Check offer-specific capacity before purchasing. The September 16 destination is
+Vast instance 51183839 in Taiwan: eight H100 SXM 80 GB GPUs, a 1,000 GB local
+volume mounted at `/workspace`, and a separate 64 GB container disk. Use
+`SFS_STORAGE=/workspace/sfs`; `/workspace` was verified as a writable host volume.
+The controller aliases `sfs-vast` and `sfs-cloud-a` both reach this instance.
 
 ## SSH and transfer
 
@@ -232,13 +236,46 @@ python -m scripts.cloud.collate --bundle /path/to/extracted-bundle \
 Full collation rejects missing or duplicate cells; `--allow-partial` explicitly
 labels an interim report. It joins the frozen judge scores and produces Figure
 5/13 summaries and full per-cell hardware/source provenance on derived copies.
-Run a second collation with `--judge flash` into another directory for the Qwen
-judge-sensitivity view; the original Flash holdout imputation/comparison audit
-is retained in the bundle and report. The two evaluation-judge views use the
-same serving results and do not add experiments.
+The default `--judge auto` uses Flash for `flash_quality` and Pro for all other
+arms. Explicit `--judge pro` or `--judge flash` produces a controlled judge
+comparison on the same serving results; Ministral always uses its own Pro scores.
+`observed_judge_summary.json` is the primary Qwen quality report: it reports both
+judges on the same 15,996 complete observed query groups and identifies the
+matching primary judge. Four imputed groups are excluded from both utility
+denominators; TTFT attainment still covers all 16,000 requests. The legacy
+`figure5_13_summary.json` retains all requests and the frozen imputed scores,
+and is identified as such in the audit. No judge API calls or reruns are needed.
 Use existing plotting code on the derived directories, keeping variant and
 hardware identities explicit. Historical baseline reuse remains a separate
 comparison with the implementation/hardware caveats recorded above.
+
+## September 16 refresh and background downloads
+
+The active Bridges shared router and predictor source matches this release;
+the September 15 Ministral completeness audit, bounded freshness waiting,
+and Ministral vLLM-SR adapter are already included. The new canonical Qwen
+8.6 QPS control is a separate Bridges job, not an extra cell silently added
+to this 68-cell matrix. No submitted Bridges scripts or source files are edited.
+
+Pinned model downloads can start before the full serving environment exists:
+
+```bash
+python -m scripts.cloud.model_downloads --manifest /path/to/bundle.json \
+  --cache /workspace/sfs/hf/hub --output /workspace/sfs/models.json --workers 2
+```
+
+This requires the locked Hugging Face Hub dependency, but no Torch/vLLM imports.
+It uses the same cache paths and allow-list as `prepare models`, hashes completed
+files, records `models.json.progress.json`, and publishes `models.json` only when
+all requested checkpoints are complete. Ministral downloads only the consolidated
+BF16 checkpoint. The Taiwan prefetch worker is managed by Supervisor:
+
+```bash
+ssh sfs-vast 'supervisorctl status sfs-model-downloads; tail -20 /workspace/sfs/setup/model-downloads.log'
+```
+
+Its small download-only conda environment is separate from the pinned serving
+environment. Finish downloads and setup before measuring latency or load probes.
 
 ## Bridges-only selector extension
 
