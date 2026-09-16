@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_epoch": 1789547162.970441,
+  "updated_epoch": 1789549412.1970222,
   "identity_fields": [
     "family",
     "variant",
@@ -264,7 +264,7 @@
       "qps": 8.6,
       "requests": 16000,
       "provider": "vast",
-      "status": "STARTING_SERVERS_PREFLIGHT_PASSED",
+      "status": "COMPLETED_AUDITED_PERFORMANCE_GAP_UNRESOLVED",
       "source_commit": "09b04788440ed7bc5a278b6e73c00eed414daf77",
       "remote_output": "/workspace/sfs/state/controls/qps8p6-repeat1",
       "supervisor_program": "sfs-control-8p6-repeat1",
@@ -278,9 +278,35 @@
       "user_authorization": "Repeat the earlier 8.6 QPS canonical configuration with 16000 requests",
       "same_smoke_sequence": true,
       "comparison_difference": "Only one active pool; GPUs 4-7 idle, whereas earlier run had a concurrent 8.75 QPS pool.",
-      "action": "EXPLICITLY_AUTHORIZED_REPEAT_PRESERVE_ALL_ATTEMPTS",
+      "action": "PRESERVE_COMPLETED_REPEAT_NO_AUTOMATIC_RERUN",
       "live_status_source": "/workspace/sfs/state/monitor/latest.json",
-      "request_identity_slo_sha256": "611f7b53a01c71c6fd8bd3d3b67249689d554b62301e9b2d4cbee402a31d4fb2"
+      "request_identity_slo_sha256": "611f7b53a01c71c6fd8bd3d3b67249689d554b62301e9b2d4cbee402a31d4fb2",
+      "monitoring_evidence": "scripts/cloud/reports/qwen-repeat-20260916/observations.jsonl",
+      "metrics": {
+        "requests": 16000,
+        "observed_scored_queries": 15996,
+        "excluded_queries": 4,
+        "primary_judge": "pro",
+        "primary_ontimeutility": 0.35614945124710856,
+        "ontimeutility": {
+          "pro": 0.35614945124710856,
+          "flash": 0.3812474150100025
+        },
+        "ttft_slo_attainment_pct": 63.7125,
+        "ttft_denominator": 16000,
+        "quality_definition": "Saved candidate scores joined to actual routing decisions; common observed query groups for both judges",
+        "status": "PASS",
+        "qps": 8.6,
+        "raw_point": "/workspace/sfs/state/controls/qps8p6-repeat1/outputs/current_sfs_control_20260916_082806_qps8p6_point01.json",
+        "raw_sha256": "1f6099fff5b066736da2d8ffc2df285494902210d6584916fe02a84dc924224a",
+        "audit": {
+          "status": "PASS_CELL",
+          "requests": 16000,
+          "realized_qps": 8.504079636198238
+        }
+      },
+      "raw_point_sha256": "1f6099fff5b066736da2d8ffc2df285494902210d6584916fe02a84dc924224a",
+      "independent_controller_audit": "/ocean/projects/cis250162p/aparthas/sfs_cloud_results_20260916/sfs-vast/controls/qps8p6-repeat1/controller_independent_audit.json"
     }
   ],
   "pending_bridges_jobs": [

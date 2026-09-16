@@ -25,7 +25,7 @@ TTFT uses all 16,000 requests; both judges' utility uses the common 15,996 obser
 
 ## GPU topology, CPU placement and short contention test
 
-- Vast reports NV18 connectivity for every GPU pair, including the actual 32B pairs 2–3 and 6–7. Read and write peer-to-peer capability reports OK for all pairs. All GPUs report CPU affinity 0–95 and NUMA 0; the two pool affinity sets are disjoint physical CPU IDs (0–47 and 48–95), with no SMT siblings exposed for those CPUs.
+- Vast reports NV18 connectivity for every GPU pair, including the actual 32B pairs 2–3 and 6–7. Read and write peer-to-peer capability reports OK for all pairs. All GPUs report CPU affinity 0–95 and NUMA 0; the two pool affinity sets are disjoint exposed CPU IDs (0–47 and 48–95), with no SMT siblings exposed for those CPUs.
 - Original serving logs show the same custom-allreduce P2P initialization path on both hosts; they do not include a detailed NCCL transport trace. The earlier NCCL correctness gates passed for 2–3 and 6–7; these gates alone are not bandwidth measurements.
 - The cgroup reports 92.16 CPU cores of quota and zero cumulative quota throttling. This does not exclude ordinary CPU scheduling or memory contention.
 - Original decode traces grouped by 8-sequence and 25,000-context-token bins show Vast/Bridges weighted execution-time ratios 1.012/1.010/1.011 for 0.6B/8B/32B. Step-interval ratios are 1.018/1.021/1.018. Bins approximate shapes; these are not exact tensor-shape matches. CPU scheduler times are somewhat higher on Vast, but small relative to each full step.
@@ -69,3 +69,7 @@ vLLM package labels differ (`b70f4dbb4` metadata on Bridges, `28bbf9226` on Vast
 ## Earlier canonical reference
 
 The manifest-selected April 6 Qwen 8.6 point has 90.63125% end-to-end TTFT attainment, versus the recent Bridges control's 81.16875%. After normalizing the old model-path aliases, 11,049 requests chose the same model between those two runs. Prompt token counts, prompt usage, quality predictions and output-length predictions match exactly for all 11,049. Actual completion lengths differ for 8,166, with mean current-minus-old delta -2.17 tokens. The original-to-current difference therefore also needs runtime/history analysis; it is not explained by retraining or relocating the canonical predictors. The older trace lacks `system_entry_offset_s`; any older request-quarter calculation uses request-ID order, not independently verified arrival timestamps.
+
+## Authorized full-length repeat completed
+
+The subsequent user-authorized 16k/8.6 repeat completed with 63.7125% attainment and Pro utility 0.35614945124710856. Both the destination and independent controller audits passed. Its arrival-quarter attainment was 94.15, 51.425, 87.825, 21.45%, showing recovery between degradation episodes. It ran with only GPUs 0–3 active and preserves the original smoke sequence. See [repeat evidence](reports/qwen-repeat-20260916/README.md). The sustained-load problem recurred without a second active pool; the initiating cause remains unresolved.
