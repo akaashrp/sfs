@@ -1,0 +1,156 @@
+{
+  "workers": [
+    {
+      "pid": "17936",
+      "flags": {
+        "CUDA_VISIBLE_DEVICES": "0",
+        "VLLM_ATTENTION_BACKEND": "FLASH_ATTN",
+        "VLLM_USE_FLASHINFER_SAMPLER": "0"
+      },
+      "libraries": [
+        "/usr/lib/x86_64-linux-gnu/libcuda.so.580.95.05",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublas.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublasLt.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/nccl/lib/libnccl.so.2",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/torchvision.libs/libcudart.6ead8f7a.so.12",
+        "/workspace/sfs/repo/vllm/vllm/_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa2_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa3_C.abi3.so"
+      ]
+    },
+    {
+      "pid": "17961",
+      "flags": {
+        "CUDA_VISIBLE_DEVICES": "4",
+        "VLLM_ATTENTION_BACKEND": "FLASH_ATTN",
+        "VLLM_USE_FLASHINFER_SAMPLER": "0"
+      },
+      "libraries": [
+        "/usr/lib/x86_64-linux-gnu/libcuda.so.580.95.05",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublas.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublasLt.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/nccl/lib/libnccl.so.2",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/torchvision.libs/libcudart.6ead8f7a.so.12",
+        "/workspace/sfs/repo/vllm/vllm/_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa2_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa3_C.abi3.so"
+      ]
+    },
+    {
+      "pid": "17968",
+      "flags": {
+        "CUDA_VISIBLE_DEVICES": "1",
+        "VLLM_ATTENTION_BACKEND": "FLASH_ATTN",
+        "VLLM_USE_FLASHINFER_SAMPLER": "0"
+      },
+      "libraries": [
+        "/usr/lib/x86_64-linux-gnu/libcuda.so.580.95.05",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublas.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublasLt.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/nccl/lib/libnccl.so.2",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/torchvision.libs/libcudart.6ead8f7a.so.12",
+        "/workspace/sfs/repo/vllm/vllm/_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa2_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa3_C.abi3.so"
+      ]
+    },
+    {
+      "pid": "17975",
+      "flags": {
+        "CUDA_VISIBLE_DEVICES": "5",
+        "VLLM_ATTENTION_BACKEND": "FLASH_ATTN",
+        "VLLM_USE_FLASHINFER_SAMPLER": "0"
+      },
+      "libraries": [
+        "/usr/lib/x86_64-linux-gnu/libcuda.so.580.95.05",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublas.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublasLt.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/nccl/lib/libnccl.so.2",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/torchvision.libs/libcudart.6ead8f7a.so.12",
+        "/workspace/sfs/repo/vllm/vllm/_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa2_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa3_C.abi3.so"
+      ]
+    },
+    {
+      "pid": "18074",
+      "flags": {
+        "CUDA_VISIBLE_DEVICES": "2,3",
+        "VLLM_ATTENTION_BACKEND": "FLASH_ATTN",
+        "VLLM_USE_FLASHINFER_SAMPLER": "0"
+      },
+      "libraries": [
+        "/usr/lib/x86_64-linux-gnu/libcuda.so.580.95.05",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublas.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublasLt.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/nccl/lib/libnccl.so.2",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/torchvision.libs/libcudart.6ead8f7a.so.12",
+        "/workspace/sfs/repo/vllm/vllm/_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa2_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa3_C.abi3.so"
+      ]
+    },
+    {
+      "pid": "18075",
+      "flags": {
+        "CUDA_VISIBLE_DEVICES": "6,7",
+        "VLLM_ATTENTION_BACKEND": "FLASH_ATTN",
+        "VLLM_USE_FLASHINFER_SAMPLER": "0"
+      },
+      "libraries": [
+        "/usr/lib/x86_64-linux-gnu/libcuda.so.580.95.05",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublas.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublasLt.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/nccl/lib/libnccl.so.2",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/torchvision.libs/libcudart.6ead8f7a.so.12",
+        "/workspace/sfs/repo/vllm/vllm/_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa2_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa3_C.abi3.so"
+      ]
+    },
+    {
+      "pid": "18076",
+      "flags": {
+        "CUDA_VISIBLE_DEVICES": "2,3",
+        "VLLM_ATTENTION_BACKEND": "FLASH_ATTN",
+        "VLLM_USE_FLASHINFER_SAMPLER": "0"
+      },
+      "libraries": [
+        "/usr/lib/x86_64-linux-gnu/libcuda.so.580.95.05",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublas.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublasLt.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/nccl/lib/libnccl.so.2",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/torchvision.libs/libcudart.6ead8f7a.so.12",
+        "/workspace/sfs/repo/vllm/vllm/_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa2_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa3_C.abi3.so"
+      ]
+    },
+    {
+      "pid": "18077",
+      "flags": {
+        "CUDA_VISIBLE_DEVICES": "6,7",
+        "VLLM_ATTENTION_BACKEND": "FLASH_ATTN",
+        "VLLM_USE_FLASHINFER_SAMPLER": "0"
+      },
+      "libraries": [
+        "/usr/lib/x86_64-linux-gnu/libcuda.so.580.95.05",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublas.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cublas/lib/libcublasLt.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/cuda_runtime/lib/libcudart.so.12",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/nvidia/nccl/lib/libnccl.so.2",
+        "/workspace/sfs/miniforge/envs/vllm/lib/python3.12/site-packages/torchvision.libs/libcudart.6ead8f7a.so.12",
+        "/workspace/sfs/repo/vllm/vllm/_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa2_C.abi3.so",
+        "/workspace/sfs/repo/vllm/vllm/vllm_flash_attn/_vllm_fa3_C.abi3.so"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+37b54afd7aee99ed9d482f0b98760c8cf96fd397ca323cfae70534c244b63b93  /ocean/projects/cis250162p/aparthas/sfs_model_family/vllm/vllm/_C.abi3.so
+a1bd03e4848c7bb0673e9a91e27505cab9e42d68b31c573d8f597689f1871fc2  /ocean/projects/cis250162p/aparthas/sfs_model_family/vllm/vllm/vllm_flash_attn/_vllm_fa2_C.abi3.so
+1975ea2476bb8f17d6c1cbf4da8c1b28a1c272135a4b7d98c3c2c9b2772e4f8f  /ocean/projects/cis250162p/aparthas/sfs_model_family/vllm/vllm/vllm_flash_attn/_vllm_fa3_C.abi3.so

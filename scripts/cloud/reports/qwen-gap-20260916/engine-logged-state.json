@@ -1,0 +1,8796 @@
+{
+  "bridges": {
+    "server_qwen3-8b": [
+      {
+        "time": "01:24:53",
+        "running": 20,
+        "waiting": 0,
+        "gpu": 97.0,
+        "kv": 29.1
+      },
+      {
+        "time": "01:25:03",
+        "running": 40,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 71.3
+      },
+      {
+        "time": "01:25:13",
+        "running": 51,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 98.7
+      },
+      {
+        "time": "01:25:23",
+        "running": 45,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 99.7
+      },
+      {
+        "time": "01:25:33",
+        "running": 40,
+        "waiting": 1,
+        "gpu": 89.0,
+        "kv": 96.7
+      },
+      {
+        "time": "01:25:43",
+        "running": 45,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 97.9
+      },
+      {
+        "time": "01:25:53",
+        "running": 42,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 98.9
+      },
+      {
+        "time": "01:26:03",
+        "running": 45,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 98.0
+      },
+      {
+        "time": "01:26:13",
+        "running": 36,
+        "waiting": 1,
+        "gpu": 93.0,
+        "kv": 98.8
+      },
+      {
+        "time": "01:26:23",
+        "running": 39,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 97.3
+      },
+      {
+        "time": "01:26:33",
+        "running": 47,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 93.8
+      },
+      {
+        "time": "01:26:43",
+        "running": 45,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 96.9
+      },
+      {
+        "time": "01:26:53",
+        "running": 39,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 97.7
+      },
+      {
+        "time": "01:27:03",
+        "running": 44,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 86.5
+      },
+      {
+        "time": "01:27:13",
+        "running": 49,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 97.2
+      },
+      {
+        "time": "01:27:23",
+        "running": 54,
+        "waiting": 0,
+        "gpu": 97.0,
+        "kv": 95.5
+      },
+      {
+        "time": "01:27:33",
+        "running": 45,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 93.1
+      },
+      {
+        "time": "01:27:43",
+        "running": 43,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 100.0
+      },
+      {
+        "time": "01:27:53",
+        "running": 39,
+        "waiting": 3,
+        "gpu": 90.0,
+        "kv": 99.6
+      },
+      {
+        "time": "01:28:03",
+        "running": 44,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 98.4
+      },
+      {
+        "time": "01:28:13",
+        "running": 41,
+        "waiting": 2,
+        "gpu": 91.0,
+        "kv": 99.9
+      },
+      {
+        "time": "01:28:23",
+        "running": 42,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 94.0
+      },
+      {
+        "time": "01:28:33",
+        "running": 49,
+        "waiting": 2,
+        "gpu": 89.0,
+        "kv": 99.8
+      },
+      {
+        "time": "01:28:43",
+        "running": 48,
+        "waiting": 7,
+        "gpu": 91.0,
+        "kv": 99.6
+      },
+      {
+        "time": "01:28:53",
+        "running": 49,
+        "waiting": 1,
+        "gpu": 88.0,
+        "kv": 95.1
+      },
+      {
+        "time": "01:29:03",
+        "running": 38,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 94.7
+      },
+      {
+        "time": "01:29:13",
+        "running": 48,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 99.1
+      },
+      {
+        "time": "01:29:23",
+        "running": 48,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 94.5
+      },
+      {
+        "time": "01:29:33",
+        "running": 53,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 96.2
+      },
+      {
+        "time": "01:29:43",
+        "running": 49,
+        "waiting": 1,
+        "gpu": 93.0,
+        "kv": 93.0
+      },
+      {
+        "time": "01:29:53",
+        "running": 46,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 94.3
+      },
+      {
+        "time": "01:30:03",
+        "running": 47,
+        "waiting": 0,
+        "gpu": 97.0,
+        "kv": 99.4
+      },
+      {
+        "time": "01:30:13",
+        "running": 41,
+        "waiting": 2,
+        "gpu": 93.0,
+        "kv": 97.8
+      },
+      {
+        "time": "01:30:23",
+        "running": 44,
+        "waiting": 2,
+        "gpu": 93.0,
+        "kv": 99.4
+      },
+      {
+        "time": "01:30:33",
+        "running": 47,
+        "waiting": 2,
+        "gpu": 90.0,
+        "kv": 96.9
+      },
+      {
+        "time": "01:30:43",
+        "running": 50,
+        "waiting": 5,
+        "gpu": 100.0,
+        "kv": 96.1
+      },
+      {
+        "time": "01:30:53",
+        "running": 44,
+        "waiting": 11,
+        "gpu": 91.0,
+        "kv": 96.2
+      },
+      {
+        "time": "01:31:03",
+        "running": 73,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 99.2
+      },
+      {
+        "time": "01:31:13",
+        "running": 93,
+        "waiting": 1,
+        "gpu": 100.0,
+        "kv": 99.7
+      },
+      {
+        "time": "01:31:23",
+        "running": 96,
+        "waiting": 1,
+        "gpu": 88.0,
+        "kv": 92.3
+      },
+      {
+        "time": "01:31:33",
+        "running": 89,
+        "waiting": 5,
+        "gpu": 89.0,
+        "kv": 97.9
+      },
+      {
+        "time": "01:31:43",
+        "running": 89,
+        "waiting": 0,
+        "gpu": 96.0,
+        "kv": 99.3
+      },
+      {
+        "time": "01:31:53",
+        "running": 80,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 98.8
+      },
+      {
+        "time": "01:32:03",
+        "running": 61,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 98.3
+      },
+      {
+        "time": "01:32:13",
+        "running": 55,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 95.5
+      },
+      {
+        "time": "01:32:23",
+        "running": 49,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 97.0
+      },
+      {
+        "time": "01:32:33",
+        "running": 44,
+        "waiting": 1,
+        "gpu": 95.0,
+        "kv": 96.3
+      },
+      {
+        "time": "01:32:43",
+        "running": 46,
+        "waiting": 3,
+        "gpu": 93.0,
+        "kv": 98.5
+      },
+      {
+        "time": "01:32:53",
+        "running": 48,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 91.2
+      },
+      {
+        "time": "01:33:03",
+        "running": 44,
+        "waiting": 1,
+        "gpu": 93.0,
+        "kv": 95.8
+      },
+      {
+        "time": "01:33:13",
+        "running": 45,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 99.7
+      },
+      {
+        "time": "01:33:23",
+        "running": 42,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 87.8
+      },
+      {
+        "time": "01:33:33",
+        "running": 52,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 91.6
+      },
+      {
+        "time": "01:33:43",
+        "running": 46,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 98.7
+      },
+      {
+        "time": "01:33:53",
+        "running": 45,
+        "waiting": 1,
+        "gpu": 99.0,
+        "kv": 98.7
+      },
+      {
+        "time": "01:34:03",
+        "running": 44,
+        "waiting": 1,
+        "gpu": 93.0,
+        "kv": 97.3
+      },
+      {
+        "time": "01:34:13",
+        "running": 47,
+        "waiting": 1,
+        "gpu": 93.0,
+        "kv": 99.9
+      },
+      {
+        "time": "01:34:23",
+        "running": 44,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 89.1
+      },
+      {
+        "time": "01:34:33",
+        "running": 47,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 99.9
+      },
+      {
+        "time": "01:34:43",
+        "running": 37,
+        "waiting": 3,
+        "gpu": 92.0,
+        "kv": 100.0
+      },
+      {
+        "time": "01:34:53",
+        "running": 39,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 80.0
+      },
+      {
+        "time": "01:35:03",
+        "running": 46,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 91.8
+      },
+      {
+        "time": "01:35:13",
+        "running": 48,
+        "waiting": 3,
+        "gpu": 98.0,
+        "kv": 99.3
+      },
+      {
+        "time": "01:35:23",
+        "running": 50,
+        "waiting": 2,
+        "gpu": 93.0,
+        "kv": 99.4
+      },
+      {
+        "time": "01:35:33",
+        "running": 48,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 95.7
+      },
+      {
+        "time": "01:35:43",
+        "running": 41,
+        "waiting": 2,
+        "gpu": 91.0,
+        "kv": 98.5
+      },
+      {
+        "time": "01:35:53",
+        "running": 43,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 97.9
+      },
+      {
+        "time": "01:36:03",
+        "running": 43,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 90.9
+      },
+      {
+        "time": "01:36:13",
+        "running": 43,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 93.0
+      },
+      {
+        "time": "01:36:23",
+        "running": 48,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 97.5
+      },
+      {
+        "time": "01:36:33",
+        "running": 46,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 97.1
+      },
+      {
+        "time": "01:36:43",
+        "running": 52,
+        "waiting": 1,
+        "gpu": 93.0,
+        "kv": 99.9
+      },
+      {
+        "time": "01:36:53",
+        "running": 49,
+        "waiting": 0,
+        "gpu": 0.0,
+        "kv": 94.2
+      },
+      {
+        "time": "01:37:03",
+        "running": 53,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 99.9
+      },
+      {
+        "time": "01:37:13",
+        "running": 62,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 95.7
+      },
+      {
+        "time": "01:37:23",
+        "running": 60,
+        "waiting": 1,
+        "gpu": 97.0,
+        "kv": 97.0
+      },
+      {
+        "time": "01:37:33",
+        "running": 56,
+        "waiting": 1,
+        "gpu": 97.0,
+        "kv": 98.4
+      },
+      {
+        "time": "01:37:43",
+        "running": 53,
+        "waiting": 1,
+        "gpu": 100.0,
+        "kv": 99.0
+      },
+      {
+        "time": "01:37:53",
+        "running": 42,
+        "waiting": 4,
+        "gpu": 93.0,
+        "kv": 99.3
+      },
+      {
+        "time": "01:38:03",
+        "running": 45,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 95.3
+      },
+      {
+        "time": "01:38:13",
+        "running": 54,
+        "waiting": 1,
+        "gpu": 93.0,
+        "kv": 98.1
+      },
+      {
+        "time": "01:38:23",
+        "running": 48,
+        "waiting": 2,
+        "gpu": 91.0,
+        "kv": 94.2
+      },
+      {
+        "time": "01:38:33",
+        "running": 52,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 99.2
+      },
+      {
+        "time": "01:38:43",
+        "running": 44,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 97.1
+      },
+      {
+        "time": "01:38:53",
+        "running": 48,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 93.6
+      },
+      {
+        "time": "01:39:03",
+        "running": 53,
+        "waiting": 2,
+        "gpu": 93.0,
+        "kv": 96.4
+      },
+      {
+        "time": "01:39:13",
+        "running": 58,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 99.1
+      },
+      {
+        "time": "01:39:23",
+        "running": 46,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 93.7
+      },
+      {
+        "time": "01:39:33",
+        "running": 45,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 97.8
+      },
+      {
+        "time": "01:39:43",
+        "running": 54,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 98.5
+      },
+      {
+        "time": "01:39:53",
+        "running": 47,
+        "waiting": 1,
+        "gpu": 100.0,
+        "kv": 98.0
+      },
+      {
+        "time": "01:40:03",
+        "running": 54,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 99.7
+      },
+      {
+        "time": "01:40:13",
+        "running": 52,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 99.3
+      },
+      {
+        "time": "01:40:23",
+        "running": 50,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 95.9
+      },
+      {
+        "time": "01:40:33",
+        "running": 48,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 94.5
+      },
+      {
+        "time": "01:40:43",
+        "running": 46,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 88.0
+      },
+      {
+        "time": "01:40:53",
+        "running": 42,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 95.8
+      },
+      {
+        "time": "01:41:03",
+        "running": 44,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 97.6
+      },
+      {
+        "time": "01:41:13",
+        "running": 38,
+        "waiting": 0,
+        "gpu": 98.0,
+        "kv": 99.0
+      },
+      {
+        "time": "01:41:23",
+        "running": 48,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 98.4
+      },
+      {
+        "time": "01:41:33",
+        "running": 49,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 95.5
+      },
+      {
+        "time": "01:41:43",
+        "running": 47,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 98.5
+      },
+      {
+        "time": "01:41:53",
+        "running": 49,
+        "waiting": 0,
+        "gpu": 97.0,
+        "kv": 97.4
+      },
+      {
+        "time": "01:42:03",
+        "running": 50,
+        "waiting": 3,
+        "gpu": 90.0,
+        "kv": 94.6
+      },
+      {
+        "time": "01:42:13",
+        "running": 45,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 91.5
+      },
+      {
+        "time": "01:42:23",
+        "running": 50,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 99.2
+      },
+      {
+        "time": "01:42:33",
+        "running": 39,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 97.6
+      },
+      {
+        "time": "01:42:43",
+        "running": 45,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 96.1
+      },
+      {
+        "time": "01:42:53",
+        "running": 39,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 94.8
+      },
+      {
+        "time": "01:43:03",
+        "running": 42,
+        "waiting": 0,
+        "gpu": 96.0,
+        "kv": 90.5
+      },
+      {
+        "time": "01:43:13",
+        "running": 43,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 95.2
+      },
+      {
+        "time": "01:43:23",
+        "running": 38,
+        "waiting": 0,
+        "gpu": 96.0,
+        "kv": 87.0
+      },
+      {
+        "time": "01:43:33",
+        "running": 41,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 97.8
+      },
+      {
+        "time": "01:43:43",
+        "running": 41,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 99.4
+      },
+      {
+        "time": "01:43:53",
+        "running": 49,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 97.1
+      },
+      {
+        "time": "01:44:03",
+        "running": 57,
+        "waiting": 0,
+        "gpu": 96.0,
+        "kv": 93.5
+      },
+      {
+        "time": "01:44:13",
+        "running": 49,
+        "waiting": 3,
+        "gpu": 93.0,
+        "kv": 94.4
+      },
+      {
+        "time": "01:44:23",
+        "running": 43,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 98.1
+      },
+      {
+        "time": "01:44:33",
+        "running": 43,
+        "waiting": 2,
+        "gpu": 91.0,
+        "kv": 94.5
+      },
+      {
+        "time": "01:44:43",
+        "running": 41,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 97.8
+      },
+      {
+        "time": "01:44:53",
+        "running": 39,
+        "waiting": 1,
+        "gpu": 100.0,
+        "kv": 98.5
+      },
+      {
+        "time": "01:45:03",
+        "running": 42,
+        "waiting": 2,
+        "gpu": 93.0,
+        "kv": 95.5
+      },
+      {
+        "time": "01:45:13",
+        "running": 44,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 98.0
+      },
+      {
+        "time": "01:45:23",
+        "running": 38,
+        "waiting": 1,
+        "gpu": 93.0,
+        "kv": 96.6
+      },
+      {
+        "time": "01:45:33",
+        "running": 49,
+        "waiting": 0,
+        "gpu": 97.0,
+        "kv": 98.3
+      },
+      {
+        "time": "01:45:43",
+        "running": 47,
+        "waiting": 0,
+        "gpu": 96.0,
+        "kv": 97.5
+      },
+      {
+        "time": "01:45:53",
+        "running": 45,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 96.5
+      },
+      {
+        "time": "01:46:03",
+        "running": 49,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 99.6
+      },
+      {
+        "time": "01:46:13",
+        "running": 48,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 74.7
+      },
+      {
+        "time": "01:46:23",
+        "running": 54,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 98.1
+      },
+      {
+        "time": "01:46:33",
+        "running": 54,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 96.2
+      },
+      {
+        "time": "01:46:43",
+        "running": 48,
+        "waiting": 1,
+        "gpu": 94.0,
+        "kv": 98.2
+      },
+      {
+        "time": "01:46:53",
+        "running": 39,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 75.9
+      },
+      {
+        "time": "01:47:03",
+        "running": 53,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 97.6
+      },
+      {
+        "time": "01:47:13",
+        "running": 45,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 92.6
+      },
+      {
+        "time": "01:47:23",
+        "running": 51,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 99.6
+      },
+      {
+        "time": "01:47:33",
+        "running": 52,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 99.9
+      },
+      {
+        "time": "01:47:43",
+        "running": 50,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 97.4
+      },
+      {
+        "time": "01:47:53",
+        "running": 55,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 92.2
+      },
+      {
+        "time": "01:48:03",
+        "running": 47,
+        "waiting": 1,
+        "gpu": 89.0,
+        "kv": 94.5
+      },
+      {
+        "time": "01:48:13",
+        "running": 46,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 95.6
+      },
+      {
+        "time": "01:48:23",
+        "running": 48,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 99.4
+      },
+      {
+        "time": "01:48:33",
+        "running": 54,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 99.4
+      },
+      {
+        "time": "01:48:43",
+        "running": 57,
+        "waiting": 1,
+        "gpu": 88.0,
+        "kv": 96.8
+      },
+      {
+        "time": "01:48:53",
+        "running": 51,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 90.2
+      },
+      {
+        "time": "01:49:03",
+        "running": 47,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 95.5
+      },
+      {
+        "time": "01:49:13",
+        "running": 47,
+        "waiting": 2,
+        "gpu": 89.0,
+        "kv": 98.1
+      },
+      {
+        "time": "01:49:23",
+        "running": 49,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 97.3
+      },
+      {
+        "time": "01:49:33",
+        "running": 44,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 96.2
+      },
+      {
+        "time": "01:49:43",
+        "running": 43,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 98.4
+      },
+      {
+        "time": "01:49:53",
+        "running": 46,
+        "waiting": 0,
+        "gpu": 98.0,
+        "kv": 99.5
+      },
+      {
+        "time": "01:50:03",
+        "running": 48,
+        "waiting": 0,
+        "gpu": 99.0,
+        "kv": 96.4
+      },
+      {
+        "time": "01:50:13",
+        "running": 46,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 98.3
+      },
+      {
+        "time": "01:50:23",
+        "running": 46,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 100.0
+      },
+      {
+        "time": "01:50:33",
+        "running": 41,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 91.7
+      },
+      {
+        "time": "01:50:43",
+        "running": 46,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 99.9
+      },
+      {
+        "time": "01:50:53",
+        "running": 47,
+        "waiting": 1,
+        "gpu": 95.0,
+        "kv": 97.6
+      },
+      {
+        "time": "01:51:03",
+        "running": 48,
+        "waiting": 1,
+        "gpu": 100.0,
+        "kv": 100.0
+      },
+      {
+        "time": "01:51:13",
+        "running": 48,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 98.4
+      },
+      {
+        "time": "01:51:23",
+        "running": 46,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 99.5
+      },
+      {
+        "time": "01:51:33",
+        "running": 58,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 97.2
+      },
+      {
+        "time": "01:51:43",
+        "running": 50,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 91.7
+      },
+      {
+        "time": "01:51:53",
+        "running": 41,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 94.7
+      },
+      {
+        "time": "01:52:03",
+        "running": 44,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 93.2
+      },
+      {
+        "time": "01:52:13",
+        "running": 56,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 98.5
+      },
+      {
+        "time": "01:52:23",
+        "running": 46,
+        "waiting": 2,
+        "gpu": 91.0,
+        "kv": 97.6
+      },
+      {
+        "time": "01:52:33",
+        "running": 44,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 85.3
+      },
+      {
+        "time": "01:52:43",
+        "running": 45,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 85.2
+      },
+      {
+        "time": "01:52:53",
+        "running": 49,
+        "waiting": 1,
+        "gpu": 100.0,
+        "kv": 99.9
+      },
+      {
+        "time": "01:53:03",
+        "running": 48,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 98.1
+      },
+      {
+        "time": "01:53:13",
+        "running": 41,
+        "waiting": 2,
+        "gpu": 94.0,
+        "kv": 99.7
+      },
+      {
+        "time": "01:53:23",
+        "running": 45,
+        "waiting": 1,
+        "gpu": 93.0,
+        "kv": 95.4
+      },
+      {
+        "time": "01:53:33",
+        "running": 41,
+        "waiting": 2,
+        "gpu": 95.0,
+        "kv": 96.2
+      },
+      {
+        "time": "01:53:43",
+        "running": 58,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 97.9
+      },
+      {
+        "time": "01:53:53",
+        "running": 58,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 93.7
+      },
+      {
+        "time": "01:54:03",
+        "running": 63,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 96.2
+      },
+      {
+        "time": "01:54:13",
+        "running": 56,
+        "waiting": 5,
+        "gpu": 89.0,
+        "kv": 93.7
+      },
+      {
+        "time": "01:54:23",
+        "running": 69,
+        "waiting": 8,
+        "gpu": 90.0,
+        "kv": 99.7
+      },
+      {
+        "time": "01:54:33",
+        "running": 61,
+        "waiting": 23,
+        "gpu": 89.0,
+        "kv": 99.4
+      },
+      {
+        "time": "01:54:43",
+        "running": 97,
+        "waiting": 3,
+        "gpu": 87.0,
+        "kv": 98.8
+      },
+      {
+        "time": "01:54:53",
+        "running": 95,
+        "waiting": 22,
+        "gpu": 100.0,
+        "kv": 97.0
+      },
+      {
+        "time": "01:55:03",
+        "running": 122,
+        "waiting": 17,
+        "gpu": 85.0,
+        "kv": 95.8
+      },
+      {
+        "time": "01:55:13",
+        "running": 128,
+        "waiting": 22,
+        "gpu": 83.0,
+        "kv": 97.8
+      },
+      {
+        "time": "01:55:23",
+        "running": 118,
+        "waiting": 14,
+        "gpu": 86.0,
+        "kv": 93.8
+      },
+      {
+        "time": "01:55:33",
+        "running": 113,
+        "waiting": 15,
+        "gpu": 86.0,
+        "kv": 92.9
+      },
+      {
+        "time": "01:55:43",
+        "running": 115,
+        "waiting": 6,
+        "gpu": 84.0,
+        "kv": 95.2
+      },
+      {
+        "time": "01:55:53",
+        "running": 93,
+        "waiting": 28,
+        "gpu": 87.0,
+        "kv": 95.6
+      },
+      {
+        "time": "01:56:03",
+        "running": 94,
+        "waiting": 19,
+        "gpu": 88.0,
+        "kv": 99.5
+      },
+      {
+        "time": "01:56:13",
+        "running": 97,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 83.9
+      },
+      {
+        "time": "01:56:23",
+        "running": 47,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 30.4
+      },
+      {
+        "time": "01:56:33",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 1.0
+      },
+      {
+        "time": "01:56:43",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 1.3
+      },
+      {
+        "time": "01:56:53",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 1.7
+      },
+      {
+        "time": "01:57:03",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 2.0
+      },
+      {
+        "time": "01:57:13",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 0.0
+      },
+      {
+        "time": "01:57:23",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 0.0
+      }
+    ],
+    "server_qwen3-32b": [
+      {
+        "time": "01:24:47",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 87.5,
+        "kv": 0.0
+      },
+      {
+        "time": "01:24:57",
+        "running": 29,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 4.4
+      },
+      {
+        "time": "01:25:07",
+        "running": 37,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 6.4
+      },
+      {
+        "time": "01:25:17",
+        "running": 64,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 15.1
+      },
+      {
+        "time": "01:25:27",
+        "running": 61,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 12.5
+      },
+      {
+        "time": "01:25:37",
+        "running": 87,
+        "waiting": 0,
+        "gpu": 81.5,
+        "kv": 21.7
+      },
+      {
+        "time": "01:25:47",
+        "running": 99,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 22.9
+      },
+      {
+        "time": "01:25:57",
+        "running": 86,
+        "waiting": 0,
+        "gpu": 80.5,
+        "kv": 19.3
+      },
+      {
+        "time": "01:26:07",
+        "running": 82,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 17.7
+      },
+      {
+        "time": "01:26:17",
+        "running": 86,
+        "waiting": 0,
+        "gpu": 90.5,
+        "kv": 23.4
+      },
+      {
+        "time": "01:26:27",
+        "running": 85,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 24.2
+      },
+      {
+        "time": "01:26:37",
+        "running": 91,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 21.0
+      },
+      {
+        "time": "01:26:47",
+        "running": 92,
+        "waiting": 0,
+        "gpu": 81.5,
+        "kv": 22.0
+      },
+      {
+        "time": "01:26:57",
+        "running": 85,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 22.0
+      },
+      {
+        "time": "01:27:07",
+        "running": 75,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 19.6
+      },
+      {
+        "time": "01:27:17",
+        "running": 77,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 19.9
+      },
+      {
+        "time": "01:27:27",
+        "running": 82,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 18.6
+      },
+      {
+        "time": "01:27:37",
+        "running": 94,
+        "waiting": 0,
+        "gpu": 86.5,
+        "kv": 24.3
+      },
+      {
+        "time": "01:27:47",
+        "running": 106,
+        "waiting": 0,
+        "gpu": 81.0,
+        "kv": 31.8
+      },
+      {
+        "time": "01:27:57",
+        "running": 97,
+        "waiting": 0,
+        "gpu": 80.0,
+        "kv": 25.5
+      },
+      {
+        "time": "01:28:07",
+        "running": 103,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 30.0
+      },
+      {
+        "time": "01:28:17",
+        "running": 89,
+        "waiting": 0,
+        "gpu": 82.5,
+        "kv": 25.1
+      },
+      {
+        "time": "01:28:27",
+        "running": 89,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 28.0
+      },
+      {
+        "time": "01:28:37",
+        "running": 99,
+        "waiting": 0,
+        "gpu": 81.5,
+        "kv": 31.0
+      },
+      {
+        "time": "01:28:47",
+        "running": 100,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 27.9
+      },
+      {
+        "time": "01:28:57",
+        "running": 106,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 29.2
+      },
+      {
+        "time": "01:29:07",
+        "running": 103,
+        "waiting": 0,
+        "gpu": 81.0,
+        "kv": 30.6
+      },
+      {
+        "time": "01:29:17",
+        "running": 108,
+        "waiting": 0,
+        "gpu": 97.5,
+        "kv": 32.1
+      },
+      {
+        "time": "01:29:27",
+        "running": 99,
+        "waiting": 0,
+        "gpu": 82.5,
+        "kv": 25.6
+      },
+      {
+        "time": "01:29:37",
+        "running": 106,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 26.6
+      },
+      {
+        "time": "01:29:47",
+        "running": 106,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 28.7
+      },
+      {
+        "time": "01:29:57",
+        "running": 95,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 28.2
+      },
+      {
+        "time": "01:30:07",
+        "running": 81,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 23.9
+      },
+      {
+        "time": "01:30:17",
+        "running": 109,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 35.1
+      },
+      {
+        "time": "01:30:27",
+        "running": 123,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 51.5
+      },
+      {
+        "time": "01:30:37",
+        "running": 139,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 69.4
+      },
+      {
+        "time": "01:30:47",
+        "running": 148,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 84.7
+      },
+      {
+        "time": "01:30:57",
+        "running": 147,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 98.8
+      },
+      {
+        "time": "01:31:07",
+        "running": 142,
+        "waiting": 5,
+        "gpu": 86.5,
+        "kv": 98.2
+      },
+      {
+        "time": "01:31:17",
+        "running": 133,
+        "waiting": 3,
+        "gpu": 87.0,
+        "kv": 98.4
+      },
+      {
+        "time": "01:31:27",
+        "running": 125,
+        "waiting": 2,
+        "gpu": 88.0,
+        "kv": 99.4
+      },
+      {
+        "time": "01:31:37",
+        "running": 113,
+        "waiting": 0,
+        "gpu": 97.5,
+        "kv": 82.2
+      },
+      {
+        "time": "01:31:47",
+        "running": 110,
+        "waiting": 0,
+        "gpu": 87.5,
+        "kv": 69.9
+      },
+      {
+        "time": "01:31:57",
+        "running": 119,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 60.9
+      },
+      {
+        "time": "01:32:07",
+        "running": 118,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 62.2
+      },
+      {
+        "time": "01:32:17",
+        "running": 117,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 48.3
+      },
+      {
+        "time": "01:32:27",
+        "running": 111,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 42.3
+      },
+      {
+        "time": "01:32:37",
+        "running": 125,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 42.6
+      },
+      {
+        "time": "01:32:47",
+        "running": 124,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 42.0
+      },
+      {
+        "time": "01:32:57",
+        "running": 108,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 37.9
+      },
+      {
+        "time": "01:33:07",
+        "running": 112,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 34.7
+      },
+      {
+        "time": "01:33:17",
+        "running": 106,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 34.9
+      },
+      {
+        "time": "01:33:27",
+        "running": 100,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 32.2
+      },
+      {
+        "time": "01:33:37",
+        "running": 91,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 28.0
+      },
+      {
+        "time": "01:33:47",
+        "running": 85,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 27.8
+      },
+      {
+        "time": "01:33:57",
+        "running": 83,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 26.4
+      },
+      {
+        "time": "01:34:07",
+        "running": 85,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 25.8
+      },
+      {
+        "time": "01:34:17",
+        "running": 89,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 27.6
+      },
+      {
+        "time": "01:34:27",
+        "running": 87,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 29.9
+      },
+      {
+        "time": "01:34:37",
+        "running": 73,
+        "waiting": 0,
+        "gpu": 86.5,
+        "kv": 25.1
+      },
+      {
+        "time": "01:34:47",
+        "running": 90,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 31.1
+      },
+      {
+        "time": "01:34:57",
+        "running": 74,
+        "waiting": 0,
+        "gpu": 87.5,
+        "kv": 24.3
+      },
+      {
+        "time": "01:35:07",
+        "running": 63,
+        "waiting": 0,
+        "gpu": 88.5,
+        "kv": 19.2
+      },
+      {
+        "time": "01:35:17",
+        "running": 62,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 17.9
+      },
+      {
+        "time": "01:35:27",
+        "running": 73,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 20.2
+      },
+      {
+        "time": "01:35:37",
+        "running": 71,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 20.2
+      },
+      {
+        "time": "01:35:47",
+        "running": 84,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 26.1
+      },
+      {
+        "time": "01:35:57",
+        "running": 91,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 28.7
+      },
+      {
+        "time": "01:36:07",
+        "running": 103,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 31.3
+      },
+      {
+        "time": "01:36:17",
+        "running": 97,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 27.6
+      },
+      {
+        "time": "01:36:27",
+        "running": 88,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 25.4
+      },
+      {
+        "time": "01:36:37",
+        "running": 79,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 20.1
+      },
+      {
+        "time": "01:36:47",
+        "running": 69,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 16.4
+      },
+      {
+        "time": "01:36:57",
+        "running": 71,
+        "waiting": 0,
+        "gpu": 96.5,
+        "kv": 17.2
+      },
+      {
+        "time": "01:37:07",
+        "running": 67,
+        "waiting": 0,
+        "gpu": 86.5,
+        "kv": 17.4
+      },
+      {
+        "time": "01:37:17",
+        "running": 65,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 16.0
+      },
+      {
+        "time": "01:37:27",
+        "running": 75,
+        "waiting": 0,
+        "gpu": 86.5,
+        "kv": 17.1
+      },
+      {
+        "time": "01:37:37",
+        "running": 70,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 18.9
+      },
+      {
+        "time": "01:37:47",
+        "running": 68,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 14.4
+      },
+      {
+        "time": "01:37:57",
+        "running": 66,
+        "waiting": 0,
+        "gpu": 88.5,
+        "kv": 16.2
+      },
+      {
+        "time": "01:38:07",
+        "running": 50,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 13.1
+      },
+      {
+        "time": "01:38:17",
+        "running": 53,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 13.2
+      },
+      {
+        "time": "01:38:27",
+        "running": 64,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 15.7
+      },
+      {
+        "time": "01:38:37",
+        "running": 63,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 18.3
+      },
+      {
+        "time": "01:38:47",
+        "running": 80,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 25.2
+      },
+      {
+        "time": "01:38:57",
+        "running": 76,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 20.6
+      },
+      {
+        "time": "01:39:07",
+        "running": 68,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 17.3
+      },
+      {
+        "time": "01:39:17",
+        "running": 83,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 20.9
+      },
+      {
+        "time": "01:39:27",
+        "running": 79,
+        "waiting": 0,
+        "gpu": 98.0,
+        "kv": 20.9
+      },
+      {
+        "time": "01:39:37",
+        "running": 75,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 27.3
+      },
+      {
+        "time": "01:39:47",
+        "running": 87,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 34.9
+      },
+      {
+        "time": "01:39:57",
+        "running": 109,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 51.5
+      },
+      {
+        "time": "01:40:07",
+        "running": 129,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 72.2
+      },
+      {
+        "time": "01:40:17",
+        "running": 143,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 78.7
+      },
+      {
+        "time": "01:40:27",
+        "running": 155,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 81.6
+      },
+      {
+        "time": "01:40:37",
+        "running": 162,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 82.9
+      },
+      {
+        "time": "01:40:47",
+        "running": 142,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 66.7
+      },
+      {
+        "time": "01:40:57",
+        "running": 119,
+        "waiting": 0,
+        "gpu": 98.5,
+        "kv": 48.2
+      },
+      {
+        "time": "01:41:07",
+        "running": 104,
+        "waiting": 0,
+        "gpu": 86.5,
+        "kv": 32.4
+      },
+      {
+        "time": "01:41:17",
+        "running": 104,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 32.5
+      },
+      {
+        "time": "01:41:27",
+        "running": 93,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 29.0
+      },
+      {
+        "time": "01:41:37",
+        "running": 93,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 27.9
+      },
+      {
+        "time": "01:41:47",
+        "running": 94,
+        "waiting": 0,
+        "gpu": 93.5,
+        "kv": 31.8
+      },
+      {
+        "time": "01:41:57",
+        "running": 86,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 29.2
+      },
+      {
+        "time": "01:42:07",
+        "running": 97,
+        "waiting": 0,
+        "gpu": 90.5,
+        "kv": 30.9
+      },
+      {
+        "time": "01:42:17",
+        "running": 96,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 28.5
+      },
+      {
+        "time": "01:42:27",
+        "running": 102,
+        "waiting": 0,
+        "gpu": 93.5,
+        "kv": 32.8
+      },
+      {
+        "time": "01:42:37",
+        "running": 122,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 44.8
+      },
+      {
+        "time": "01:42:47",
+        "running": 116,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 43.5
+      },
+      {
+        "time": "01:42:57",
+        "running": 117,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 39.6
+      },
+      {
+        "time": "01:43:07",
+        "running": 108,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 31.7
+      },
+      {
+        "time": "01:43:17",
+        "running": 121,
+        "waiting": 0,
+        "gpu": 99.0,
+        "kv": 33.6
+      },
+      {
+        "time": "01:43:27",
+        "running": 102,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 28.8
+      },
+      {
+        "time": "01:43:37",
+        "running": 89,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 24.7
+      },
+      {
+        "time": "01:43:47",
+        "running": 85,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 25.6
+      },
+      {
+        "time": "01:43:57",
+        "running": 80,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 25.5
+      },
+      {
+        "time": "01:44:07",
+        "running": 81,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 24.9
+      },
+      {
+        "time": "01:44:17",
+        "running": 75,
+        "waiting": 0,
+        "gpu": 87.5,
+        "kv": 22.1
+      },
+      {
+        "time": "01:44:27",
+        "running": 89,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 25.1
+      },
+      {
+        "time": "01:44:37",
+        "running": 89,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 27.0
+      },
+      {
+        "time": "01:44:47",
+        "running": 95,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 26.4
+      },
+      {
+        "time": "01:44:57",
+        "running": 93,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 23.1
+      },
+      {
+        "time": "01:45:07",
+        "running": 90,
+        "waiting": 0,
+        "gpu": 88.5,
+        "kv": 22.5
+      },
+      {
+        "time": "01:45:17",
+        "running": 96,
+        "waiting": 0,
+        "gpu": 97.5,
+        "kv": 23.8
+      },
+      {
+        "time": "01:45:27",
+        "running": 87,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 21.3
+      },
+      {
+        "time": "01:45:37",
+        "running": 78,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 22.3
+      },
+      {
+        "time": "01:45:47",
+        "running": 68,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 20.1
+      },
+      {
+        "time": "01:45:57",
+        "running": 62,
+        "waiting": 0,
+        "gpu": 88.5,
+        "kv": 15.7
+      },
+      {
+        "time": "01:46:07",
+        "running": 68,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 19.8
+      },
+      {
+        "time": "01:46:17",
+        "running": 77,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 16.4
+      },
+      {
+        "time": "01:46:27",
+        "running": 81,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 22.1
+      },
+      {
+        "time": "01:46:37",
+        "running": 83,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 21.2
+      },
+      {
+        "time": "01:46:47",
+        "running": 75,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 21.4
+      },
+      {
+        "time": "01:46:57",
+        "running": 77,
+        "waiting": 0,
+        "gpu": 94.5,
+        "kv": 21.4
+      },
+      {
+        "time": "01:47:07",
+        "running": 77,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 21.3
+      },
+      {
+        "time": "01:47:17",
+        "running": 76,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 21.6
+      },
+      {
+        "time": "01:47:27",
+        "running": 91,
+        "waiting": 0,
+        "gpu": 93.5,
+        "kv": 23.8
+      },
+      {
+        "time": "01:47:37",
+        "running": 69,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 20.0
+      },
+      {
+        "time": "01:47:47",
+        "running": 66,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 16.1
+      },
+      {
+        "time": "01:47:57",
+        "running": 73,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 18.1
+      },
+      {
+        "time": "01:48:07",
+        "running": 65,
+        "waiting": 0,
+        "gpu": 86.5,
+        "kv": 15.6
+      },
+      {
+        "time": "01:48:17",
+        "running": 72,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 16.8
+      },
+      {
+        "time": "01:48:27",
+        "running": 68,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 18.8
+      },
+      {
+        "time": "01:48:37",
+        "running": 63,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 15.5
+      },
+      {
+        "time": "01:48:47",
+        "running": 64,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 14.1
+      },
+      {
+        "time": "01:48:57",
+        "running": 70,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 19.2
+      },
+      {
+        "time": "01:49:07",
+        "running": 77,
+        "waiting": 0,
+        "gpu": 88.5,
+        "kv": 17.9
+      },
+      {
+        "time": "01:49:17",
+        "running": 75,
+        "waiting": 0,
+        "gpu": 81.0,
+        "kv": 16.5
+      },
+      {
+        "time": "01:49:27",
+        "running": 102,
+        "waiting": 0,
+        "gpu": 79.0,
+        "kv": 27.7
+      },
+      {
+        "time": "01:49:37",
+        "running": 91,
+        "waiting": 0,
+        "gpu": 81.5,
+        "kv": 24.9
+      },
+      {
+        "time": "01:49:47",
+        "running": 97,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 28.1
+      },
+      {
+        "time": "01:49:57",
+        "running": 93,
+        "waiting": 0,
+        "gpu": 81.5,
+        "kv": 24.8
+      },
+      {
+        "time": "01:50:07",
+        "running": 76,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 21.7
+      },
+      {
+        "time": "01:50:17",
+        "running": 97,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 33.7
+      },
+      {
+        "time": "01:50:27",
+        "running": 98,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 35.1
+      },
+      {
+        "time": "01:50:37",
+        "running": 94,
+        "waiting": 0,
+        "gpu": 95.5,
+        "kv": 36.3
+      },
+      {
+        "time": "01:50:47",
+        "running": 87,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 39.7
+      },
+      {
+        "time": "01:50:57",
+        "running": 88,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 30.5
+      },
+      {
+        "time": "01:51:07",
+        "running": 92,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 27.0
+      },
+      {
+        "time": "01:51:17",
+        "running": 80,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 21.3
+      },
+      {
+        "time": "01:51:27",
+        "running": 80,
+        "waiting": 0,
+        "gpu": 86.5,
+        "kv": 19.0
+      },
+      {
+        "time": "01:51:37",
+        "running": 87,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 27.5
+      },
+      {
+        "time": "01:51:47",
+        "running": 99,
+        "waiting": 0,
+        "gpu": 86.5,
+        "kv": 36.9
+      },
+      {
+        "time": "01:51:57",
+        "running": 126,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 48.2
+      },
+      {
+        "time": "01:52:07",
+        "running": 104,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 37.9
+      },
+      {
+        "time": "01:52:17",
+        "running": 98,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 30.3
+      },
+      {
+        "time": "01:52:27",
+        "running": 88,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 25.5
+      },
+      {
+        "time": "01:52:37",
+        "running": 102,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 24.2
+      },
+      {
+        "time": "01:52:47",
+        "running": 98,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 26.1
+      },
+      {
+        "time": "01:52:57",
+        "running": 84,
+        "waiting": 0,
+        "gpu": 91.5,
+        "kv": 22.5
+      },
+      {
+        "time": "01:53:07",
+        "running": 74,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 19.0
+      },
+      {
+        "time": "01:53:17",
+        "running": 69,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 18.1
+      },
+      {
+        "time": "01:53:27",
+        "running": 61,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 15.7
+      },
+      {
+        "time": "01:53:37",
+        "running": 76,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 30.1
+      },
+      {
+        "time": "01:53:47",
+        "running": 95,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 44.8
+      },
+      {
+        "time": "01:53:57",
+        "running": 124,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 69.6
+      },
+      {
+        "time": "01:54:07",
+        "running": 148,
+        "waiting": 2,
+        "gpu": 100.0,
+        "kv": 99.7
+      },
+      {
+        "time": "01:54:17",
+        "running": 135,
+        "waiting": 16,
+        "gpu": 85.0,
+        "kv": 98.0
+      },
+      {
+        "time": "01:54:27",
+        "running": 155,
+        "waiting": 12,
+        "gpu": 85.0,
+        "kv": 99.2
+      },
+      {
+        "time": "01:54:37",
+        "running": 146,
+        "waiting": 8,
+        "gpu": 86.0,
+        "kv": 99.7
+      },
+      {
+        "time": "01:54:47",
+        "running": 135,
+        "waiting": 4,
+        "gpu": 85.5,
+        "kv": 98.6
+      },
+      {
+        "time": "01:54:57",
+        "running": 120,
+        "waiting": 8,
+        "gpu": 88.5,
+        "kv": 96.5
+      },
+      {
+        "time": "01:55:07",
+        "running": 102,
+        "waiting": 5,
+        "gpu": 87.0,
+        "kv": 95.0
+      },
+      {
+        "time": "01:55:17",
+        "running": 92,
+        "waiting": 23,
+        "gpu": 94.5,
+        "kv": 96.1
+      },
+      {
+        "time": "01:55:27",
+        "running": 81,
+        "waiting": 46,
+        "gpu": 90.0,
+        "kv": 99.9
+      },
+      {
+        "time": "01:55:37",
+        "running": 102,
+        "waiting": 1,
+        "gpu": 89.0,
+        "kv": 95.4
+      },
+      {
+        "time": "01:55:47",
+        "running": 85,
+        "waiting": 23,
+        "gpu": 86.0,
+        "kv": 94.3
+      },
+      {
+        "time": "01:55:57",
+        "running": 93,
+        "waiting": 4,
+        "gpu": 96.0,
+        "kv": 94.8
+      },
+      {
+        "time": "01:56:07",
+        "running": 102,
+        "waiting": 6,
+        "gpu": 89.0,
+        "kv": 89.4
+      },
+      {
+        "time": "01:56:17",
+        "running": 80,
+        "waiting": 0,
+        "gpu": 88.5,
+        "kv": 73.3
+      },
+      {
+        "time": "01:56:27",
+        "running": 45,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 48.9
+      },
+      {
+        "time": "01:56:37",
+        "running": 7,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 11.5
+      },
+      {
+        "time": "01:56:47",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 1.2
+      },
+      {
+        "time": "01:56:57",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 1.4
+      },
+      {
+        "time": "01:57:07",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 1.7
+      },
+      {
+        "time": "01:57:17",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 1.9
+      },
+      {
+        "time": "01:57:27",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 95.5,
+        "kv": 2.1
+      },
+      {
+        "time": "01:57:37",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 2.4
+      },
+      {
+        "time": "01:57:47",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 2.6
+      },
+      {
+        "time": "01:57:57",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 94.5,
+        "kv": 0.0
+      },
+      {
+        "time": "01:58:07",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 94.5,
+        "kv": 0.0
+      }
+    ],
+    "server_qwen3-0.6b": [
+      {
+        "time": "01:24:50",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 0.0,
+        "kv": 0.0
+      },
+      {
+        "time": "01:25:00",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 70.0,
+        "kv": 0.0
+      },
+      {
+        "time": "01:25:10",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 69.0,
+        "kv": 2.1
+      },
+      {
+        "time": "01:25:20",
+        "running": 10,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 22.6
+      },
+      {
+        "time": "01:25:30",
+        "running": 2,
+        "waiting": 0,
+        "gpu": 75.0,
+        "kv": 5.6
+      },
+      {
+        "time": "01:25:40",
+        "running": 4,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 10.1
+      },
+      {
+        "time": "01:25:50",
+        "running": 6,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 16.5
+      },
+      {
+        "time": "01:26:00",
+        "running": 11,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 30.2
+      },
+      {
+        "time": "01:26:10",
+        "running": 10,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 26.5
+      },
+      {
+        "time": "01:26:20",
+        "running": 5,
+        "waiting": 0,
+        "gpu": 80.0,
+        "kv": 12.4
+      },
+      {
+        "time": "01:26:30",
+        "running": 10,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 25.1
+      },
+      {
+        "time": "01:26:40",
+        "running": 11,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 26.7
+      },
+      {
+        "time": "01:26:50",
+        "running": 10,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 25.8
+      },
+      {
+        "time": "01:27:00",
+        "running": 7,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 24.3
+      },
+      {
+        "time": "01:27:10",
+        "running": 6,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 21.8
+      },
+      {
+        "time": "01:27:20",
+        "running": 5,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 19.1
+      },
+      {
+        "time": "01:27:30",
+        "running": 9,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 32.0
+      },
+      {
+        "time": "01:27:40",
+        "running": 25,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 60.6
+      },
+      {
+        "time": "01:27:50",
+        "running": 26,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 73.5
+      },
+      {
+        "time": "01:28:00",
+        "running": 25,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 67.3
+      },
+      {
+        "time": "01:28:10",
+        "running": 19,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 59.1
+      },
+      {
+        "time": "01:28:20",
+        "running": 19,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 59.1
+      },
+      {
+        "time": "01:28:30",
+        "running": 22,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 63.3
+      },
+      {
+        "time": "01:28:40",
+        "running": 22,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 61.5
+      },
+      {
+        "time": "01:28:50",
+        "running": 32,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 82.0
+      },
+      {
+        "time": "01:29:00",
+        "running": 39,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 97.9
+      },
+      {
+        "time": "01:29:10",
+        "running": 28,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 85.8
+      },
+      {
+        "time": "01:29:20",
+        "running": 26,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 77.9
+      },
+      {
+        "time": "01:29:30",
+        "running": 23,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 74.8
+      },
+      {
+        "time": "01:29:40",
+        "running": 27,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 82.4
+      },
+      {
+        "time": "01:29:50",
+        "running": 34,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 99.7
+      },
+      {
+        "time": "01:30:00",
+        "running": 31,
+        "waiting": 2,
+        "gpu": 95.0,
+        "kv": 98.8
+      },
+      {
+        "time": "01:30:10",
+        "running": 30,
+        "waiting": 6,
+        "gpu": 92.0,
+        "kv": 97.7
+      },
+      {
+        "time": "01:30:20",
+        "running": 30,
+        "waiting": 6,
+        "gpu": 94.0,
+        "kv": 99.7
+      },
+      {
+        "time": "01:30:30",
+        "running": 30,
+        "waiting": 9,
+        "gpu": 93.0,
+        "kv": 99.5
+      },
+      {
+        "time": "01:30:40",
+        "running": 30,
+        "waiting": 9,
+        "gpu": 92.0,
+        "kv": 99.3
+      },
+      {
+        "time": "01:30:50",
+        "running": 28,
+        "waiting": 13,
+        "gpu": 92.0,
+        "kv": 99.7
+      },
+      {
+        "time": "01:31:00",
+        "running": 30,
+        "waiting": 11,
+        "gpu": 100.0,
+        "kv": 99.8
+      },
+      {
+        "time": "01:31:10",
+        "running": 30,
+        "waiting": 15,
+        "gpu": 94.0,
+        "kv": 98.1
+      },
+      {
+        "time": "01:31:20",
+        "running": 30,
+        "waiting": 18,
+        "gpu": 93.0,
+        "kv": 99.9
+      },
+      {
+        "time": "01:31:30",
+        "running": 37,
+        "waiting": 15,
+        "gpu": 93.0,
+        "kv": 99.7
+      },
+      {
+        "time": "01:31:40",
+        "running": 35,
+        "waiting": 5,
+        "gpu": 92.0,
+        "kv": 96.7
+      },
+      {
+        "time": "01:31:50",
+        "running": 29,
+        "waiting": 7,
+        "gpu": 92.0,
+        "kv": 92.3
+      },
+      {
+        "time": "01:32:00",
+        "running": 31,
+        "waiting": 6,
+        "gpu": 91.0,
+        "kv": 99.9
+      },
+      {
+        "time": "01:32:10",
+        "running": 33,
+        "waiting": 5,
+        "gpu": 94.0,
+        "kv": 99.6
+      },
+      {
+        "time": "01:32:20",
+        "running": 34,
+        "waiting": 5,
+        "gpu": 92.0,
+        "kv": 99.9
+      },
+      {
+        "time": "01:32:30",
+        "running": 30,
+        "waiting": 6,
+        "gpu": 92.0,
+        "kv": 91.7
+      },
+      {
+        "time": "01:32:40",
+        "running": 31,
+        "waiting": 6,
+        "gpu": 92.0,
+        "kv": 98.2
+      },
+      {
+        "time": "01:32:50",
+        "running": 31,
+        "waiting": 4,
+        "gpu": 91.0,
+        "kv": 99.2
+      },
+      {
+        "time": "01:33:00",
+        "running": 23,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 80.1
+      },
+      {
+        "time": "01:33:10",
+        "running": 37,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 94.0
+      },
+      {
+        "time": "01:33:20",
+        "running": 34,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 97.6
+      },
+      {
+        "time": "01:33:30",
+        "running": 27,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 92.4
+      },
+      {
+        "time": "01:33:40",
+        "running": 29,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 91.3
+      },
+      {
+        "time": "01:33:50",
+        "running": 26,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 80.5
+      },
+      {
+        "time": "01:34:00",
+        "running": 29,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 84.8
+      },
+      {
+        "time": "01:34:10",
+        "running": 27,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 83.3
+      },
+      {
+        "time": "01:34:20",
+        "running": 35,
+        "waiting": 5,
+        "gpu": 92.0,
+        "kv": 99.1
+      },
+      {
+        "time": "01:34:30",
+        "running": 35,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 95.7
+      },
+      {
+        "time": "01:34:40",
+        "running": 25,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 80.9
+      },
+      {
+        "time": "01:34:50",
+        "running": 32,
+        "waiting": 1,
+        "gpu": 94.0,
+        "kv": 98.4
+      },
+      {
+        "time": "01:35:00",
+        "running": 32,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 97.2
+      },
+      {
+        "time": "01:35:10",
+        "running": 27,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 89.3
+      },
+      {
+        "time": "01:35:20",
+        "running": 32,
+        "waiting": 1,
+        "gpu": 93.0,
+        "kv": 99.1
+      },
+      {
+        "time": "01:35:30",
+        "running": 32,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 91.0
+      },
+      {
+        "time": "01:35:40",
+        "running": 33,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 90.9
+      },
+      {
+        "time": "01:35:50",
+        "running": 36,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 97.9
+      },
+      {
+        "time": "01:36:00",
+        "running": 31,
+        "waiting": 4,
+        "gpu": 93.0,
+        "kv": 98.4
+      },
+      {
+        "time": "01:36:10",
+        "running": 29,
+        "waiting": 2,
+        "gpu": 93.0,
+        "kv": 98.7
+      },
+      {
+        "time": "01:36:20",
+        "running": 34,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 91.3
+      },
+      {
+        "time": "01:36:30",
+        "running": 26,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 79.1
+      },
+      {
+        "time": "01:36:40",
+        "running": 34,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 96.9
+      },
+      {
+        "time": "01:36:50",
+        "running": 37,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 95.2
+      },
+      {
+        "time": "01:37:00",
+        "running": 32,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 91.6
+      },
+      {
+        "time": "01:37:10",
+        "running": 37,
+        "waiting": 3,
+        "gpu": 91.0,
+        "kv": 99.9
+      },
+      {
+        "time": "01:37:20",
+        "running": 29,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 87.9
+      },
+      {
+        "time": "01:37:30",
+        "running": 31,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 98.0
+      },
+      {
+        "time": "01:37:40",
+        "running": 31,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 96.1
+      },
+      {
+        "time": "01:37:50",
+        "running": 29,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 93.3
+      },
+      {
+        "time": "01:38:00",
+        "running": 30,
+        "waiting": 7,
+        "gpu": 92.0,
+        "kv": 98.2
+      },
+      {
+        "time": "01:38:10",
+        "running": 30,
+        "waiting": 3,
+        "gpu": 92.0,
+        "kv": 99.3
+      },
+      {
+        "time": "01:38:20",
+        "running": 31,
+        "waiting": 2,
+        "gpu": 95.0,
+        "kv": 99.5
+      },
+      {
+        "time": "01:38:30",
+        "running": 38,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 99.5
+      },
+      {
+        "time": "01:38:40",
+        "running": 32,
+        "waiting": 2,
+        "gpu": 94.0,
+        "kv": 98.7
+      },
+      {
+        "time": "01:38:50",
+        "running": 33,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 93.8
+      },
+      {
+        "time": "01:39:00",
+        "running": 32,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 92.1
+      },
+      {
+        "time": "01:39:10",
+        "running": 32,
+        "waiting": 2,
+        "gpu": 92.0,
+        "kv": 97.0
+      },
+      {
+        "time": "01:39:20",
+        "running": 31,
+        "waiting": 5,
+        "gpu": 94.0,
+        "kv": 97.8
+      },
+      {
+        "time": "01:39:30",
+        "running": 30,
+        "waiting": 6,
+        "gpu": 93.0,
+        "kv": 99.2
+      },
+      {
+        "time": "01:39:40",
+        "running": 27,
+        "waiting": 2,
+        "gpu": 93.0,
+        "kv": 97.0
+      },
+      {
+        "time": "01:39:50",
+        "running": 25,
+        "waiting": 5,
+        "gpu": 93.0,
+        "kv": 95.0
+      },
+      {
+        "time": "01:40:00",
+        "running": 25,
+        "waiting": 10,
+        "gpu": 94.0,
+        "kv": 99.8
+      },
+      {
+        "time": "01:40:10",
+        "running": 28,
+        "waiting": 7,
+        "gpu": 94.0,
+        "kv": 100.0
+      },
+      {
+        "time": "01:40:20",
+        "running": 27,
+        "waiting": 9,
+        "gpu": 94.0,
+        "kv": 98.3
+      },
+      {
+        "time": "01:40:30",
+        "running": 29,
+        "waiting": 6,
+        "gpu": 94.0,
+        "kv": 100.0
+      },
+      {
+        "time": "01:40:40",
+        "running": 31,
+        "waiting": 7,
+        "gpu": 92.0,
+        "kv": 98.7
+      },
+      {
+        "time": "01:40:50",
+        "running": 34,
+        "waiting": 2,
+        "gpu": 91.0,
+        "kv": 99.5
+      },
+      {
+        "time": "01:41:00",
+        "running": 33,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 95.4
+      },
+      {
+        "time": "01:41:10",
+        "running": 36,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 97.4
+      },
+      {
+        "time": "01:41:20",
+        "running": 33,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 94.4
+      },
+      {
+        "time": "01:41:30",
+        "running": 35,
+        "waiting": 1,
+        "gpu": 95.0,
+        "kv": 99.3
+      },
+      {
+        "time": "01:41:40",
+        "running": 36,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 97.2
+      },
+      {
+        "time": "01:41:50",
+        "running": 33,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 99.5
+      },
+      {
+        "time": "01:42:00",
+        "running": 30,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 91.2
+      },
+      {
+        "time": "01:42:10",
+        "running": 33,
+        "waiting": 3,
+        "gpu": 91.0,
+        "kv": 100.0
+      },
+      {
+        "time": "01:42:20",
+        "running": 33,
+        "waiting": 9,
+        "gpu": 93.0,
+        "kv": 99.8
+      },
+      {
+        "time": "01:42:30",
+        "running": 34,
+        "waiting": 9,
+        "gpu": 92.0,
+        "kv": 98.0
+      },
+      {
+        "time": "01:42:40",
+        "running": 32,
+        "waiting": 9,
+        "gpu": 94.0,
+        "kv": 94.3
+      },
+      {
+        "time": "01:42:50",
+        "running": 34,
+        "waiting": 5,
+        "gpu": 91.0,
+        "kv": 97.4
+      },
+      {
+        "time": "01:43:00",
+        "running": 39,
+        "waiting": 2,
+        "gpu": 91.0,
+        "kv": 99.3
+      },
+      {
+        "time": "01:43:10",
+        "running": 34,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 94.7
+      },
+      {
+        "time": "01:43:20",
+        "running": 38,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 95.8
+      },
+      {
+        "time": "01:43:30",
+        "running": 29,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 91.3
+      },
+      {
+        "time": "01:43:40",
+        "running": 37,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 94.4
+      },
+      {
+        "time": "01:43:50",
+        "running": 32,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 89.7
+      },
+      {
+        "time": "01:44:00",
+        "running": 30,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 97.8
+      },
+      {
+        "time": "01:44:10",
+        "running": 27,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 73.8
+      },
+      {
+        "time": "01:44:20",
+        "running": 35,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 88.6
+      },
+      {
+        "time": "01:44:30",
+        "running": 28,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 82.7
+      },
+      {
+        "time": "01:44:40",
+        "running": 33,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 99.0
+      },
+      {
+        "time": "01:44:50",
+        "running": 31,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 84.2
+      },
+      {
+        "time": "01:45:00",
+        "running": 26,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 78.8
+      },
+      {
+        "time": "01:45:10",
+        "running": 27,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 81.8
+      },
+      {
+        "time": "01:45:20",
+        "running": 35,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 86.5
+      },
+      {
+        "time": "01:45:30",
+        "running": 28,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 75.8
+      },
+      {
+        "time": "01:45:40",
+        "running": 23,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 68.3
+      },
+      {
+        "time": "01:45:50",
+        "running": 28,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 80.3
+      },
+      {
+        "time": "01:46:00",
+        "running": 35,
+        "waiting": 4,
+        "gpu": 94.0,
+        "kv": 94.9
+      },
+      {
+        "time": "01:46:10",
+        "running": 33,
+        "waiting": 4,
+        "gpu": 90.0,
+        "kv": 97.9
+      },
+      {
+        "time": "01:46:20",
+        "running": 37,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 99.5
+      },
+      {
+        "time": "01:46:30",
+        "running": 40,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 89.8
+      },
+      {
+        "time": "01:46:40",
+        "running": 35,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 90.6
+      },
+      {
+        "time": "01:46:50",
+        "running": 30,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 83.2
+      },
+      {
+        "time": "01:47:00",
+        "running": 21,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 69.6
+      },
+      {
+        "time": "01:47:10",
+        "running": 21,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 68.8
+      },
+      {
+        "time": "01:47:20",
+        "running": 22,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 70.0
+      },
+      {
+        "time": "01:47:30",
+        "running": 28,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 78.2
+      },
+      {
+        "time": "01:47:40",
+        "running": 33,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 87.0
+      },
+      {
+        "time": "01:47:50",
+        "running": 23,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 70.9
+      },
+      {
+        "time": "01:48:00",
+        "running": 18,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 53.3
+      },
+      {
+        "time": "01:48:10",
+        "running": 27,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 72.7
+      },
+      {
+        "time": "01:48:20",
+        "running": 28,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 70.8
+      },
+      {
+        "time": "01:48:30",
+        "running": 29,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 85.3
+      },
+      {
+        "time": "01:48:40",
+        "running": 26,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 70.3
+      },
+      {
+        "time": "01:48:50",
+        "running": 34,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 81.6
+      },
+      {
+        "time": "01:49:00",
+        "running": 28,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 68.7
+      },
+      {
+        "time": "01:49:10",
+        "running": 26,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 62.9
+      },
+      {
+        "time": "01:49:20",
+        "running": 19,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 54.4
+      },
+      {
+        "time": "01:49:30",
+        "running": 24,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 67.5
+      },
+      {
+        "time": "01:49:40",
+        "running": 26,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 72.7
+      },
+      {
+        "time": "01:49:50",
+        "running": 27,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 73.2
+      },
+      {
+        "time": "01:50:00",
+        "running": 35,
+        "waiting": 7,
+        "gpu": 91.0,
+        "kv": 97.7
+      },
+      {
+        "time": "01:50:10",
+        "running": 35,
+        "waiting": 10,
+        "gpu": 91.0,
+        "kv": 98.4
+      },
+      {
+        "time": "01:50:20",
+        "running": 36,
+        "waiting": 2,
+        "gpu": 94.0,
+        "kv": 98.1
+      },
+      {
+        "time": "01:50:30",
+        "running": 35,
+        "waiting": 10,
+        "gpu": 93.0,
+        "kv": 98.7
+      },
+      {
+        "time": "01:50:40",
+        "running": 35,
+        "waiting": 5,
+        "gpu": 90.0,
+        "kv": 96.7
+      },
+      {
+        "time": "01:50:50",
+        "running": 34,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 98.5
+      },
+      {
+        "time": "01:51:00",
+        "running": 29,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 84.7
+      },
+      {
+        "time": "01:51:10",
+        "running": 28,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 83.1
+      },
+      {
+        "time": "01:51:20",
+        "running": 33,
+        "waiting": 5,
+        "gpu": 93.0,
+        "kv": 99.2
+      },
+      {
+        "time": "01:51:30",
+        "running": 33,
+        "waiting": 6,
+        "gpu": 93.0,
+        "kv": 97.2
+      },
+      {
+        "time": "01:51:40",
+        "running": 33,
+        "waiting": 7,
+        "gpu": 92.0,
+        "kv": 98.8
+      },
+      {
+        "time": "01:51:50",
+        "running": 30,
+        "waiting": 5,
+        "gpu": 96.0,
+        "kv": 98.5
+      },
+      {
+        "time": "01:52:00",
+        "running": 31,
+        "waiting": 3,
+        "gpu": 93.0,
+        "kv": 99.2
+      },
+      {
+        "time": "01:52:10",
+        "running": 29,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 96.3
+      },
+      {
+        "time": "01:52:20",
+        "running": 31,
+        "waiting": 2,
+        "gpu": 94.0,
+        "kv": 98.7
+      },
+      {
+        "time": "01:52:30",
+        "running": 30,
+        "waiting": 8,
+        "gpu": 92.0,
+        "kv": 96.2
+      },
+      {
+        "time": "01:52:40",
+        "running": 34,
+        "waiting": 5,
+        "gpu": 92.0,
+        "kv": 98.1
+      },
+      {
+        "time": "01:52:50",
+        "running": 29,
+        "waiting": 2,
+        "gpu": 94.0,
+        "kv": 98.0
+      },
+      {
+        "time": "01:53:00",
+        "running": 29,
+        "waiting": 7,
+        "gpu": 94.0,
+        "kv": 99.7
+      },
+      {
+        "time": "01:53:10",
+        "running": 33,
+        "waiting": 2,
+        "gpu": 94.0,
+        "kv": 99.8
+      },
+      {
+        "time": "01:53:20",
+        "running": 31,
+        "waiting": 6,
+        "gpu": 92.0,
+        "kv": 99.2
+      },
+      {
+        "time": "01:53:30",
+        "running": 26,
+        "waiting": 6,
+        "gpu": 92.0,
+        "kv": 96.9
+      },
+      {
+        "time": "01:53:40",
+        "running": 25,
+        "waiting": 8,
+        "gpu": 93.0,
+        "kv": 98.1
+      },
+      {
+        "time": "01:53:50",
+        "running": 25,
+        "waiting": 12,
+        "gpu": 93.0,
+        "kv": 98.5
+      },
+      {
+        "time": "01:54:00",
+        "running": 27,
+        "waiting": 10,
+        "gpu": 92.0,
+        "kv": 98.9
+      },
+      {
+        "time": "01:54:10",
+        "running": 26,
+        "waiting": 16,
+        "gpu": 92.0,
+        "kv": 97.2
+      },
+      {
+        "time": "01:54:20",
+        "running": 26,
+        "waiting": 29,
+        "gpu": 92.0,
+        "kv": 99.9
+      },
+      {
+        "time": "01:54:30",
+        "running": 28,
+        "waiting": 31,
+        "gpu": 89.0,
+        "kv": 99.1
+      },
+      {
+        "time": "01:54:40",
+        "running": 26,
+        "waiting": 36,
+        "gpu": 91.0,
+        "kv": 98.7
+      },
+      {
+        "time": "01:54:50",
+        "running": 30,
+        "waiting": 37,
+        "gpu": 91.0,
+        "kv": 98.1
+      },
+      {
+        "time": "01:55:00",
+        "running": 29,
+        "waiting": 35,
+        "gpu": 91.0,
+        "kv": 99.6
+      },
+      {
+        "time": "01:55:10",
+        "running": 27,
+        "waiting": 54,
+        "gpu": 89.0,
+        "kv": 98.4
+      },
+      {
+        "time": "01:55:20",
+        "running": 29,
+        "waiting": 66,
+        "gpu": 86.0,
+        "kv": 99.0
+      },
+      {
+        "time": "01:55:30",
+        "running": 32,
+        "waiting": 86,
+        "gpu": 90.0,
+        "kv": 99.7
+      },
+      {
+        "time": "01:55:40",
+        "running": 40,
+        "waiting": 69,
+        "gpu": 90.0,
+        "kv": 98.5
+      },
+      {
+        "time": "01:55:50",
+        "running": 43,
+        "waiting": 61,
+        "gpu": 89.0,
+        "kv": 99.8
+      },
+      {
+        "time": "01:56:00",
+        "running": 48,
+        "waiting": 25,
+        "gpu": 91.0,
+        "kv": 94.5
+      },
+      {
+        "time": "01:56:10",
+        "running": 42,
+        "waiting": 17,
+        "gpu": 93.0,
+        "kv": 94.5
+      },
+      {
+        "time": "01:56:20",
+        "running": 35,
+        "waiting": 8,
+        "gpu": 92.0,
+        "kv": 99.2
+      },
+      {
+        "time": "01:56:30",
+        "running": 32,
+        "waiting": 5,
+        "gpu": 94.0,
+        "kv": 98.0
+      },
+      {
+        "time": "01:56:40",
+        "running": 24,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 77.9
+      },
+      {
+        "time": "01:56:50",
+        "running": 21,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 69.7
+      },
+      {
+        "time": "01:57:00",
+        "running": 17,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 54.3
+      },
+      {
+        "time": "01:57:10",
+        "running": 14,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 46.3
+      },
+      {
+        "time": "01:57:20",
+        "running": 12,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 43.2
+      },
+      {
+        "time": "01:57:30",
+        "running": 10,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 37.5
+      },
+      {
+        "time": "01:57:40",
+        "running": 8,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 29.9
+      },
+      {
+        "time": "01:57:50",
+        "running": 6,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 22.1
+      },
+      {
+        "time": "01:58:00",
+        "running": 2,
+        "waiting": 0,
+        "gpu": 79.0,
+        "kv": 6.9
+      },
+      {
+        "time": "01:58:10",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 76.0,
+        "kv": 0.0
+      },
+      {
+        "time": "01:58:20",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 76.0,
+        "kv": 0.0
+      }
+    ]
+  },
+  "vast": {
+    "server_qwen3-8b": [
+      {
+        "time": "07:00:16",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 0.0,
+        "kv": 0.0
+      },
+      {
+        "time": "07:00:26",
+        "running": 3,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 4.1
+      },
+      {
+        "time": "07:00:36",
+        "running": 5,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 7.4
+      },
+      {
+        "time": "07:00:46",
+        "running": 8,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 26.0
+      },
+      {
+        "time": "07:00:56",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 0.1
+      },
+      {
+        "time": "07:01:06",
+        "running": 4,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 12.1
+      },
+      {
+        "time": "07:01:16",
+        "running": 8,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 24.1
+      },
+      {
+        "time": "07:01:26",
+        "running": 4,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 8.3
+      },
+      {
+        "time": "07:01:36",
+        "running": 6,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 9.0
+      },
+      {
+        "time": "07:01:46",
+        "running": 7,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 12.3
+      },
+      {
+        "time": "07:01:56",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 0.2
+      },
+      {
+        "time": "07:02:06",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 0.0
+      },
+      {
+        "time": "07:02:16",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 0.0
+      },
+      {
+        "time": "07:02:26",
+        "running": 23,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 36.2
+      },
+      {
+        "time": "07:02:36",
+        "running": 44,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 73.9
+      },
+      {
+        "time": "07:02:46",
+        "running": 52,
+        "waiting": 2,
+        "gpu": 93.0,
+        "kv": 95.2
+      },
+      {
+        "time": "07:02:56",
+        "running": 44,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 91.0
+      },
+      {
+        "time": "07:03:06",
+        "running": 38,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 95.9
+      },
+      {
+        "time": "07:03:16",
+        "running": 46,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 92.5
+      },
+      {
+        "time": "07:03:26",
+        "running": 39,
+        "waiting": 1,
+        "gpu": 100.0,
+        "kv": 99.8
+      },
+      {
+        "time": "07:03:36",
+        "running": 41,
+        "waiting": 2,
+        "gpu": 93.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:03:46",
+        "running": 34,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 90.8
+      },
+      {
+        "time": "07:03:56",
+        "running": 42,
+        "waiting": 1,
+        "gpu": 94.0,
+        "kv": 90.1
+      },
+      {
+        "time": "07:04:06",
+        "running": 45,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 98.3
+      },
+      {
+        "time": "07:04:16",
+        "running": 38,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 93.7
+      },
+      {
+        "time": "07:04:26",
+        "running": 38,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 97.1
+      },
+      {
+        "time": "07:04:36",
+        "running": 42,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 97.6
+      },
+      {
+        "time": "07:04:46",
+        "running": 37,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 92.9
+      },
+      {
+        "time": "07:04:56",
+        "running": 45,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 88.9
+      },
+      {
+        "time": "07:05:06",
+        "running": 41,
+        "waiting": 1,
+        "gpu": 100.0,
+        "kv": 97.1
+      },
+      {
+        "time": "07:05:16",
+        "running": 45,
+        "waiting": 4,
+        "gpu": 91.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:05:26",
+        "running": 38,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 90.1
+      },
+      {
+        "time": "07:05:36",
+        "running": 47,
+        "waiting": 1,
+        "gpu": 89.0,
+        "kv": 97.0
+      },
+      {
+        "time": "07:05:46",
+        "running": 40,
+        "waiting": 1,
+        "gpu": 93.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:05:56",
+        "running": 41,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 96.6
+      },
+      {
+        "time": "07:06:06",
+        "running": 48,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 96.0
+      },
+      {
+        "time": "07:06:16",
+        "running": 54,
+        "waiting": 2,
+        "gpu": 91.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:06:26",
+        "running": 49,
+        "waiting": 1,
+        "gpu": 87.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:06:36",
+        "running": 41,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:06:46",
+        "running": 38,
+        "waiting": 1,
+        "gpu": 93.0,
+        "kv": 95.6
+      },
+      {
+        "time": "07:06:56",
+        "running": 42,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 96.7
+      },
+      {
+        "time": "07:07:06",
+        "running": 43,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 90.6
+      },
+      {
+        "time": "07:07:16",
+        "running": 53,
+        "waiting": 3,
+        "gpu": 96.0,
+        "kv": 100.0
+      },
+      {
+        "time": "07:07:26",
+        "running": 51,
+        "waiting": 2,
+        "gpu": 92.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:07:36",
+        "running": 40,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 89.9
+      },
+      {
+        "time": "07:07:46",
+        "running": 41,
+        "waiting": 1,
+        "gpu": 97.0,
+        "kv": 99.8
+      },
+      {
+        "time": "07:07:56",
+        "running": 40,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 96.1
+      },
+      {
+        "time": "07:08:06",
+        "running": 41,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 92.2
+      },
+      {
+        "time": "07:08:16",
+        "running": 46,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 99.5
+      },
+      {
+        "time": "07:08:26",
+        "running": 35,
+        "waiting": 7,
+        "gpu": 92.0,
+        "kv": 98.6
+      },
+      {
+        "time": "07:08:36",
+        "running": 47,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 98.6
+      },
+      {
+        "time": "07:08:46",
+        "running": 43,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 98.6
+      },
+      {
+        "time": "07:08:56",
+        "running": 45,
+        "waiting": 0,
+        "gpu": 96.0,
+        "kv": 98.3
+      },
+      {
+        "time": "07:09:06",
+        "running": 44,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 98.9
+      },
+      {
+        "time": "07:09:16",
+        "running": 45,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:09:26",
+        "running": 46,
+        "waiting": 1,
+        "gpu": 95.0,
+        "kv": 98.3
+      },
+      {
+        "time": "07:09:36",
+        "running": 45,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 96.1
+      },
+      {
+        "time": "07:09:46",
+        "running": 44,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 95.5
+      },
+      {
+        "time": "07:09:56",
+        "running": 44,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 95.5
+      },
+      {
+        "time": "07:10:06",
+        "running": 39,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 98.8
+      },
+      {
+        "time": "07:10:16",
+        "running": 41,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 89.0
+      },
+      {
+        "time": "07:10:26",
+        "running": 43,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 90.6
+      },
+      {
+        "time": "07:10:36",
+        "running": 39,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 98.8
+      },
+      {
+        "time": "07:10:46",
+        "running": 38,
+        "waiting": 2,
+        "gpu": 91.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:10:56",
+        "running": 41,
+        "waiting": 1,
+        "gpu": 97.0,
+        "kv": 99.8
+      },
+      {
+        "time": "07:11:06",
+        "running": 53,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:11:16",
+        "running": 49,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 96.9
+      },
+      {
+        "time": "07:11:26",
+        "running": 50,
+        "waiting": 1,
+        "gpu": 88.0,
+        "kv": 94.8
+      },
+      {
+        "time": "07:11:36",
+        "running": 53,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 97.1
+      },
+      {
+        "time": "07:11:46",
+        "running": 48,
+        "waiting": 1,
+        "gpu": 93.0,
+        "kv": 96.8
+      },
+      {
+        "time": "07:11:56",
+        "running": 50,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 92.2
+      },
+      {
+        "time": "07:12:06",
+        "running": 48,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 94.0
+      },
+      {
+        "time": "07:12:16",
+        "running": 48,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 97.6
+      },
+      {
+        "time": "07:12:26",
+        "running": 47,
+        "waiting": 2,
+        "gpu": 89.0,
+        "kv": 96.3
+      },
+      {
+        "time": "07:12:36",
+        "running": 47,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 96.9
+      },
+      {
+        "time": "07:12:46",
+        "running": 45,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 87.2
+      },
+      {
+        "time": "07:12:56",
+        "running": 45,
+        "waiting": 4,
+        "gpu": 90.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:13:06",
+        "running": 43,
+        "waiting": 1,
+        "gpu": 93.0,
+        "kv": 98.9
+      },
+      {
+        "time": "07:13:16",
+        "running": 42,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 93.9
+      },
+      {
+        "time": "07:13:26",
+        "running": 48,
+        "waiting": 4,
+        "gpu": 92.0,
+        "kv": 97.7
+      },
+      {
+        "time": "07:13:36",
+        "running": 55,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 91.9
+      },
+      {
+        "time": "07:13:46",
+        "running": 61,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 92.0
+      },
+      {
+        "time": "07:13:56",
+        "running": 66,
+        "waiting": 1,
+        "gpu": 100.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:14:06",
+        "running": 58,
+        "waiting": 4,
+        "gpu": 90.0,
+        "kv": 97.8
+      },
+      {
+        "time": "07:14:16",
+        "running": 58,
+        "waiting": 12,
+        "gpu": 91.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:14:26",
+        "running": 80,
+        "waiting": 1,
+        "gpu": 88.0,
+        "kv": 97.1
+      },
+      {
+        "time": "07:14:36",
+        "running": 84,
+        "waiting": 5,
+        "gpu": 85.0,
+        "kv": 95.2
+      },
+      {
+        "time": "07:14:46",
+        "running": 95,
+        "waiting": 1,
+        "gpu": 85.0,
+        "kv": 97.6
+      },
+      {
+        "time": "07:14:56",
+        "running": 92,
+        "waiting": 2,
+        "gpu": 88.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:15:06",
+        "running": 73,
+        "waiting": 1,
+        "gpu": 85.0,
+        "kv": 93.9
+      },
+      {
+        "time": "07:15:16",
+        "running": 67,
+        "waiting": 4,
+        "gpu": 87.0,
+        "kv": 99.8
+      },
+      {
+        "time": "07:15:26",
+        "running": 51,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 95.7
+      },
+      {
+        "time": "07:15:36",
+        "running": 44,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 96.3
+      },
+      {
+        "time": "07:15:46",
+        "running": 47,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 98.6
+      },
+      {
+        "time": "07:15:56",
+        "running": 46,
+        "waiting": 3,
+        "gpu": 91.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:16:06",
+        "running": 58,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 93.5
+      },
+      {
+        "time": "07:16:16",
+        "running": 58,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 95.8
+      },
+      {
+        "time": "07:16:26",
+        "running": 51,
+        "waiting": 1,
+        "gpu": 91.0,
+        "kv": 97.2
+      },
+      {
+        "time": "07:16:36",
+        "running": 49,
+        "waiting": 2,
+        "gpu": 89.0,
+        "kv": 97.0
+      },
+      {
+        "time": "07:16:46",
+        "running": 46,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:16:56",
+        "running": 36,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 97.0
+      },
+      {
+        "time": "07:17:06",
+        "running": 36,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 93.4
+      },
+      {
+        "time": "07:17:16",
+        "running": 44,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 94.7
+      },
+      {
+        "time": "07:17:26",
+        "running": 41,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 96.7
+      },
+      {
+        "time": "07:17:36",
+        "running": 46,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 97.4
+      },
+      {
+        "time": "07:17:46",
+        "running": 47,
+        "waiting": 3,
+        "gpu": 96.0,
+        "kv": 98.7
+      },
+      {
+        "time": "07:17:56",
+        "running": 50,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 97.3
+      },
+      {
+        "time": "07:18:06",
+        "running": 44,
+        "waiting": 1,
+        "gpu": 89.0,
+        "kv": 98.0
+      },
+      {
+        "time": "07:18:16",
+        "running": 46,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 85.8
+      },
+      {
+        "time": "07:18:26",
+        "running": 49,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:18:36",
+        "running": 53,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:18:46",
+        "running": 49,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 92.5
+      },
+      {
+        "time": "07:18:56",
+        "running": 59,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 98.8
+      },
+      {
+        "time": "07:19:06",
+        "running": 53,
+        "waiting": 8,
+        "gpu": 90.0,
+        "kv": 94.1
+      },
+      {
+        "time": "07:19:16",
+        "running": 90,
+        "waiting": 2,
+        "gpu": 86.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:19:26",
+        "running": 101,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 89.6
+      },
+      {
+        "time": "07:19:36",
+        "running": 99,
+        "waiting": 8,
+        "gpu": 100.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:19:46",
+        "running": 118,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 98.7
+      },
+      {
+        "time": "07:19:56",
+        "running": 137,
+        "waiting": 3,
+        "gpu": 100.0,
+        "kv": 95.6
+      },
+      {
+        "time": "07:20:06",
+        "running": 116,
+        "waiting": 26,
+        "gpu": 93.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:20:16",
+        "running": 129,
+        "waiting": 22,
+        "gpu": 83.0,
+        "kv": 98.4
+      },
+      {
+        "time": "07:20:26",
+        "running": 138,
+        "waiting": 18,
+        "gpu": 78.0,
+        "kv": 99.2
+      },
+      {
+        "time": "07:20:36",
+        "running": 141,
+        "waiting": 2,
+        "gpu": 81.0,
+        "kv": 96.8
+      },
+      {
+        "time": "07:20:46",
+        "running": 132,
+        "waiting": 12,
+        "gpu": 100.0,
+        "kv": 98.9
+      },
+      {
+        "time": "07:20:56",
+        "running": 149,
+        "waiting": 6,
+        "gpu": 100.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:21:06",
+        "running": 144,
+        "waiting": 25,
+        "gpu": 81.0,
+        "kv": 97.1
+      },
+      {
+        "time": "07:21:16",
+        "running": 135,
+        "waiting": 24,
+        "gpu": 82.0,
+        "kv": 98.7
+      },
+      {
+        "time": "07:21:26",
+        "running": 130,
+        "waiting": 5,
+        "gpu": 82.0,
+        "kv": 95.5
+      },
+      {
+        "time": "07:21:36",
+        "running": 111,
+        "waiting": 12,
+        "gpu": 80.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:21:46",
+        "running": 111,
+        "waiting": 5,
+        "gpu": 85.0,
+        "kv": 91.5
+      },
+      {
+        "time": "07:21:56",
+        "running": 93,
+        "waiting": 12,
+        "gpu": 85.0,
+        "kv": 96.0
+      },
+      {
+        "time": "07:22:06",
+        "running": 111,
+        "waiting": 10,
+        "gpu": 88.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:22:16",
+        "running": 117,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:22:26",
+        "running": 123,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 96.2
+      },
+      {
+        "time": "07:22:36",
+        "running": 107,
+        "waiting": 2,
+        "gpu": 86.0,
+        "kv": 99.8
+      },
+      {
+        "time": "07:22:46",
+        "running": 88,
+        "waiting": 1,
+        "gpu": 88.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:22:56",
+        "running": 65,
+        "waiting": 1,
+        "gpu": 90.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:23:06",
+        "running": 59,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 94.4
+      },
+      {
+        "time": "07:23:16",
+        "running": 48,
+        "waiting": 2,
+        "gpu": 91.0,
+        "kv": 99.1
+      },
+      {
+        "time": "07:23:26",
+        "running": 42,
+        "waiting": 4,
+        "gpu": 92.0,
+        "kv": 98.8
+      },
+      {
+        "time": "07:23:36",
+        "running": 52,
+        "waiting": 11,
+        "gpu": 100.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:23:46",
+        "running": 95,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 79.0
+      },
+      {
+        "time": "07:23:56",
+        "running": 85,
+        "waiting": 29,
+        "gpu": 87.0,
+        "kv": 100.0
+      },
+      {
+        "time": "07:24:06",
+        "running": 133,
+        "waiting": 13,
+        "gpu": 83.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:24:16",
+        "running": 114,
+        "waiting": 19,
+        "gpu": 82.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:24:26",
+        "running": 102,
+        "waiting": 24,
+        "gpu": 85.0,
+        "kv": 98.5
+      },
+      {
+        "time": "07:24:36",
+        "running": 97,
+        "waiting": 27,
+        "gpu": 86.0,
+        "kv": 99.1
+      },
+      {
+        "time": "07:24:46",
+        "running": 88,
+        "waiting": 18,
+        "gpu": 100.0,
+        "kv": 96.7
+      },
+      {
+        "time": "07:24:56",
+        "running": 85,
+        "waiting": 16,
+        "gpu": 85.0,
+        "kv": 91.7
+      },
+      {
+        "time": "07:25:06",
+        "running": 67,
+        "waiting": 29,
+        "gpu": 87.0,
+        "kv": 98.7
+      },
+      {
+        "time": "07:25:16",
+        "running": 55,
+        "waiting": 49,
+        "gpu": 97.0,
+        "kv": 97.8
+      },
+      {
+        "time": "07:25:26",
+        "running": 43,
+        "waiting": 82,
+        "gpu": 88.0,
+        "kv": 94.9
+      },
+      {
+        "time": "07:25:36",
+        "running": 41,
+        "waiting": 83,
+        "gpu": 87.0,
+        "kv": 91.4
+      },
+      {
+        "time": "07:25:46",
+        "running": 79,
+        "waiting": 50,
+        "gpu": 84.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:25:56",
+        "running": 66,
+        "waiting": 64,
+        "gpu": 100.0,
+        "kv": 97.9
+      },
+      {
+        "time": "07:26:06",
+        "running": 70,
+        "waiting": 76,
+        "gpu": 83.0,
+        "kv": 96.5
+      },
+      {
+        "time": "07:26:16",
+        "running": 77,
+        "waiting": 87,
+        "gpu": 84.0,
+        "kv": 99.1
+      },
+      {
+        "time": "07:26:26",
+        "running": 69,
+        "waiting": 102,
+        "gpu": 81.0,
+        "kv": 98.4
+      },
+      {
+        "time": "07:26:36",
+        "running": 67,
+        "waiting": 115,
+        "gpu": 93.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:26:46",
+        "running": 76,
+        "waiting": 110,
+        "gpu": 100.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:26:56",
+        "running": 71,
+        "waiting": 118,
+        "gpu": 100.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:27:06",
+        "running": 71,
+        "waiting": 112,
+        "gpu": 82.0,
+        "kv": 94.7
+      },
+      {
+        "time": "07:27:16",
+        "running": 99,
+        "waiting": 48,
+        "gpu": 84.0,
+        "kv": 98.9
+      },
+      {
+        "time": "07:27:26",
+        "running": 81,
+        "waiting": 62,
+        "gpu": 84.0,
+        "kv": 96.0
+      },
+      {
+        "time": "07:27:36",
+        "running": 88,
+        "waiting": 73,
+        "gpu": 84.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:27:46",
+        "running": 64,
+        "waiting": 96,
+        "gpu": 100.0,
+        "kv": 98.7
+      },
+      {
+        "time": "07:27:56",
+        "running": 49,
+        "waiting": 130,
+        "gpu": 83.0,
+        "kv": 92.7
+      },
+      {
+        "time": "07:28:06",
+        "running": 58,
+        "waiting": 114,
+        "gpu": 84.0,
+        "kv": 98.8
+      },
+      {
+        "time": "07:28:16",
+        "running": 88,
+        "waiting": 62,
+        "gpu": 93.0,
+        "kv": 97.7
+      },
+      {
+        "time": "07:28:26",
+        "running": 71,
+        "waiting": 72,
+        "gpu": 85.0,
+        "kv": 95.4
+      },
+      {
+        "time": "07:28:36",
+        "running": 73,
+        "waiting": 60,
+        "gpu": 84.0,
+        "kv": 96.9
+      },
+      {
+        "time": "07:28:46",
+        "running": 62,
+        "waiting": 68,
+        "gpu": 82.0,
+        "kv": 89.2
+      },
+      {
+        "time": "07:28:56",
+        "running": 55,
+        "waiting": 75,
+        "gpu": 84.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:29:06",
+        "running": 61,
+        "waiting": 63,
+        "gpu": 87.0,
+        "kv": 89.7
+      },
+      {
+        "time": "07:29:16",
+        "running": 72,
+        "waiting": 57,
+        "gpu": 88.0,
+        "kv": 97.0
+      },
+      {
+        "time": "07:29:26",
+        "running": 62,
+        "waiting": 67,
+        "gpu": 85.0,
+        "kv": 96.2
+      },
+      {
+        "time": "07:29:36",
+        "running": 58,
+        "waiting": 83,
+        "gpu": 100.0,
+        "kv": 97.9
+      },
+      {
+        "time": "07:29:46",
+        "running": 64,
+        "waiting": 76,
+        "gpu": 85.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:29:56",
+        "running": 48,
+        "waiting": 95,
+        "gpu": 85.0,
+        "kv": 94.1
+      },
+      {
+        "time": "07:30:06",
+        "running": 68,
+        "waiting": 82,
+        "gpu": 83.0,
+        "kv": 98.0
+      },
+      {
+        "time": "07:30:16",
+        "running": 70,
+        "waiting": 76,
+        "gpu": 82.0,
+        "kv": 98.3
+      },
+      {
+        "time": "07:30:26",
+        "running": 64,
+        "waiting": 93,
+        "gpu": 81.0,
+        "kv": 97.4
+      },
+      {
+        "time": "07:30:36",
+        "running": 54,
+        "waiting": 118,
+        "gpu": 85.0,
+        "kv": 97.2
+      },
+      {
+        "time": "07:30:46",
+        "running": 72,
+        "waiting": 121,
+        "gpu": 82.0,
+        "kv": 94.7
+      },
+      {
+        "time": "07:30:56",
+        "running": 68,
+        "waiting": 131,
+        "gpu": 82.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:31:06",
+        "running": 64,
+        "waiting": 141,
+        "gpu": 82.0,
+        "kv": 98.8
+      },
+      {
+        "time": "07:31:16",
+        "running": 96,
+        "waiting": 149,
+        "gpu": 87.0,
+        "kv": 99.5
+      },
+      {
+        "time": "07:31:26",
+        "running": 72,
+        "waiting": 172,
+        "gpu": 78.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:31:36",
+        "running": 69,
+        "waiting": 162,
+        "gpu": 85.0,
+        "kv": 97.5
+      },
+      {
+        "time": "07:31:46",
+        "running": 93,
+        "waiting": 161,
+        "gpu": 63.0,
+        "kv": 92.5
+      },
+      {
+        "time": "07:31:56",
+        "running": 106,
+        "waiting": 143,
+        "gpu": 78.0,
+        "kv": 99.8
+      },
+      {
+        "time": "07:32:06",
+        "running": 100,
+        "waiting": 145,
+        "gpu": 79.0,
+        "kv": 99.1
+      },
+      {
+        "time": "07:32:16",
+        "running": 94,
+        "waiting": 167,
+        "gpu": 77.0,
+        "kv": 98.9
+      },
+      {
+        "time": "07:32:26",
+        "running": 84,
+        "waiting": 172,
+        "gpu": 79.0,
+        "kv": 94.2
+      },
+      {
+        "time": "07:32:36",
+        "running": 87,
+        "waiting": 154,
+        "gpu": 77.0,
+        "kv": 97.4
+      },
+      {
+        "time": "07:32:46",
+        "running": 73,
+        "waiting": 159,
+        "gpu": 81.0,
+        "kv": 98.8
+      },
+      {
+        "time": "07:32:56",
+        "running": 66,
+        "waiting": 167,
+        "gpu": 79.0,
+        "kv": 98.6
+      },
+      {
+        "time": "07:33:06",
+        "running": 61,
+        "waiting": 196,
+        "gpu": 79.0,
+        "kv": 98.7
+      },
+      {
+        "time": "07:33:16",
+        "running": 73,
+        "waiting": 180,
+        "gpu": 80.0,
+        "kv": 95.2
+      },
+      {
+        "time": "07:33:26",
+        "running": 72,
+        "waiting": 173,
+        "gpu": 79.0,
+        "kv": 97.8
+      },
+      {
+        "time": "07:33:36",
+        "running": 71,
+        "waiting": 206,
+        "gpu": 78.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:33:46",
+        "running": 70,
+        "waiting": 199,
+        "gpu": 79.0,
+        "kv": 100.0
+      },
+      {
+        "time": "07:33:56",
+        "running": 70,
+        "waiting": 182,
+        "gpu": 100.0,
+        "kv": 97.6
+      },
+      {
+        "time": "07:34:06",
+        "running": 74,
+        "waiting": 152,
+        "gpu": 80.0,
+        "kv": 95.5
+      },
+      {
+        "time": "07:34:16",
+        "running": 65,
+        "waiting": 128,
+        "gpu": 83.0,
+        "kv": 92.9
+      },
+      {
+        "time": "07:34:26",
+        "running": 84,
+        "waiting": 73,
+        "gpu": 84.0,
+        "kv": 96.8
+      },
+      {
+        "time": "07:34:36",
+        "running": 75,
+        "waiting": 58,
+        "gpu": 86.0,
+        "kv": 92.6
+      },
+      {
+        "time": "07:34:46",
+        "running": 84,
+        "waiting": 15,
+        "gpu": 88.0,
+        "kv": 97.0
+      },
+      {
+        "time": "07:34:56",
+        "running": 67,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 89.0
+      },
+      {
+        "time": "07:35:06",
+        "running": 27,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 53.9
+      },
+      {
+        "time": "07:35:16",
+        "running": 3,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 9.5
+      },
+      {
+        "time": "07:35:26",
+        "running": 2,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 3.2
+      },
+      {
+        "time": "07:35:36",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 1.6
+      },
+      {
+        "time": "07:35:46",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 1.9
+      },
+      {
+        "time": "07:35:56",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 0.0
+      },
+      {
+        "time": "07:36:06",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 0.0
+      }
+    ],
+    "server_qwen3-32b": [
+      {
+        "time": "07:00:23",
+        "running": 4,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 0.4
+      },
+      {
+        "time": "07:00:33",
+        "running": 11,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 2.0
+      },
+      {
+        "time": "07:00:43",
+        "running": 7,
+        "waiting": 0,
+        "gpu": 92.5,
+        "kv": 1.0
+      },
+      {
+        "time": "07:00:53",
+        "running": 15,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 2.7
+      },
+      {
+        "time": "07:01:03",
+        "running": 15,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 3.1
+      },
+      {
+        "time": "07:01:13",
+        "running": 11,
+        "waiting": 0,
+        "gpu": 91.5,
+        "kv": 2.9
+      },
+      {
+        "time": "07:01:23",
+        "running": 4,
+        "waiting": 0,
+        "gpu": 93.5,
+        "kv": 0.7
+      },
+      {
+        "time": "07:01:33",
+        "running": 7,
+        "waiting": 0,
+        "gpu": 92.5,
+        "kv": 1.5
+      },
+      {
+        "time": "07:01:43",
+        "running": 11,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 1.7
+      },
+      {
+        "time": "07:01:53",
+        "running": 10,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 2.3
+      },
+      {
+        "time": "07:02:03",
+        "running": 2,
+        "waiting": 0,
+        "gpu": 93.5,
+        "kv": 0.7
+      },
+      {
+        "time": "07:02:13",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 93.5,
+        "kv": 0.0
+      },
+      {
+        "time": "07:02:23",
+        "running": 16,
+        "waiting": 0,
+        "gpu": 90.5,
+        "kv": 1.1
+      },
+      {
+        "time": "07:02:33",
+        "running": 37,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 6.8
+      },
+      {
+        "time": "07:02:43",
+        "running": 47,
+        "waiting": 0,
+        "gpu": 87.5,
+        "kv": 9.6
+      },
+      {
+        "time": "07:02:53",
+        "running": 63,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 13.2
+      },
+      {
+        "time": "07:03:03",
+        "running": 79,
+        "waiting": 0,
+        "gpu": 89.5,
+        "kv": 16.5
+      },
+      {
+        "time": "07:03:13",
+        "running": 81,
+        "waiting": 0,
+        "gpu": 82.5,
+        "kv": 17.8
+      },
+      {
+        "time": "07:03:23",
+        "running": 93,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 21.5
+      },
+      {
+        "time": "07:03:33",
+        "running": 85,
+        "waiting": 0,
+        "gpu": 82.5,
+        "kv": 20.0
+      },
+      {
+        "time": "07:03:43",
+        "running": 84,
+        "waiting": 0,
+        "gpu": 87.5,
+        "kv": 21.7
+      },
+      {
+        "time": "07:03:53",
+        "running": 91,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 26.4
+      },
+      {
+        "time": "07:04:03",
+        "running": 93,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 23.0
+      },
+      {
+        "time": "07:04:13",
+        "running": 96,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 23.4
+      },
+      {
+        "time": "07:04:23",
+        "running": 82,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 20.6
+      },
+      {
+        "time": "07:04:33",
+        "running": 81,
+        "waiting": 0,
+        "gpu": 81.0,
+        "kv": 21.2
+      },
+      {
+        "time": "07:04:43",
+        "running": 86,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 25.0
+      },
+      {
+        "time": "07:04:53",
+        "running": 86,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 23.3
+      },
+      {
+        "time": "07:05:03",
+        "running": 98,
+        "waiting": 0,
+        "gpu": 82.5,
+        "kv": 23.9
+      },
+      {
+        "time": "07:05:13",
+        "running": 118,
+        "waiting": 0,
+        "gpu": 88.5,
+        "kv": 34.9
+      },
+      {
+        "time": "07:05:23",
+        "running": 109,
+        "waiting": 0,
+        "gpu": 95.0,
+        "kv": 34.2
+      },
+      {
+        "time": "07:05:33",
+        "running": 93,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 29.8
+      },
+      {
+        "time": "07:05:43",
+        "running": 98,
+        "waiting": 0,
+        "gpu": 81.5,
+        "kv": 28.4
+      },
+      {
+        "time": "07:05:53",
+        "running": 88,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 28.0
+      },
+      {
+        "time": "07:06:03",
+        "running": 94,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 31.9
+      },
+      {
+        "time": "07:06:13",
+        "running": 104,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 34.3
+      },
+      {
+        "time": "07:06:23",
+        "running": 99,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 28.4
+      },
+      {
+        "time": "07:06:33",
+        "running": 114,
+        "waiting": 0,
+        "gpu": 80.5,
+        "kv": 33.3
+      },
+      {
+        "time": "07:06:43",
+        "running": 115,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 35.8
+      },
+      {
+        "time": "07:06:53",
+        "running": 129,
+        "waiting": 0,
+        "gpu": 79.0,
+        "kv": 38.8
+      },
+      {
+        "time": "07:07:03",
+        "running": 125,
+        "waiting": 0,
+        "gpu": 81.5,
+        "kv": 36.8
+      },
+      {
+        "time": "07:07:13",
+        "running": 114,
+        "waiting": 0,
+        "gpu": 80.0,
+        "kv": 35.6
+      },
+      {
+        "time": "07:07:23",
+        "running": 108,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 35.1
+      },
+      {
+        "time": "07:07:33",
+        "running": 104,
+        "waiting": 0,
+        "gpu": 82.5,
+        "kv": 34.5
+      },
+      {
+        "time": "07:07:43",
+        "running": 97,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 30.3
+      },
+      {
+        "time": "07:07:53",
+        "running": 102,
+        "waiting": 0,
+        "gpu": 82.5,
+        "kv": 36.6
+      },
+      {
+        "time": "07:08:03",
+        "running": 109,
+        "waiting": 0,
+        "gpu": 80.5,
+        "kv": 42.0
+      },
+      {
+        "time": "07:08:13",
+        "running": 88,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 33.8
+      },
+      {
+        "time": "07:08:23",
+        "running": 103,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 38.8
+      },
+      {
+        "time": "07:08:33",
+        "running": 109,
+        "waiting": 0,
+        "gpu": 92.5,
+        "kv": 34.7
+      },
+      {
+        "time": "07:08:43",
+        "running": 100,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 33.8
+      },
+      {
+        "time": "07:08:53",
+        "running": 90,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 32.8
+      },
+      {
+        "time": "07:09:03",
+        "running": 92,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 33.4
+      },
+      {
+        "time": "07:09:13",
+        "running": 90,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 31.9
+      },
+      {
+        "time": "07:09:23",
+        "running": 87,
+        "waiting": 0,
+        "gpu": 86.5,
+        "kv": 32.6
+      },
+      {
+        "time": "07:09:33",
+        "running": 88,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 31.7
+      },
+      {
+        "time": "07:09:43",
+        "running": 74,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 24.7
+      },
+      {
+        "time": "07:09:53",
+        "running": 96,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 33.9
+      },
+      {
+        "time": "07:10:03",
+        "running": 102,
+        "waiting": 0,
+        "gpu": 82.5,
+        "kv": 33.8
+      },
+      {
+        "time": "07:10:13",
+        "running": 104,
+        "waiting": 0,
+        "gpu": 78.5,
+        "kv": 28.7
+      },
+      {
+        "time": "07:10:23",
+        "running": 108,
+        "waiting": 0,
+        "gpu": 80.0,
+        "kv": 30.4
+      },
+      {
+        "time": "07:10:33",
+        "running": 98,
+        "waiting": 0,
+        "gpu": 82.5,
+        "kv": 29.5
+      },
+      {
+        "time": "07:10:43",
+        "running": 117,
+        "waiting": 0,
+        "gpu": 81.0,
+        "kv": 31.7
+      },
+      {
+        "time": "07:10:53",
+        "running": 107,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 29.3
+      },
+      {
+        "time": "07:11:03",
+        "running": 103,
+        "waiting": 0,
+        "gpu": 82.5,
+        "kv": 27.4
+      },
+      {
+        "time": "07:11:13",
+        "running": 88,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 27.8
+      },
+      {
+        "time": "07:11:23",
+        "running": 75,
+        "waiting": 0,
+        "gpu": 82.5,
+        "kv": 21.5
+      },
+      {
+        "time": "07:11:33",
+        "running": 79,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 24.0
+      },
+      {
+        "time": "07:11:43",
+        "running": 67,
+        "waiting": 0,
+        "gpu": 86.5,
+        "kv": 20.5
+      },
+      {
+        "time": "07:11:53",
+        "running": 80,
+        "waiting": 0,
+        "gpu": 82.5,
+        "kv": 22.5
+      },
+      {
+        "time": "07:12:03",
+        "running": 72,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 22.9
+      },
+      {
+        "time": "07:12:13",
+        "running": 66,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 20.7
+      },
+      {
+        "time": "07:12:23",
+        "running": 74,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 23.1
+      },
+      {
+        "time": "07:12:33",
+        "running": 79,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 31.0
+      },
+      {
+        "time": "07:12:43",
+        "running": 86,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 38.0
+      },
+      {
+        "time": "07:12:53",
+        "running": 99,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 44.1
+      },
+      {
+        "time": "07:13:03",
+        "running": 118,
+        "waiting": 0,
+        "gpu": 82.5,
+        "kv": 57.0
+      },
+      {
+        "time": "07:13:13",
+        "running": 126,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 66.8
+      },
+      {
+        "time": "07:13:23",
+        "running": 145,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 75.3
+      },
+      {
+        "time": "07:13:33",
+        "running": 160,
+        "waiting": 0,
+        "gpu": 80.5,
+        "kv": 84.2
+      },
+      {
+        "time": "07:13:43",
+        "running": 163,
+        "waiting": 0,
+        "gpu": 78.5,
+        "kv": 89.1
+      },
+      {
+        "time": "07:13:53",
+        "running": 169,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 94.5
+      },
+      {
+        "time": "07:14:03",
+        "running": 162,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 85.1
+      },
+      {
+        "time": "07:14:13",
+        "running": 194,
+        "waiting": 0,
+        "gpu": 78.5,
+        "kv": 99.8
+      },
+      {
+        "time": "07:14:23",
+        "running": 151,
+        "waiting": 7,
+        "gpu": 81.5,
+        "kv": 99.7
+      },
+      {
+        "time": "07:14:33",
+        "running": 143,
+        "waiting": 19,
+        "gpu": 81.5,
+        "kv": 100.0
+      },
+      {
+        "time": "07:14:43",
+        "running": 154,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 97.5
+      },
+      {
+        "time": "07:14:53",
+        "running": 160,
+        "waiting": 0,
+        "gpu": 80.5,
+        "kv": 89.1
+      },
+      {
+        "time": "07:15:03",
+        "running": 148,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 86.5
+      },
+      {
+        "time": "07:15:13",
+        "running": 156,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 92.1
+      },
+      {
+        "time": "07:15:23",
+        "running": 158,
+        "waiting": 0,
+        "gpu": 79.0,
+        "kv": 83.2
+      },
+      {
+        "time": "07:15:33",
+        "running": 145,
+        "waiting": 0,
+        "gpu": 82.5,
+        "kv": 72.1
+      },
+      {
+        "time": "07:15:43",
+        "running": 141,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 61.2
+      },
+      {
+        "time": "07:15:53",
+        "running": 140,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 51.6
+      },
+      {
+        "time": "07:16:03",
+        "running": 115,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 40.7
+      },
+      {
+        "time": "07:16:13",
+        "running": 96,
+        "waiting": 0,
+        "gpu": 85.5,
+        "kv": 34.6
+      },
+      {
+        "time": "07:16:23",
+        "running": 83,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 27.7
+      },
+      {
+        "time": "07:16:33",
+        "running": 86,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 21.5
+      },
+      {
+        "time": "07:16:43",
+        "running": 91,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 22.9
+      },
+      {
+        "time": "07:16:53",
+        "running": 89,
+        "waiting": 0,
+        "gpu": 84.5,
+        "kv": 22.8
+      },
+      {
+        "time": "07:17:03",
+        "running": 83,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 21.4
+      },
+      {
+        "time": "07:17:13",
+        "running": 89,
+        "waiting": 0,
+        "gpu": 83.5,
+        "kv": 23.7
+      },
+      {
+        "time": "07:17:23",
+        "running": 83,
+        "waiting": 0,
+        "gpu": 81.5,
+        "kv": 22.9
+      },
+      {
+        "time": "07:17:33",
+        "running": 91,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 33.5
+      },
+      {
+        "time": "07:17:43",
+        "running": 116,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 49.8
+      },
+      {
+        "time": "07:17:53",
+        "running": 130,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 63.9
+      },
+      {
+        "time": "07:18:03",
+        "running": 152,
+        "waiting": 0,
+        "gpu": 81.5,
+        "kv": 71.9
+      },
+      {
+        "time": "07:18:13",
+        "running": 135,
+        "waiting": 0,
+        "gpu": 81.5,
+        "kv": 65.6
+      },
+      {
+        "time": "07:18:23",
+        "running": 128,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 56.8
+      },
+      {
+        "time": "07:18:33",
+        "running": 124,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 51.2
+      },
+      {
+        "time": "07:18:43",
+        "running": 133,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 57.1
+      },
+      {
+        "time": "07:18:53",
+        "running": 144,
+        "waiting": 0,
+        "gpu": 81.0,
+        "kv": 68.8
+      },
+      {
+        "time": "07:19:03",
+        "running": 161,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 88.6
+      },
+      {
+        "time": "07:19:13",
+        "running": 149,
+        "waiting": 4,
+        "gpu": 81.5,
+        "kv": 98.3
+      },
+      {
+        "time": "07:19:23",
+        "running": 122,
+        "waiting": 4,
+        "gpu": 85.5,
+        "kv": 96.5
+      },
+      {
+        "time": "07:19:33",
+        "running": 147,
+        "waiting": 0,
+        "gpu": 82.0,
+        "kv": 96.8
+      },
+      {
+        "time": "07:19:43",
+        "running": 138,
+        "waiting": 1,
+        "gpu": 84.0,
+        "kv": 98.5
+      },
+      {
+        "time": "07:19:53",
+        "running": 115,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 100.0
+      },
+      {
+        "time": "07:20:03",
+        "running": 107,
+        "waiting": 1,
+        "gpu": 96.5,
+        "kv": 98.4
+      },
+      {
+        "time": "07:20:13",
+        "running": 99,
+        "waiting": 3,
+        "gpu": 84.5,
+        "kv": 97.5
+      },
+      {
+        "time": "07:20:23",
+        "running": 96,
+        "waiting": 4,
+        "gpu": 87.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:20:33",
+        "running": 98,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 98.9
+      },
+      {
+        "time": "07:20:43",
+        "running": 93,
+        "waiting": 18,
+        "gpu": 85.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:20:53",
+        "running": 97,
+        "waiting": 1,
+        "gpu": 94.0,
+        "kv": 98.5
+      },
+      {
+        "time": "07:21:03",
+        "running": 73,
+        "waiting": 1,
+        "gpu": 87.5,
+        "kv": 87.9
+      },
+      {
+        "time": "07:21:13",
+        "running": 70,
+        "waiting": 10,
+        "gpu": 89.5,
+        "kv": 97.4
+      },
+      {
+        "time": "07:21:23",
+        "running": 90,
+        "waiting": 0,
+        "gpu": 86.0,
+        "kv": 92.7
+      },
+      {
+        "time": "07:21:33",
+        "running": 106,
+        "waiting": 12,
+        "gpu": 88.5,
+        "kv": 96.5
+      },
+      {
+        "time": "07:21:43",
+        "running": 111,
+        "waiting": 14,
+        "gpu": 88.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:21:53",
+        "running": 126,
+        "waiting": 3,
+        "gpu": 80.5,
+        "kv": 99.6
+      },
+      {
+        "time": "07:22:03",
+        "running": 122,
+        "waiting": 4,
+        "gpu": 86.0,
+        "kv": 98.4
+      },
+      {
+        "time": "07:22:13",
+        "running": 108,
+        "waiting": 15,
+        "gpu": 84.5,
+        "kv": 95.9
+      },
+      {
+        "time": "07:22:23",
+        "running": 116,
+        "waiting": 1,
+        "gpu": 92.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:22:33",
+        "running": 116,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 92.5
+      },
+      {
+        "time": "07:22:43",
+        "running": 143,
+        "waiting": 0,
+        "gpu": 81.0,
+        "kv": 83.9
+      },
+      {
+        "time": "07:22:53",
+        "running": 155,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 84.5
+      },
+      {
+        "time": "07:23:03",
+        "running": 170,
+        "waiting": 0,
+        "gpu": 83.0,
+        "kv": 94.6
+      },
+      {
+        "time": "07:23:13",
+        "running": 173,
+        "waiting": 0,
+        "gpu": 81.5,
+        "kv": 94.4
+      },
+      {
+        "time": "07:23:23",
+        "running": 184,
+        "waiting": 0,
+        "gpu": 81.5,
+        "kv": 90.1
+      },
+      {
+        "time": "07:23:33",
+        "running": 181,
+        "waiting": 8,
+        "gpu": 80.5,
+        "kv": 97.9
+      },
+      {
+        "time": "07:23:43",
+        "running": 171,
+        "waiting": 3,
+        "gpu": 95.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:23:53",
+        "running": 154,
+        "waiting": 3,
+        "gpu": 85.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:24:03",
+        "running": 124,
+        "waiting": 15,
+        "gpu": 84.5,
+        "kv": 98.7
+      },
+      {
+        "time": "07:24:13",
+        "running": 107,
+        "waiting": 19,
+        "gpu": 100.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:24:23",
+        "running": 83,
+        "waiting": 41,
+        "gpu": 86.5,
+        "kv": 93.7
+      },
+      {
+        "time": "07:24:33",
+        "running": 78,
+        "waiting": 39,
+        "gpu": 86.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:24:43",
+        "running": 81,
+        "waiting": 51,
+        "gpu": 79.0,
+        "kv": 99.1
+      },
+      {
+        "time": "07:24:53",
+        "running": 83,
+        "waiting": 41,
+        "gpu": 85.5,
+        "kv": 98.0
+      },
+      {
+        "time": "07:25:03",
+        "running": 80,
+        "waiting": 46,
+        "gpu": 86.0,
+        "kv": 93.7
+      },
+      {
+        "time": "07:25:13",
+        "running": 87,
+        "waiting": 59,
+        "gpu": 100.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:25:23",
+        "running": 89,
+        "waiting": 71,
+        "gpu": 87.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:25:33",
+        "running": 83,
+        "waiting": 103,
+        "gpu": 82.0,
+        "kv": 99.8
+      },
+      {
+        "time": "07:25:43",
+        "running": 80,
+        "waiting": 125,
+        "gpu": 83.5,
+        "kv": 91.6
+      },
+      {
+        "time": "07:25:53",
+        "running": 127,
+        "waiting": 85,
+        "gpu": 91.5,
+        "kv": 98.8
+      },
+      {
+        "time": "07:26:03",
+        "running": 159,
+        "waiting": 49,
+        "gpu": 77.0,
+        "kv": 97.8
+      },
+      {
+        "time": "07:26:13",
+        "running": 165,
+        "waiting": 50,
+        "gpu": 100.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:26:23",
+        "running": 143,
+        "waiting": 62,
+        "gpu": 82.5,
+        "kv": 97.7
+      },
+      {
+        "time": "07:26:33",
+        "running": 150,
+        "waiting": 54,
+        "gpu": 83.0,
+        "kv": 96.7
+      },
+      {
+        "time": "07:26:43",
+        "running": 140,
+        "waiting": 54,
+        "gpu": 84.5,
+        "kv": 98.9
+      },
+      {
+        "time": "07:26:53",
+        "running": 121,
+        "waiting": 65,
+        "gpu": 100.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:27:03",
+        "running": 111,
+        "waiting": 73,
+        "gpu": 82.0,
+        "kv": 95.9
+      },
+      {
+        "time": "07:27:13",
+        "running": 119,
+        "waiting": 48,
+        "gpu": 85.0,
+        "kv": 96.0
+      },
+      {
+        "time": "07:27:23",
+        "running": 100,
+        "waiting": 77,
+        "gpu": 87.0,
+        "kv": 99.2
+      },
+      {
+        "time": "07:27:33",
+        "running": 83,
+        "waiting": 108,
+        "gpu": 84.0,
+        "kv": 94.5
+      },
+      {
+        "time": "07:27:43",
+        "running": 121,
+        "waiting": 66,
+        "gpu": 85.5,
+        "kv": 91.5
+      },
+      {
+        "time": "07:27:53",
+        "running": 121,
+        "waiting": 53,
+        "gpu": 84.0,
+        "kv": 97.9
+      },
+      {
+        "time": "07:28:03",
+        "running": 100,
+        "waiting": 78,
+        "gpu": 83.0,
+        "kv": 100.0
+      },
+      {
+        "time": "07:28:13",
+        "running": 95,
+        "waiting": 77,
+        "gpu": 83.5,
+        "kv": 92.3
+      },
+      {
+        "time": "07:28:23",
+        "running": 113,
+        "waiting": 65,
+        "gpu": 88.5,
+        "kv": 99.8
+      },
+      {
+        "time": "07:28:33",
+        "running": 97,
+        "waiting": 83,
+        "gpu": 83.5,
+        "kv": 99.7
+      },
+      {
+        "time": "07:28:43",
+        "running": 78,
+        "waiting": 96,
+        "gpu": 84.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:28:53",
+        "running": 98,
+        "waiting": 89,
+        "gpu": 80.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:29:03",
+        "running": 115,
+        "waiting": 84,
+        "gpu": 83.5,
+        "kv": 99.9
+      },
+      {
+        "time": "07:29:13",
+        "running": 92,
+        "waiting": 98,
+        "gpu": 80.0,
+        "kv": 97.8
+      },
+      {
+        "time": "07:29:23",
+        "running": 77,
+        "waiting": 112,
+        "gpu": 83.5,
+        "kv": 99.2
+      },
+      {
+        "time": "07:29:33",
+        "running": 110,
+        "waiting": 76,
+        "gpu": 86.5,
+        "kv": 99.9
+      },
+      {
+        "time": "07:29:43",
+        "running": 105,
+        "waiting": 92,
+        "gpu": 86.0,
+        "kv": 95.1
+      },
+      {
+        "time": "07:29:53",
+        "running": 95,
+        "waiting": 87,
+        "gpu": 82.0,
+        "kv": 88.4
+      },
+      {
+        "time": "07:30:03",
+        "running": 114,
+        "waiting": 99,
+        "gpu": 79.0,
+        "kv": 99.1
+      },
+      {
+        "time": "07:30:13",
+        "running": 120,
+        "waiting": 116,
+        "gpu": 75.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:30:23",
+        "running": 111,
+        "waiting": 118,
+        "gpu": 83.5,
+        "kv": 95.5
+      },
+      {
+        "time": "07:30:33",
+        "running": 110,
+        "waiting": 123,
+        "gpu": 88.0,
+        "kv": 97.3
+      },
+      {
+        "time": "07:30:43",
+        "running": 111,
+        "waiting": 134,
+        "gpu": 79.5,
+        "kv": 95.5
+      },
+      {
+        "time": "07:30:53",
+        "running": 114,
+        "waiting": 122,
+        "gpu": 78.0,
+        "kv": 99.0
+      },
+      {
+        "time": "07:31:03",
+        "running": 116,
+        "waiting": 113,
+        "gpu": 100.0,
+        "kv": 98.6
+      },
+      {
+        "time": "07:31:13",
+        "running": 101,
+        "waiting": 123,
+        "gpu": 80.0,
+        "kv": 92.5
+      },
+      {
+        "time": "07:31:23",
+        "running": 110,
+        "waiting": 120,
+        "gpu": 100.0,
+        "kv": 99.5
+      },
+      {
+        "time": "07:31:33",
+        "running": 102,
+        "waiting": 140,
+        "gpu": 91.0,
+        "kv": 98.3
+      },
+      {
+        "time": "07:31:43",
+        "running": 101,
+        "waiting": 135,
+        "gpu": 100.0,
+        "kv": 96.8
+      },
+      {
+        "time": "07:31:53",
+        "running": 119,
+        "waiting": 123,
+        "gpu": 76.0,
+        "kv": 94.6
+      },
+      {
+        "time": "07:32:03",
+        "running": 129,
+        "waiting": 105,
+        "gpu": 86.0,
+        "kv": 100.0
+      },
+      {
+        "time": "07:32:13",
+        "running": 107,
+        "waiting": 120,
+        "gpu": 84.0,
+        "kv": 96.9
+      },
+      {
+        "time": "07:32:23",
+        "running": 101,
+        "waiting": 123,
+        "gpu": 79.5,
+        "kv": 94.3
+      },
+      {
+        "time": "07:32:33",
+        "running": 93,
+        "waiting": 142,
+        "gpu": 79.5,
+        "kv": 93.8
+      },
+      {
+        "time": "07:32:43",
+        "running": 89,
+        "waiting": 160,
+        "gpu": 81.5,
+        "kv": 99.3
+      },
+      {
+        "time": "07:32:53",
+        "running": 73,
+        "waiting": 175,
+        "gpu": 84.0,
+        "kv": 96.2
+      },
+      {
+        "time": "07:33:03",
+        "running": 66,
+        "waiting": 186,
+        "gpu": 85.0,
+        "kv": 90.7
+      },
+      {
+        "time": "07:33:13",
+        "running": 80,
+        "waiting": 168,
+        "gpu": 100.0,
+        "kv": 98.0
+      },
+      {
+        "time": "07:33:23",
+        "running": 75,
+        "waiting": 185,
+        "gpu": 83.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:33:33",
+        "running": 78,
+        "waiting": 180,
+        "gpu": 79.5,
+        "kv": 98.6
+      },
+      {
+        "time": "07:33:43",
+        "running": 69,
+        "waiting": 208,
+        "gpu": 79.5,
+        "kv": 94.0
+      },
+      {
+        "time": "07:33:53",
+        "running": 96,
+        "waiting": 160,
+        "gpu": 83.0,
+        "kv": 99.8
+      },
+      {
+        "time": "07:34:03",
+        "running": 80,
+        "waiting": 149,
+        "gpu": 82.5,
+        "kv": 96.4
+      },
+      {
+        "time": "07:34:13",
+        "running": 83,
+        "waiting": 125,
+        "gpu": 86.5,
+        "kv": 95.0
+      },
+      {
+        "time": "07:34:23",
+        "running": 100,
+        "waiting": 82,
+        "gpu": 87.5,
+        "kv": 99.0
+      },
+      {
+        "time": "07:34:33",
+        "running": 88,
+        "waiting": 56,
+        "gpu": 83.0,
+        "kv": 95.3
+      },
+      {
+        "time": "07:34:43",
+        "running": 109,
+        "waiting": 16,
+        "gpu": 87.5,
+        "kv": 99.4
+      },
+      {
+        "time": "07:34:53",
+        "running": 89,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 89.9
+      },
+      {
+        "time": "07:35:03",
+        "running": 64,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 69.8
+      },
+      {
+        "time": "07:35:13",
+        "running": 35,
+        "waiting": 0,
+        "gpu": 89.5,
+        "kv": 40.4
+      },
+      {
+        "time": "07:35:23",
+        "running": 3,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 3.7
+      },
+      {
+        "time": "07:35:33",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 94.5,
+        "kv": 0.0
+      },
+      {
+        "time": "07:35:43",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 94.5,
+        "kv": 0.0
+      }
+    ],
+    "server_qwen3-0.6b": [
+      {
+        "time": "07:00:20",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 0.0,
+        "kv": 0.0
+      },
+      {
+        "time": "07:00:30",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 0.0,
+        "kv": 0.0
+      },
+      {
+        "time": "07:00:40",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 76.0,
+        "kv": 0.0
+      },
+      {
+        "time": "07:00:50",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 68.0,
+        "kv": 0.0
+      },
+      {
+        "time": "07:01:00",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 68.0,
+        "kv": 0.0
+      },
+      {
+        "time": "07:01:10",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 70.0,
+        "kv": 0.0
+      },
+      {
+        "time": "07:01:20",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 79.0,
+        "kv": 5.2
+      },
+      {
+        "time": "07:01:30",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 78.0,
+        "kv": 5.7
+      },
+      {
+        "time": "07:01:40",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 78.0,
+        "kv": 6.1
+      },
+      {
+        "time": "07:01:50",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 71.0,
+        "kv": 0.0
+      },
+      {
+        "time": "07:02:00",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 71.0,
+        "kv": 0.0
+      },
+      {
+        "time": "07:02:20",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 0.0,
+        "kv": 0.0
+      },
+      {
+        "time": "07:02:30",
+        "running": 1,
+        "waiting": 0,
+        "gpu": 75.0,
+        "kv": 2.8
+      },
+      {
+        "time": "07:02:40",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 75.0,
+        "kv": 0.0
+      },
+      {
+        "time": "07:02:50",
+        "running": 11,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 25.2
+      },
+      {
+        "time": "07:03:00",
+        "running": 6,
+        "waiting": 0,
+        "gpu": 81.0,
+        "kv": 11.7
+      },
+      {
+        "time": "07:03:10",
+        "running": 9,
+        "waiting": 0,
+        "gpu": 84.0,
+        "kv": 20.0
+      },
+      {
+        "time": "07:03:20",
+        "running": 9,
+        "waiting": 0,
+        "gpu": 85.0,
+        "kv": 22.3
+      },
+      {
+        "time": "07:03:30",
+        "running": 10,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 28.1
+      },
+      {
+        "time": "07:03:40",
+        "running": 18,
+        "waiting": 0,
+        "gpu": 96.0,
+        "kv": 44.0
+      },
+      {
+        "time": "07:03:50",
+        "running": 19,
+        "waiting": 0,
+        "gpu": 100.0,
+        "kv": 51.8
+      },
+      {
+        "time": "07:04:00",
+        "running": 18,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 47.2
+      },
+      {
+        "time": "07:04:10",
+        "running": 17,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 40.4
+      },
+      {
+        "time": "07:04:20",
+        "running": 10,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 24.7
+      },
+      {
+        "time": "07:04:30",
+        "running": 7,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 22.3
+      },
+      {
+        "time": "07:04:40",
+        "running": 8,
+        "waiting": 0,
+        "gpu": 87.0,
+        "kv": 22.5
+      },
+      {
+        "time": "07:04:50",
+        "running": 13,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 36.1
+      },
+      {
+        "time": "07:05:00",
+        "running": 10,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 30.8
+      },
+      {
+        "time": "07:05:10",
+        "running": 20,
+        "waiting": 0,
+        "gpu": 97.0,
+        "kv": 56.0
+      },
+      {
+        "time": "07:05:20",
+        "running": 23,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 64.9
+      },
+      {
+        "time": "07:05:30",
+        "running": 26,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 70.7
+      },
+      {
+        "time": "07:05:40",
+        "running": 16,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 49.8
+      },
+      {
+        "time": "07:05:50",
+        "running": 18,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 58.5
+      },
+      {
+        "time": "07:06:00",
+        "running": 19,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 53.7
+      },
+      {
+        "time": "07:06:10",
+        "running": 12,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 38.4
+      },
+      {
+        "time": "07:06:20",
+        "running": 24,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 63.3
+      },
+      {
+        "time": "07:06:30",
+        "running": 29,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 71.6
+      },
+      {
+        "time": "07:06:40",
+        "running": 16,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 50.5
+      },
+      {
+        "time": "07:06:50",
+        "running": 14,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 45.4
+      },
+      {
+        "time": "07:07:00",
+        "running": 14,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 47.2
+      },
+      {
+        "time": "07:07:10",
+        "running": 13,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 45.5
+      },
+      {
+        "time": "07:07:20",
+        "running": 26,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 71.5
+      },
+      {
+        "time": "07:07:30",
+        "running": 28,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 81.6
+      },
+      {
+        "time": "07:07:40",
+        "running": 30,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 77.9
+      },
+      {
+        "time": "07:07:50",
+        "running": 23,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 59.2
+      },
+      {
+        "time": "07:08:00",
+        "running": 30,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 71.1
+      },
+      {
+        "time": "07:08:10",
+        "running": 26,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 66.5
+      },
+      {
+        "time": "07:08:20",
+        "running": 30,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 76.4
+      },
+      {
+        "time": "07:08:30",
+        "running": 29,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 82.8
+      },
+      {
+        "time": "07:08:40",
+        "running": 28,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 70.7
+      },
+      {
+        "time": "07:08:50",
+        "running": 21,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 52.8
+      },
+      {
+        "time": "07:09:00",
+        "running": 23,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 63.0
+      },
+      {
+        "time": "07:09:10",
+        "running": 20,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 62.3
+      },
+      {
+        "time": "07:09:20",
+        "running": 28,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 74.6
+      },
+      {
+        "time": "07:09:30",
+        "running": 28,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 79.1
+      },
+      {
+        "time": "07:09:40",
+        "running": 27,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 74.1
+      },
+      {
+        "time": "07:09:50",
+        "running": 27,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 78.1
+      },
+      {
+        "time": "07:10:00",
+        "running": 30,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 85.5
+      },
+      {
+        "time": "07:10:10",
+        "running": 37,
+        "waiting": 2,
+        "gpu": 93.0,
+        "kv": 99.0
+      },
+      {
+        "time": "07:10:20",
+        "running": 30,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 90.6
+      },
+      {
+        "time": "07:10:30",
+        "running": 26,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 80.3
+      },
+      {
+        "time": "07:10:40",
+        "running": 36,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 88.5
+      },
+      {
+        "time": "07:10:50",
+        "running": 32,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 93.6
+      },
+      {
+        "time": "07:11:00",
+        "running": 26,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 84.9
+      },
+      {
+        "time": "07:11:10",
+        "running": 30,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 79.2
+      },
+      {
+        "time": "07:11:20",
+        "running": 31,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 85.7
+      },
+      {
+        "time": "07:11:30",
+        "running": 26,
+        "waiting": 0,
+        "gpu": 90.0,
+        "kv": 79.7
+      },
+      {
+        "time": "07:11:40",
+        "running": 29,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 85.4
+      },
+      {
+        "time": "07:11:50",
+        "running": 37,
+        "waiting": 3,
+        "gpu": 89.0,
+        "kv": 98.6
+      },
+      {
+        "time": "07:12:00",
+        "running": 35,
+        "waiting": 1,
+        "gpu": 98.0,
+        "kv": 99.2
+      },
+      {
+        "time": "07:12:10",
+        "running": 30,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 90.7
+      },
+      {
+        "time": "07:12:20",
+        "running": 34,
+        "waiting": 2,
+        "gpu": 91.0,
+        "kv": 99.5
+      },
+      {
+        "time": "07:12:30",
+        "running": 36,
+        "waiting": 3,
+        "gpu": 96.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:12:40",
+        "running": 33,
+        "waiting": 2,
+        "gpu": 92.0,
+        "kv": 98.5
+      },
+      {
+        "time": "07:12:50",
+        "running": 32,
+        "waiting": 5,
+        "gpu": 95.0,
+        "kv": 99.8
+      },
+      {
+        "time": "07:13:00",
+        "running": 31,
+        "waiting": 11,
+        "gpu": 93.0,
+        "kv": 97.9
+      },
+      {
+        "time": "07:13:10",
+        "running": 31,
+        "waiting": 9,
+        "gpu": 93.0,
+        "kv": 95.4
+      },
+      {
+        "time": "07:13:20",
+        "running": 32,
+        "waiting": 8,
+        "gpu": 94.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:13:30",
+        "running": 30,
+        "waiting": 13,
+        "gpu": 91.0,
+        "kv": 95.5
+      },
+      {
+        "time": "07:13:40",
+        "running": 31,
+        "waiting": 6,
+        "gpu": 94.0,
+        "kv": 97.4
+      },
+      {
+        "time": "07:13:50",
+        "running": 29,
+        "waiting": 9,
+        "gpu": 94.0,
+        "kv": 97.0
+      },
+      {
+        "time": "07:14:00",
+        "running": 28,
+        "waiting": 7,
+        "gpu": 94.0,
+        "kv": 98.2
+      },
+      {
+        "time": "07:14:10",
+        "running": 27,
+        "waiting": 12,
+        "gpu": 94.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:14:20",
+        "running": 28,
+        "waiting": 19,
+        "gpu": 93.0,
+        "kv": 97.7
+      },
+      {
+        "time": "07:14:30",
+        "running": 33,
+        "waiting": 19,
+        "gpu": 90.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:14:40",
+        "running": 35,
+        "waiting": 18,
+        "gpu": 90.0,
+        "kv": 95.6
+      },
+      {
+        "time": "07:14:50",
+        "running": 38,
+        "waiting": 6,
+        "gpu": 90.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:15:00",
+        "running": 34,
+        "waiting": 4,
+        "gpu": 93.0,
+        "kv": 98.8
+      },
+      {
+        "time": "07:15:10",
+        "running": 28,
+        "waiting": 6,
+        "gpu": 92.0,
+        "kv": 96.1
+      },
+      {
+        "time": "07:15:20",
+        "running": 28,
+        "waiting": 8,
+        "gpu": 92.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:15:30",
+        "running": 31,
+        "waiting": 6,
+        "gpu": 91.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:15:40",
+        "running": 32,
+        "waiting": 3,
+        "gpu": 90.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:15:50",
+        "running": 31,
+        "waiting": 5,
+        "gpu": 94.0,
+        "kv": 98.0
+      },
+      {
+        "time": "07:16:00",
+        "running": 37,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 97.9
+      },
+      {
+        "time": "07:16:10",
+        "running": 36,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 95.3
+      },
+      {
+        "time": "07:16:20",
+        "running": 32,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 91.1
+      },
+      {
+        "time": "07:16:30",
+        "running": 30,
+        "waiting": 0,
+        "gpu": 96.0,
+        "kv": 83.3
+      },
+      {
+        "time": "07:16:40",
+        "running": 32,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 83.9
+      },
+      {
+        "time": "07:16:50",
+        "running": 32,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 91.2
+      },
+      {
+        "time": "07:17:00",
+        "running": 32,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 98.7
+      },
+      {
+        "time": "07:17:10",
+        "running": 32,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 96.8
+      },
+      {
+        "time": "07:17:20",
+        "running": 29,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 94.5
+      },
+      {
+        "time": "07:17:30",
+        "running": 30,
+        "waiting": 8,
+        "gpu": 93.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:17:40",
+        "running": 28,
+        "waiting": 4,
+        "gpu": 89.0,
+        "kv": 95.1
+      },
+      {
+        "time": "07:17:50",
+        "running": 27,
+        "waiting": 8,
+        "gpu": 87.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:18:00",
+        "running": 28,
+        "waiting": 4,
+        "gpu": 94.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:18:10",
+        "running": 27,
+        "waiting": 10,
+        "gpu": 92.0,
+        "kv": 99.1
+      },
+      {
+        "time": "07:18:20",
+        "running": 29,
+        "waiting": 9,
+        "gpu": 94.0,
+        "kv": 98.9
+      },
+      {
+        "time": "07:18:30",
+        "running": 29,
+        "waiting": 7,
+        "gpu": 92.0,
+        "kv": 99.2
+      },
+      {
+        "time": "07:18:40",
+        "running": 27,
+        "waiting": 6,
+        "gpu": 100.0,
+        "kv": 97.1
+      },
+      {
+        "time": "07:18:50",
+        "running": 26,
+        "waiting": 10,
+        "gpu": 92.0,
+        "kv": 97.9
+      },
+      {
+        "time": "07:19:00",
+        "running": 27,
+        "waiting": 15,
+        "gpu": 93.0,
+        "kv": 98.3
+      },
+      {
+        "time": "07:19:10",
+        "running": 28,
+        "waiting": 12,
+        "gpu": 91.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:19:20",
+        "running": 29,
+        "waiting": 19,
+        "gpu": 91.0,
+        "kv": 98.6
+      },
+      {
+        "time": "07:19:30",
+        "running": 26,
+        "waiting": 16,
+        "gpu": 100.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:19:40",
+        "running": 29,
+        "waiting": 21,
+        "gpu": 93.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:19:50",
+        "running": 29,
+        "waiting": 23,
+        "gpu": 90.0,
+        "kv": 100.0
+      },
+      {
+        "time": "07:20:00",
+        "running": 28,
+        "waiting": 26,
+        "gpu": 89.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:20:10",
+        "running": 32,
+        "waiting": 26,
+        "gpu": 90.0,
+        "kv": 99.1
+      },
+      {
+        "time": "07:20:20",
+        "running": 28,
+        "waiting": 37,
+        "gpu": 92.0,
+        "kv": 94.8
+      },
+      {
+        "time": "07:20:30",
+        "running": 28,
+        "waiting": 37,
+        "gpu": 90.0,
+        "kv": 98.3
+      },
+      {
+        "time": "07:20:40",
+        "running": 28,
+        "waiting": 35,
+        "gpu": 88.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:20:50",
+        "running": 30,
+        "waiting": 37,
+        "gpu": 91.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:21:00",
+        "running": 36,
+        "waiting": 27,
+        "gpu": 89.0,
+        "kv": 99.5
+      },
+      {
+        "time": "07:21:10",
+        "running": 32,
+        "waiting": 23,
+        "gpu": 92.0,
+        "kv": 97.9
+      },
+      {
+        "time": "07:21:20",
+        "running": 30,
+        "waiting": 21,
+        "gpu": 93.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:21:30",
+        "running": 34,
+        "waiting": 22,
+        "gpu": 92.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:21:40",
+        "running": 39,
+        "waiting": 17,
+        "gpu": 89.0,
+        "kv": 98.3
+      },
+      {
+        "time": "07:21:50",
+        "running": 33,
+        "waiting": 13,
+        "gpu": 93.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:22:00",
+        "running": 32,
+        "waiting": 11,
+        "gpu": 91.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:22:10",
+        "running": 33,
+        "waiting": 20,
+        "gpu": 90.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:22:20",
+        "running": 38,
+        "waiting": 10,
+        "gpu": 89.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:22:30",
+        "running": 38,
+        "waiting": 10,
+        "gpu": 90.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:22:40",
+        "running": 37,
+        "waiting": 11,
+        "gpu": 92.0,
+        "kv": 98.7
+      },
+      {
+        "time": "07:22:50",
+        "running": 33,
+        "waiting": 14,
+        "gpu": 91.0,
+        "kv": 98.9
+      },
+      {
+        "time": "07:23:00",
+        "running": 36,
+        "waiting": 12,
+        "gpu": 93.0,
+        "kv": 100.0
+      },
+      {
+        "time": "07:23:10",
+        "running": 35,
+        "waiting": 4,
+        "gpu": 93.0,
+        "kv": 99.8
+      },
+      {
+        "time": "07:23:20",
+        "running": 33,
+        "waiting": 7,
+        "gpu": 93.0,
+        "kv": 97.8
+      },
+      {
+        "time": "07:23:30",
+        "running": 28,
+        "waiting": 11,
+        "gpu": 91.0,
+        "kv": 93.5
+      },
+      {
+        "time": "07:23:40",
+        "running": 29,
+        "waiting": 15,
+        "gpu": 93.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:23:50",
+        "running": 28,
+        "waiting": 21,
+        "gpu": 90.0,
+        "kv": 98.9
+      },
+      {
+        "time": "07:24:00",
+        "running": 29,
+        "waiting": 36,
+        "gpu": 92.0,
+        "kv": 98.7
+      },
+      {
+        "time": "07:24:10",
+        "running": 28,
+        "waiting": 62,
+        "gpu": 90.0,
+        "kv": 98.2
+      },
+      {
+        "time": "07:24:20",
+        "running": 27,
+        "waiting": 87,
+        "gpu": 89.0,
+        "kv": 97.0
+      },
+      {
+        "time": "07:24:30",
+        "running": 28,
+        "waiting": 98,
+        "gpu": 88.0,
+        "kv": 98.8
+      },
+      {
+        "time": "07:24:40",
+        "running": 27,
+        "waiting": 120,
+        "gpu": 88.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:24:50",
+        "running": 27,
+        "waiting": 143,
+        "gpu": 84.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:25:00",
+        "running": 26,
+        "waiting": 182,
+        "gpu": 84.0,
+        "kv": 99.1
+      },
+      {
+        "time": "07:25:10",
+        "running": 26,
+        "waiting": 197,
+        "gpu": 79.0,
+        "kv": 97.4
+      },
+      {
+        "time": "07:25:20",
+        "running": 26,
+        "waiting": 199,
+        "gpu": 81.0,
+        "kv": 97.1
+      },
+      {
+        "time": "07:25:30",
+        "running": 25,
+        "waiting": 202,
+        "gpu": 84.0,
+        "kv": 97.9
+      },
+      {
+        "time": "07:25:40",
+        "running": 25,
+        "waiting": 214,
+        "gpu": 83.0,
+        "kv": 98.8
+      },
+      {
+        "time": "07:25:50",
+        "running": 30,
+        "waiting": 223,
+        "gpu": 82.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:26:00",
+        "running": 31,
+        "waiting": 219,
+        "gpu": 82.0,
+        "kv": 97.2
+      },
+      {
+        "time": "07:26:10",
+        "running": 46,
+        "waiting": 191,
+        "gpu": 81.0,
+        "kv": 98.9
+      },
+      {
+        "time": "07:26:20",
+        "running": 97,
+        "waiting": 115,
+        "gpu": 77.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:26:30",
+        "running": 67,
+        "waiting": 94,
+        "gpu": 84.0,
+        "kv": 99.1
+      },
+      {
+        "time": "07:26:40",
+        "running": 43,
+        "waiting": 79,
+        "gpu": 86.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:26:50",
+        "running": 33,
+        "waiting": 112,
+        "gpu": 88.0,
+        "kv": 99.0
+      },
+      {
+        "time": "07:27:00",
+        "running": 33,
+        "waiting": 138,
+        "gpu": 85.0,
+        "kv": 99.5
+      },
+      {
+        "time": "07:27:10",
+        "running": 51,
+        "waiting": 135,
+        "gpu": 85.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:27:20",
+        "running": 47,
+        "waiting": 158,
+        "gpu": 81.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:27:30",
+        "running": 49,
+        "waiting": 164,
+        "gpu": 82.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:27:40",
+        "running": 56,
+        "waiting": 150,
+        "gpu": 82.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:27:50",
+        "running": 55,
+        "waiting": 143,
+        "gpu": 82.0,
+        "kv": 98.3
+      },
+      {
+        "time": "07:28:00",
+        "running": 67,
+        "waiting": 115,
+        "gpu": 81.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:28:10",
+        "running": 55,
+        "waiting": 130,
+        "gpu": 83.0,
+        "kv": 99.5
+      },
+      {
+        "time": "07:28:20",
+        "running": 43,
+        "waiting": 165,
+        "gpu": 81.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:28:30",
+        "running": 41,
+        "waiting": 187,
+        "gpu": 62.0,
+        "kv": 99.0
+      },
+      {
+        "time": "07:28:40",
+        "running": 41,
+        "waiting": 207,
+        "gpu": 81.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:28:50",
+        "running": 50,
+        "waiting": 207,
+        "gpu": 80.0,
+        "kv": 99.5
+      },
+      {
+        "time": "07:29:00",
+        "running": 48,
+        "waiting": 218,
+        "gpu": 79.0,
+        "kv": 98.6
+      },
+      {
+        "time": "07:29:10",
+        "running": 45,
+        "waiting": 215,
+        "gpu": 79.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:29:20",
+        "running": 50,
+        "waiting": 237,
+        "gpu": 78.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:29:30",
+        "running": 48,
+        "waiting": 256,
+        "gpu": 78.0,
+        "kv": 99.5
+      },
+      {
+        "time": "07:29:40",
+        "running": 62,
+        "waiting": 238,
+        "gpu": 77.0,
+        "kv": 100.0
+      },
+      {
+        "time": "07:29:50",
+        "running": 61,
+        "waiting": 228,
+        "gpu": 78.0,
+        "kv": 98.6
+      },
+      {
+        "time": "07:30:00",
+        "running": 59,
+        "waiting": 233,
+        "gpu": 77.0,
+        "kv": 98.7
+      },
+      {
+        "time": "07:30:10",
+        "running": 45,
+        "waiting": 265,
+        "gpu": 76.0,
+        "kv": 100.0
+      },
+      {
+        "time": "07:30:20",
+        "running": 35,
+        "waiting": 268,
+        "gpu": 79.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:30:30",
+        "running": 32,
+        "waiting": 286,
+        "gpu": 78.0,
+        "kv": 96.8
+      },
+      {
+        "time": "07:30:40",
+        "running": 32,
+        "waiting": 288,
+        "gpu": 78.0,
+        "kv": 99.8
+      },
+      {
+        "time": "07:30:50",
+        "running": 31,
+        "waiting": 296,
+        "gpu": 77.0,
+        "kv": 97.6
+      },
+      {
+        "time": "07:31:00",
+        "running": 30,
+        "waiting": 303,
+        "gpu": 80.0,
+        "kv": 95.8
+      },
+      {
+        "time": "07:31:10",
+        "running": 34,
+        "waiting": 300,
+        "gpu": 78.0,
+        "kv": 99.5
+      },
+      {
+        "time": "07:31:20",
+        "running": 31,
+        "waiting": 307,
+        "gpu": 80.0,
+        "kv": 99.3
+      },
+      {
+        "time": "07:31:30",
+        "running": 48,
+        "waiting": 291,
+        "gpu": 76.0,
+        "kv": 98.6
+      },
+      {
+        "time": "07:31:40",
+        "running": 40,
+        "waiting": 291,
+        "gpu": 77.0,
+        "kv": 97.7
+      },
+      {
+        "time": "07:31:50",
+        "running": 59,
+        "waiting": 266,
+        "gpu": 76.0,
+        "kv": 96.2
+      },
+      {
+        "time": "07:32:00",
+        "running": 68,
+        "waiting": 257,
+        "gpu": 76.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:32:10",
+        "running": 54,
+        "waiting": 266,
+        "gpu": 78.0,
+        "kv": 97.6
+      },
+      {
+        "time": "07:32:20",
+        "running": 45,
+        "waiting": 271,
+        "gpu": 54.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:32:30",
+        "running": 55,
+        "waiting": 282,
+        "gpu": 74.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:32:40",
+        "running": 66,
+        "waiting": 265,
+        "gpu": 79.0,
+        "kv": 99.8
+      },
+      {
+        "time": "07:32:50",
+        "running": 49,
+        "waiting": 281,
+        "gpu": 77.0,
+        "kv": 98.2
+      },
+      {
+        "time": "07:33:00",
+        "running": 40,
+        "waiting": 285,
+        "gpu": 77.0,
+        "kv": 99.9
+      },
+      {
+        "time": "07:33:10",
+        "running": 40,
+        "waiting": 284,
+        "gpu": 61.0,
+        "kv": 98.1
+      },
+      {
+        "time": "07:33:20",
+        "running": 38,
+        "waiting": 295,
+        "gpu": 77.0,
+        "kv": 97.2
+      },
+      {
+        "time": "07:33:30",
+        "running": 34,
+        "waiting": 320,
+        "gpu": 78.0,
+        "kv": 98.2
+      },
+      {
+        "time": "07:33:40",
+        "running": 28,
+        "waiting": 325,
+        "gpu": 60.0,
+        "kv": 95.0
+      },
+      {
+        "time": "07:33:50",
+        "running": 33,
+        "waiting": 310,
+        "gpu": 78.0,
+        "kv": 98.2
+      },
+      {
+        "time": "07:34:00",
+        "running": 39,
+        "waiting": 296,
+        "gpu": 79.0,
+        "kv": 98.5
+      },
+      {
+        "time": "07:34:10",
+        "running": 35,
+        "waiting": 290,
+        "gpu": 78.0,
+        "kv": 96.5
+      },
+      {
+        "time": "07:34:20",
+        "running": 54,
+        "waiting": 246,
+        "gpu": 78.0,
+        "kv": 98.7
+      },
+      {
+        "time": "07:34:30",
+        "running": 75,
+        "waiting": 198,
+        "gpu": 81.0,
+        "kv": 99.6
+      },
+      {
+        "time": "07:34:40",
+        "running": 58,
+        "waiting": 176,
+        "gpu": 81.0,
+        "kv": 99.7
+      },
+      {
+        "time": "07:34:50",
+        "running": 67,
+        "waiting": 136,
+        "gpu": 82.0,
+        "kv": 99.1
+      },
+      {
+        "time": "07:35:00",
+        "running": 69,
+        "waiting": 93,
+        "gpu": 90.0,
+        "kv": 98.2
+      },
+      {
+        "time": "07:35:10",
+        "running": 49,
+        "waiting": 66,
+        "gpu": 86.0,
+        "kv": 99.1
+      },
+      {
+        "time": "07:35:20",
+        "running": 45,
+        "waiting": 42,
+        "gpu": 86.0,
+        "kv": 100.0
+      },
+      {
+        "time": "07:35:30",
+        "running": 38,
+        "waiting": 35,
+        "gpu": 91.0,
+        "kv": 99.2
+      },
+      {
+        "time": "07:35:40",
+        "running": 31,
+        "waiting": 33,
+        "gpu": 90.0,
+        "kv": 99.4
+      },
+      {
+        "time": "07:35:50",
+        "running": 47,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 95.6
+      },
+      {
+        "time": "07:36:00",
+        "running": 32,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 84.0
+      },
+      {
+        "time": "07:36:10",
+        "running": 23,
+        "waiting": 0,
+        "gpu": 92.0,
+        "kv": 80.6
+      },
+      {
+        "time": "07:36:20",
+        "running": 23,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 82.2
+      },
+      {
+        "time": "07:36:30",
+        "running": 21,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 77.3
+      },
+      {
+        "time": "07:36:40",
+        "running": 21,
+        "waiting": 0,
+        "gpu": 94.0,
+        "kv": 78.8
+      },
+      {
+        "time": "07:36:50",
+        "running": 18,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 69.6
+      },
+      {
+        "time": "07:37:00",
+        "running": 16,
+        "waiting": 0,
+        "gpu": 93.0,
+        "kv": 61.4
+      },
+      {
+        "time": "07:37:10",
+        "running": 15,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 59.1
+      },
+      {
+        "time": "07:37:20",
+        "running": 11,
+        "waiting": 0,
+        "gpu": 91.0,
+        "kv": 42.0
+      },
+      {
+        "time": "07:37:30",
+        "running": 8,
+        "waiting": 0,
+        "gpu": 89.0,
+        "kv": 29.3
+      },
+      {
+        "time": "07:37:40",
+        "running": 5,
+        "waiting": 0,
+        "gpu": 88.0,
+        "kv": 17.9
+      },
+      {
+        "time": "07:37:50",
+        "running": 2,
+        "waiting": 0,
+        "gpu": 78.0,
+        "kv": 6.1
+      },
+      {
+        "time": "07:38:00",
+        "running": 0,
+        "waiting": 0,
+        "gpu": 78.0,
+        "kv": 0.0
+      }
+    ]
+  }
+}

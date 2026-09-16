@@ -1,0 +1,36 @@
+{
+  "fresh": {
+    "requests": 1024,
+    "failed": 0,
+    "attainment": 93.75,
+    "engine_ttft_mean_ms": 140.93716385923472,
+    "routes": {
+      "qwen3-32b": 631,
+      "qwen3-8b": 264,
+      "qwen3-0.6b": 129
+    },
+    "prefix_quarters": [
+      98.046875,
+      92.578125,
+      92.96875,
+      91.40625
+    ]
+  },
+  "smoked": {
+    "requests": 1024,
+    "failed": 0,
+    "attainment": 95.21484375,
+    "engine_ttft_mean_ms": 119.85069384809321,
+    "routes": {
+      "qwen3-32b": 607,
+      "qwen3-8b": 286,
+      "qwen3-0.6b": 131
+    },
+    "prefix_quarters": [
+      97.65625,
+      94.53125,
+      93.359375,
+      95.3125
+    ]
+  }
+}

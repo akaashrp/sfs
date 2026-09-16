@@ -1,0 +1,25 @@
+{
+  "python": "3.12.11 | packaged by Anaconda, Inc. | (main, Jun  5 2025, 13:09:17) [GCC 11.2.0]",
+  "packages": {
+    "torch": "2.8.0+cu129",
+    "torchvision": "0.23.0+cu129",
+    "torchaudio": "2.8.0+cu129",
+    "vllm": "0.1.dev10219+gb70f4dbb4.precompiled",
+    "triton": "3.4.0",
+    "flash-attn": null,
+    "flashinfer-python": "0.5.3",
+    "transformers": "4.56.1",
+    "tokenizers": "0.22.0",
+    "xformers": "0.0.32.post1",
+    "numpy": "2.2.6",
+    "lightgbm": "4.6.0",
+    "scikit-learn": "1.7.2",
+    "openai": "1.107.3",
+    "msgspec": "0.19.0",
+    "nvidia-nccl-cu12": "2.27.3",
+    "nvidia-cublas-cu12": "12.9.1.4",
+    "nvidia-cuda-runtime-cu12": "12.9.79",
+    "nvidia-cudnn-cu12": "9.10.2.21",
+    "safetensors": "0.6.2"
+  }
+}

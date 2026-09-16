@@ -1,33 +1,5 @@
 {
-  "status": "MAIN_MATRIX_PAUSED_FOR_REVIEW",
-  "active_controls": [
-    {
-      "family": "qwen",
-      "variant": "canonical",
-      "policy": "hard",
-      "qps": 8.6,
-      "requests": 16000,
-      "gpus": [
-        0,
-        1,
-        2,
-        3
-      ]
-    },
-    {
-      "family": "qwen",
-      "variant": "canonical",
-      "policy": "hard",
-      "qps": 8.75,
-      "requests": 16000,
-      "gpus": [
-        4,
-        5,
-        6,
-        7
-      ]
-    }
-  ],
+  "status": "QWEN_PERFORMANCE_GAP_DIAGNOSIS_MAIN_RUNS_PAUSED",
   "priority_1": {
     "purpose": "Establish the baseline comparison before selecting variant comparators",
     "qwen": {
@@ -136,6 +108,82 @@
     ],
     "meaning": "A historical queue stability bracket, not a general model-family throughput ordering or a verified Vast capacity"
   },
-  "main_launch_status": "PAUSED: frozen 68-cell artifact is retained for running controls; this plan restricts prospective main execution to 59 cells (including 12 deferred variants). Reconcile execution bundle after review before any main launch.",
-  "baseline_review": "scripts/cloud/baseline-and-reuse-review-20260916.md"
+  "main_launch_status": "Measured runs paused while diagnosing the Qwen Vast/Bridges performance gap. Short isolated GPU diagnostics authorized.",
+  "baseline_review": "scripts/cloud/baseline-and-reuse-review-20260916.md",
+  "next_authorized_measured_runs": {
+    "family": "ministral",
+    "variant": "canonical",
+    "policy": "hard",
+    "qps": [
+      6.0125,
+      7.8625,
+      8.7875
+    ],
+    "slo_policy": "unchanged",
+    "requests_per_cell": 8000,
+    "request_count_note": "User explicitly confirmed 8000 to match existing baselines",
+    "requires": "Resolve Qwen performance comparison; matching SFS GPU smoke with clean evaluation engine state; recheck completed and pending Bridges/cloud inventory"
+  },
+  "priority_order": [
+    {
+      "rank": 1,
+      "task": "Diagnose the completed Qwen controls against Bridges; preserve all raw results; use short isolated GPU probes"
+    },
+    {
+      "rank": 2,
+      "task": "Ministral canonical SFS only at 6.0125, 7.8625, 8.7875, unchanged SLOs"
+    },
+    {
+      "rank": 3,
+      "task": "Review Ministral SFS attainment, utility, arrival attainment and backlog over time; keep fourth point undecided"
+    },
+    {
+      "rank": 3.5,
+      "task": "Resolve Mooncake/RouteBalance telemetry freshness behavior before launching either baseline; separate from SFS-only runs"
+    },
+    {
+      "rank": 4,
+      "task": "Qwen missing SCORE, LMDeploy, Mooncake, RouteBalance and vLLM-SR cells at 7, 8, 8.6, 8.75; remaining launch paused for review"
+    },
+    {
+      "rank": 5,
+      "task": "Ministral missing baselines after SFS review; reuse valid Bridges cells, recheck pending recovery before dispatch"
+    },
+    {
+      "rank": 6,
+      "task": "Deferred Flash-trained/Flash-scored quality, MLP quality and MLP length arms with SFS and selected strongest baselines"
+    },
+    {
+      "rank": 7,
+      "task": "Additional serving settings, adaptive fourth Ministral point and any justified reruns only as follow-ups"
+    }
+  ],
+  "completed_controls": [
+    {
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 8.6,
+      "requests": 16000,
+      "gpus": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 8.75,
+      "requests": 16000,
+      "gpus": [
+        4,
+        5,
+        6,
+        7
+      ]
+    }
+  ]
 }

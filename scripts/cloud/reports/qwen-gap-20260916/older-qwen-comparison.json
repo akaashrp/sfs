@@ -1,0 +1,27 @@
+{
+  "historical_point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_38498366_2026-04-06_222644/router_qps_qwen3_lambda5em4_delta0_20260406_223420_qps8p6_point02.json",
+  "historical_attainment": 90.63125,
+  "same_route_requests": 11049,
+  "differences": {
+    "prompt_tokens": {
+      "different_count": 0,
+      "mean_delta_current_minus_original": 0
+    },
+    "usage_prompt_tokens": {
+      "different_count": 0,
+      "mean_delta_current_minus_original": 0
+    },
+    "predicted_accuracy": {
+      "different_count": 0,
+      "mean_delta_current_minus_original": 0.0
+    },
+    "predicted_output_tokens": {
+      "different_count": 0,
+      "mean_delta_current_minus_original": 0.0
+    },
+    "usage_completion_tokens": {
+      "different_count": 8166,
+      "mean_delta_current_minus_original": -2.168974567834193
+    }
+  }
+}
