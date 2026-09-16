@@ -1,0 +1,13 @@
+{
+  "scope": "Authorized Mooncake/RouteBalance adapter repair, symmetric Qwen and Ministral; all other protected source unchanged",
+  "changes": {
+    "src/sfs_core/routing/methodology_scheduler.py": {
+      "before": "c721051a157f910e17ab6573e23f9334e2fdcc17872bdf2756088f2510def262",
+      "after": "1aeb41a21df633edca5e043ee606a82d125ad4194e0906723ef728704c7401d0"
+    },
+    "src/sfs_core/routing/methodology_snapshot.py": {
+      "before": "a403e4bc39599de09cf698dbe4ca9d06236d93fd69b14bd182ad0d939a34fc45",
+      "after": "90b0126f35b7613147b97a43b4c5e2dbfb214effd2efcc7306d75a637b13152a"
+    }
+  }
+}

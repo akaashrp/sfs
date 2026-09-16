@@ -58,6 +58,7 @@ class MethodologyScheduler(WaitTimeScheduler):
         self._engine_ids: dict[str, str] = {}
         self._dispatch_times: dict[str, float] = {}
         self._versions: dict[str, int] = {}
+        self._capacity_current: dict[str, bool] = {}
         self._input_finished = asyncio.Event()
         self._batch_id = 0
         self._batch_sizes: dict[int, int] = {}
@@ -98,23 +99,16 @@ class MethodologyScheduler(WaitTimeScheduler):
         ))
         snapshots = dict(zip(self._instances, values))
         for key, snapshot in snapshots.items():
-            # Publication is event-driven: a drained exclusive server can keep
-            # an old empty snapshot indefinitely. This exception never proves a
-            # free decode slot, and ends as soon as we dispatch local work.
-            idle_unchanged = (not snapshot.requests and not snapshot.inflight_total_tokens
-                              and not self.lifetime.reservations(key))
-            # A newly submitted request may not yet have replaced that old
-            # empty publication. Bound this handoff grace by dispatch age,
-            # without altering the snapshot age used for admission evidence.
-            reservations = self.lifetime.reservations(key)
-            idle_handoff = (not snapshot.requests and not snapshot.inflight_total_tokens
-                            and reservations and all(
-                                (time.perf_counter() - self._dispatch_times.get(r.request_id, -math.inf)) * 1000
-                                <= self.snapshot_max_age_ms for r in reservations))
-            if snapshot.age_ms > self.snapshot_max_age_ms and not (idle_unchanged or idle_handoff):
-                raise RuntimeError(f"Stale baseline snapshot for {key}: {snapshot.age_ms:.1f} ms")
-            if snapshot.version < self._versions.get(key, -1):
+            previous = self._versions.get(key, -1)
+            if snapshot.version < previous:
                 raise RuntimeError(f"Baseline snapshot version regressed for {key}")
+            # Publications are per batch. A long batch is not a failed read.
+            # Use its committed work plus unobserved local reservations; never
+            # extrapolate completion from wall time or manufacture a timestamp.
+            # Reusing a busy publication does not establish new free capacity.
+            self._capacity_current[key] = (snapshot.version > previous or (
+                not snapshot.requests and not snapshot.inflight_total_tokens
+                and not self.lifetime.reservations(key)))
             self._versions[key] = snapshot.version
         return snapshots
 
@@ -314,7 +308,7 @@ class MethodologyScheduler(WaitTimeScheduler):
                 tpot = self._batch_tpot[key]
                 admission = snapshot.admission_evidence(
                     prompt_tokens=prompt_tokens, predicted_output_tokens=length,
-                    max_age_ms=self.snapshot_max_age_ms,
+                    capacity_current=self._capacity_current[key],
                     local_outstanding_requests=unobserved,
                 )
                 latency, terms = estimate_routebalance_latency_ms(
@@ -390,7 +384,7 @@ class MethodologyScheduler(WaitTimeScheduler):
 
     def run_metadata(self):
         return {
-            "policy": self.policy, "implementation_version": 1,
+            "policy": self.policy, "implementation_version": 2,
             "random_seed": self.seed, "batch_max_size": self.batch_max_size,
             "batch_wait_ms": self.batch_wait_ms, "weights": asdict(self.weights),
             "batch_size_histogram": dict(self._batch_sizes),
@@ -399,7 +393,9 @@ class MethodologyScheduler(WaitTimeScheduler):
             "predictor": getattr(self.predictor, "metadata", None),
             "sfs_predictor_substitution": False,
             "admission_rejection_enabled": False,
-            "snapshot_idle_age_exception": "exclusive_drained_server_without_local_reservations",
-            "snapshot_idle_handoff_grace_ms": self.snapshot_max_age_ms,
+            "snapshot_age_gate_ms": None,
+            "snapshot_dispatch_wait_s": 0,
+            "snapshot_semantics": "latest_coherent_batch_plus_local_reservations; age_is_diagnostic_only",
+            "free_slot_semantics": "new_publication_or_exclusive_idle; capacity_checks_and_local_reservations",
             "shared_engine_output_predictor": "enabled_for_common_publisher; ignored_by_baseline_decisions",
         }

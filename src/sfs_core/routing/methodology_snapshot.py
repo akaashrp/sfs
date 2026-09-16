@@ -103,13 +103,14 @@ class BaselineSnapshot:
         *,
         prompt_tokens: int,
         predicted_output_tokens: float,
-        max_age_ms: float = 1000.0,
+        max_age_ms: float | None = None,
         local_outstanding_requests: int = 0,
+        capacity_current: bool = True,
     ) -> AdmissionEvidence:
         """Use the free-slot branch only with explicit capacity evidence.
 
         An unused sequence slot on a busy coupled server does not prove prompt
-        admission. This conservative proxy requires a fresh snapshot, no queued
+        admission. This conservative proxy requires observed capacity, no queued
         or unfinished prefills or caller-side unobserved dispatches, enough
         sequence/token capacity for a first chunk, and KV capacity for the
         predicted context plus one growth block per resident decode sequence.
@@ -120,12 +121,13 @@ class BaselineSnapshot:
         length = _finite(predicted_output_tokens, "predicted_output_tokens")
         if length < 0:
             raise ValueError("predicted_output_tokens must be nonnegative")
-        max_age = _finite(max_age_ms, "max_age_ms")
-        if max_age < 0:
+        # Kept as an API compatibility argument; timestamp age is diagnostic.
+        # The caller supplies publication/progress evidence separately.
+        if max_age_ms is not None and _finite(max_age_ms, "max_age_ms") < 0:
             raise ValueError("max_age_ms must be nonnegative")
         outstanding = _nonnegative(local_outstanding_requests, "local_outstanding_requests")
-        if self.age_ms > max_age:
-            return AdmissionEvidence(False, "stale_snapshot")
+        if not capacity_current:
+            return AdmissionEvidence(False, "unchanged_busy_publication_capacity_uncertain")
         if outstanding:
             return AdmissionEvidence(False, "unobserved_local_dispatches")
         if self.waiting_request_ids:

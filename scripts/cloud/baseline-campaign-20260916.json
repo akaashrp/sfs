@@ -1,0 +1,325 @@
+{
+  "schema_version": 1,
+  "status": "AUTHORIZED_AFTER_SOURCE_AND_GPU_GATES",
+  "cells": [
+    {
+      "id": "qwen-lmdeploy_proxy-6",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "lmdeploy_proxy",
+      "qps": 6.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-lmdeploy_proxy-7",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "lmdeploy_proxy",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-lmdeploy_proxy-8",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "lmdeploy_proxy",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-lmdeploy_proxy-8.3",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "lmdeploy_proxy",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-vllm_sr_latency-6",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 6.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-vllm_sr_latency-7",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-vllm_sr_latency-8",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-vllm_sr_latency-8.3",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mooncake_prefill-6",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 6.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mooncake_prefill-7",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mooncake_prefill-8",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mooncake_prefill-8.3",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-routebalance-6",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 6.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-routebalance-7",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-routebalance-8",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-routebalance-8.3",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "ministral-shortest_queue-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "shortest_queue",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-shortest_queue-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "shortest_queue",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-shortest_queue-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "shortest_queue",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-vllm_sr_latency-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-vllm_sr_latency-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-vllm_sr_latency-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-mooncake_prefill-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-mooncake_prefill-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-mooncake_prefill-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-routebalance-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-routebalance-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-routebalance-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 8.7875,
+      "requests": 8000
+    }
+  ],
+  "requests_total": 352000,
+  "excluded_policies": [
+    "score",
+    "hard"
+  ],
+  "ministral_105_percent": "EXCLUDED_BY_LATEST_USER_INSTRUCTION",
+  "reuse": "Preserve audited Bridges Ministral LMDeploy/RR/LA and historical Qwen RR/LA/shortest queue; do not automatically rerun",
+  "gpu_allocation": {
+    "qwen": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "ministral": [
+      4,
+      5,
+      6
+    ],
+    "debug": [
+      7
+    ]
+  },
+  "fallback_cells": [
+    {
+      "id": "qwen-hard_prefill_tps-6-rerun",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard_prefill_tps",
+      "qps": 6,
+      "requests": 16000,
+      "priority": "FALLBACK_ONLY",
+      "submission": "UNSUBMITTED_UNTIL_NO_HIGHER_PRIORITY_WORK"
+    },
+    {
+      "id": "qwen-hard_prefill_tps-7-rerun",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard_prefill_tps",
+      "qps": 7,
+      "requests": 16000,
+      "priority": "FALLBACK_ONLY",
+      "submission": "UNSUBMITTED_UNTIL_NO_HIGHER_PRIORITY_WORK"
+    },
+    {
+      "id": "qwen-hard_prefill_tps-8-rerun",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard_prefill_tps",
+      "qps": 8,
+      "requests": 16000,
+      "priority": "FALLBACK_ONLY",
+      "submission": "UNSUBMITTED_UNTIL_NO_HIGHER_PRIORITY_WORK"
+    },
+    {
+      "id": "qwen-hard_prefill_tps-8.3-rerun",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard_prefill_tps",
+      "qps": 8.3,
+      "requests": 16000,
+      "priority": "FALLBACK_ONLY",
+      "submission": "UNSUBMITTED_UNTIL_NO_HIGHER_PRIORITY_WORK"
+    },
+    {
+      "id": "ministral-hard_prefill_tps-6.0125-rerun",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "hard_prefill_tps",
+      "qps": 6.0125,
+      "requests": 8000,
+      "priority": "FALLBACK_ONLY",
+      "submission": "UNSUBMITTED_UNTIL_NO_HIGHER_PRIORITY_WORK"
+    },
+    {
+      "id": "ministral-hard_prefill_tps-7.8625-rerun",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "hard_prefill_tps",
+      "qps": 7.8625,
+      "requests": 8000,
+      "priority": "FALLBACK_ONLY",
+      "submission": "UNSUBMITTED_UNTIL_NO_HIGHER_PRIORITY_WORK"
+    },
+    {
+      "id": "ministral-hard_prefill_tps-8.7875-rerun",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "hard_prefill_tps",
+      "qps": 8.7875,
+      "requests": 8000,
+      "priority": "FALLBACK_ONLY",
+      "submission": "UNSUBMITTED_UNTIL_NO_HIGHER_PRIORITY_WORK"
+    }
+  ]
+}

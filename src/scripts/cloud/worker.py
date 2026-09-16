@@ -211,7 +211,7 @@ async def execute(options, manifest, definition, model_paths, output):
         async def workload():
             await warm_up_instances(list(clients.values()))
             await wait_drained(clients, timeout_s=120)
-            if options.mode == 'qualify':
+            if options.mode in ('qualify', 'campaign'):
                 await calibrate(options.family, definition, calibration, clients, base_args, output)
             argv = arguments(definition, options.bundle, options.variant, manifest, qualification)
             def args_for(policy, rate, count):
@@ -235,14 +235,19 @@ async def execute(options, manifest, definition, model_paths, output):
                 # prompts at the actual maximum offered load before evaluation.
                 stress = smoke_requests(calibration, per_bucket=128)
                 for policy in ('mooncake_prefill', 'routebalance'):
+                    if policy not in policies:
+                        continue
                     payload = await run_point('ministral', args_for(policy, definition['qps'][-1], len(stress)),
                         stress, clients, costs, metadata, output/'snapshot_stress'/policy, data_role='calibration')
                     audit_run(payload['router']['runs'][0], len(stress))
                     require_complete_ttft(payload['router']['runs'][0])
-            if options.mode == 'qualify':
+            if options.mode in ('qualify', 'campaign'):
                 from scripts.runs.capacity_scout import TrialMonitor, classify_trial
                 load_probes = []
-                for rate in (definition['qps'][0], definition['qps'][-1]):
+                # Campaign qualification uses the policy smoke and 512-request
+                # stress at its top load. No extra capacity search is needed
+                # for the user-specified non-SFS grid.
+                for rate in (() if options.mode == 'campaign' else (definition['qps'][0], definition['qps'][-1])):
                     folder = output/'load_probes'/f'{rate:g}'
                     monitor = TrialMonitor(folder/'events.jsonl', duration_s=360, max_outstanding=1024)
                     payload = await run_point(options.family, args_for('shortest_queue', rate, len(calibration)), calibration,
@@ -257,9 +262,18 @@ async def execute(options, manifest, definition, model_paths, output):
                     'family': options.family, 'variant': options.variant, 'hardware': machine,
                     'source_sha256': source, 'bundle_sha256': digest(Path(options.bundle)/'bundle.json'),
                     'load_probes': load_probes, 'files': evidence,
+                    'campaign_sha256': digest(options.campaign) if getattr(options, 'campaign', None) else None,
+                    'policy_smoke': policies,
                     'serving_coefficients': 'Canonical SFS batch coefficients retained; destination residuals require review',
                     'evaluation_started': False})
-                return
+                if options.mode == 'qualify':
+                    return
+                write(output/'phase.json', {'state': 'QUALIFIED_AWAITING_REVIEW', 'time': time.time()})
+                # Keep this pool warm while the controller reviews calibration
+                # residuals and stress results. No evaluation before release.
+                while not (qualification/'release.json').exists():
+                    await asyncio.sleep(5)
+                validate_release(qualification, options, source)
             cells = [c for c in manifest['cells'] if c['family'] == options.family and c['variant'] == options.variant]
             if options.cells:
                 requested = set(options.cells.split(','))
@@ -296,6 +310,7 @@ async def execute(options, manifest, definition, model_paths, output):
                         'qualification_sha256': digest(qualification/'qualification.json'), 'hardware': machine}
                     write(folder/'audit.json', entry)
                     write(done, entry)
+                    write(output/'phase.json', {'state': 'CELL_COMPLETE', 'cell': cell['id'], 'time': time.time()})
         watcher = asyncio.create_task(heartbeat())
         task = asyncio.create_task(workload())
         try:
@@ -316,6 +331,8 @@ def validate_release(qualification, options, source):
             or report['bundle_sha256'] != digest(Path(options.bundle)/'bundle.json')
             or report['hardware'] != hardware(options.gpus.split(','))):
         raise ValueError('Missing/stale destination qualification and reviewed release')
+    if getattr(options, 'campaign', None) and report.get('campaign_sha256') != digest(options.campaign):
+        raise ValueError('Active campaign changed after qualification')
     for name, expected in report['files'].items():
         if digest(qualification/name) != expected:
             raise ValueError(f'Qualification evidence changed: {name}')
@@ -323,12 +340,13 @@ def validate_release(qualification, options, source):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('mode', choices=['qualify', 'run'])
+    p.add_argument('mode', choices=['qualify', 'run', 'campaign'])
     p.add_argument('--bundle', required=True); p.add_argument('--models', required=True)
     p.add_argument('--state', required=True); p.add_argument('--output', required=True)
     p.add_argument('--family', choices=['qwen', 'ministral'], required=True)
     p.add_argument('--variant', choices=['canonical', 'mlp_quality', 'mlp_length', 'flash_quality'], default='canonical')
     p.add_argument('--gpus', required=True); p.add_argument('--cpus'); p.add_argument('--qualification'); p.add_argument('--cells')
+    p.add_argument('--campaign', help='Explicit baseline-only overlay on the frozen artifact bundle')
     options = p.parse_args()
     if options.family == 'ministral' and options.variant != 'canonical':
         p.error('Predictor ablations are Qwen only')
@@ -336,6 +354,13 @@ def main():
     if options.cpus:
         os.sched_setaffinity(0, {int(c) for c in options.cpus.split(',')})
     manifest = validate_bundle(options.bundle)
+    if options.mode == 'campaign' and not options.campaign:
+        p.error('Campaign mode requires its explicit manifest')
+    if options.campaign:
+        from scripts.cloud.baseline_campaign import apply_campaign
+        manifest = apply_campaign(manifest, read(options.campaign))
+    if options.mode == 'campaign':
+        options.qualification = str(Path(options.output).resolve())
     output = Path(options.output).resolve(); output.mkdir(parents=True, exist_ok=False)
     def stop(signum, frame): raise KeyboardInterrupt(f'Signal {signum}')
     signal.signal(signal.SIGTERM, stop)

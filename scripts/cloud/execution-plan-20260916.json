@@ -1,48 +1,41 @@
 {
-  "status": "QWEN_QPS8_DUAL_COMPLETE_PERFORMANCE_GAP_UNRESOLVED",
+  "status": "BASELINE_CAMPAIGN_AUTHORIZED_PENDING_VALIDATION",
   "priority_1": {
     "purpose": "Establish the baseline comparison before selecting variant comparators",
     "qwen": {
       "policies": [
-        "score",
         "lmdeploy_proxy",
+        "vllm_sr_latency",
         "mooncake_prefill",
-        "routebalance",
-        "vllm_sr_latency"
+        "routebalance"
       ],
       "qps": [
-        7,
-        8,
-        8.6,
-        8.75
+        6.0,
+        7.0,
+        8.0,
+        8.3
       ],
       "requests_per_cell": 16000,
-      "cells": 20
+      "cells": 16
     },
     "ministral": {
       "policies": [
-        "hard",
-        "round_robin",
-        "latency_agnostic",
         "shortest_queue",
-        "score",
-        "lmdeploy_proxy",
+        "vllm_sr_latency",
         "mooncake_prefill",
-        "routebalance",
-        "vllm_sr_latency"
+        "routebalance"
       ],
       "requests_per_cell": 8000,
-      "cells": 27,
-      "before_full_runs": "Main matrix remains paused for baseline and Bridges-result reuse review. Preserve existing SLOs; qualify destination before any measured runs.",
+      "cells": 12,
+      "before_full_runs": "Reuse audited cells; qualify and smoke missing baselines on destination.",
       "qps": [
         6.0125,
         7.8625,
         8.7875
       ],
       "fourth_point": {
-        "status": "UNSCHEDULED_FOLLOW_UP",
-        "qps": null,
-        "selection": "One common fourth QPS across retained policies, chosen after reviewing 65/85/95 percent TTFT and OnTimeUtility curves. Consider an intermediate point if degradation is severe; 105 percent is optional."
+        "status": "EXCLUDED_BY_USER",
+        "qps": 9.7125
       },
       "bridges_reuse": {
         "status": "12 existing cells audited; cross-host pooling not yet qualified",
@@ -61,8 +54,8 @@
         "recommendation": "Preserve all valid Bridges results. Use limited overlap validation before deciding whether missing Vast policies may share a figure; do not automatically rerun the 12 cells."
       }
     },
-    "cells": 47,
-    "requests_total": 536000
+    "cells": 28,
+    "requests_total": 352000
   },
   "priority_2": {
     "status": "DEFERRED_UNTIL_PRIORITY_1_RESULTS",
@@ -91,10 +84,12 @@
     "quality_reporting": "Both judges on the common 15996 observed queries; primary judge matched to each arm"
   },
   "scheduling_constraints": [
-    "Do not interrupt either active canonical control pool",
-    "Do not launch the main matrix before the requested configuration review is finished",
-    "GPU/job health monitoring every 30 seconds; Vast rental status every 60 seconds",
-    "No job cancellation without explicit user confirmation"
+    "Qwen GPUs 0-3, Ministral GPUs 4-6, debug GPU 7",
+    "Do not launch SCORE or SFS measured cells",
+    "No Ministral 105 percent submissions",
+    "Mooncake/RouteBalance only after repaired-source smoke and calibration review",
+    "No job cancellation without explicit user confirmation",
+    "Continue remote monitoring and controller backups"
   ],
   "ministral_rate_provenance": {
     "source": "Bridges campaign_cold_start_fix_20260912/ministral_figure5_manifest.json",
@@ -108,54 +103,25 @@
     ],
     "meaning": "A historical queue stability bracket, not a general model-family throughput ordering or a verified Vast capacity"
   },
-  "main_launch_status": "Authorized 8.6 QPS repeat completed and independently audited. Sustained-load degradation recurred; main matrix remains paused for diagnosis.",
+  "main_launch_status": "User authorized missing non-SFS/non-SCORE baselines; Mooncake/RouteBalance require repaired source and passing GPU smoke.",
   "baseline_review": "scripts/cloud/baseline-and-reuse-review-20260916.md",
   "next_authorized_measured_runs": {
-    "family": "ministral",
-    "variant": "canonical",
-    "policy": "hard",
-    "qps": [
-      6.0125,
-      7.8625,
-      8.7875
-    ],
+    "campaign": "scripts/cloud/baseline-campaign-20260916.json",
     "slo_policy": "unchanged",
-    "requests_per_cell": 8000,
-    "request_count_note": "User explicitly confirmed 8000 to match existing baselines",
-    "requires": "Resolve Qwen performance comparison; matching SFS GPU smoke with clean evaluation engine state; recheck completed and pending Bridges/cloud inventory"
+    "score_and_sfs": "PAUSED"
   },
   "priority_order": [
     {
       "rank": 1,
-      "task": "Diagnose the completed Qwen controls against Bridges; preserve all raw results; use short isolated GPU probes"
+      "task": "Missing LMDeploy/vLLM-SR Qwen and shortest queue/vLLM-SR Ministral, then repaired Mooncake/RouteBalance in both pools"
     },
     {
       "rank": 2,
-      "task": "Ministral canonical SFS only at 6.0125, 7.8625, 8.7875, unchanged SLOs"
+      "task": "Debug GPU7: SFS/SCORE conditional remaining output lengths; no measured SFS/SCORE campaigns"
     },
     {
       "rank": 3,
-      "task": "Review Ministral SFS attainment, utility, arrival attainment and backlog over time; keep fourth point undecided"
-    },
-    {
-      "rank": 3.5,
-      "task": "Resolve Mooncake/RouteBalance telemetry freshness behavior before launching either baseline; separate from SFS-only runs"
-    },
-    {
-      "rank": 4,
-      "task": "Qwen missing SCORE, LMDeploy, Mooncake, RouteBalance and vLLM-SR cells at 7, 8, 8.6, 8.75; remaining launch paused for review"
-    },
-    {
-      "rank": 5,
-      "task": "Ministral missing baselines after SFS review; reuse valid Bridges cells, recheck pending recovery before dispatch"
-    },
-    {
-      "rank": 6,
-      "task": "Deferred Flash-trained/Flash-scored quality, MLP quality and MLP length arms with SFS and selected strongest baselines"
-    },
-    {
-      "rank": 7,
-      "task": "Additional serving settings, adaptive fourth Ministral point and any justified reruns only as follow-ups"
+      "task": "Deferred predictor/judge variants after baseline comparison"
     }
   ],
   "completed_controls": [
@@ -244,5 +210,12 @@
       "user_authorization": "Two concurrent QPS 8 reruns, GPUs 0-3 and 4-7",
       "comparison_boundary": "Unchanged canonical execute and runtime; thin wrapper supplies 8 QPS beyond historical CLI choices"
     }
-  ]
+  ],
+  "active_campaign": "scripts/cloud/baseline-campaign-20260916.json",
+  "fallback_backlog": {
+    "policy": "hard_prefill_tps",
+    "campaign_field": "fallback_cells",
+    "condition": "Submit only when model pool would otherwise be idle and has no higher-priority runnable work; keep GPU7 for debugging",
+    "reuse_override": "User explicitly authorizes these fallback reruns despite older results"
+  }
 }

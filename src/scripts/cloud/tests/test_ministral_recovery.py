@@ -39,53 +39,39 @@ def scheduler(monkeypatch, tmp_path, policy='mooncake_prefill', **kwargs):
 
 
 @pytest.mark.parametrize('policy', ['mooncake_prefill', 'routebalance'])
-def test_busy_iteration_waits_for_new_snapshot_without_duplicate_dispatch(monkeypatch, tmp_path, policy):
+def test_long_busy_iteration_dispatches_once_without_freshness_wait(monkeypatch, tmp_path, policy):
     async def run():
         sched, clients = scheduler(monkeypatch, tmp_path, policy)
-        for c in clients.values(): c.raw = state(busy=True, age=1.62)
-        async def publish():
-            await asyncio.sleep(.02)
-            assert not sched._routing_state_lock.locked()
-            for c in clients.values(): c.raw = state(version=2)
-        publisher = asyncio.create_task(publish()); req = queued('new')
-        await sched._dispatch_batch([req]); await publisher
+        for key, c in clients.items():
+            c.raw = state(busy=True, age=30)
+            sched.lifetime.reserve('old-'+key, key, prompt_tokens=8, predicted_output_tokens=20)
+            sched._engine_ids['old-'+key] = 'old'
+        req = queued('new')
+        await sched._dispatch_batch([req])
+        await sched.drain()
         result = await req.payload['_completion_future']
+        assert 'error' not in result
         assert sum(len(c.submissions) for c in clients.values()) == 1
-        assert sched.snapshot_max_age_ms == 1000
+        assert all(c.snapshot_calls == 1 for c in clients.values())
         assert sched._batch_id == 1 and sched._batch_sizes == {1: 1}
-        wait = result['methodology_terms']['snapshot_freshness_wait']
-        assert wait['retries'] > 0 and wait['wait_ms'] >= 10
-        assert all(x['snapshot']['snapshot_version'] == 2 for x in result['methodology_terms']['candidates'].values())
-        assert result['dispatch_perf']-result['system_entry_perf'] >= wait['wait_ms']/1000
-        assert not any(sched.lifetime.unfinished_counts().values())
+        assert all(x['snapshot']['snapshot_version'] == 1 for x in result['methodology_terms']['candidates'].values())
+        assert sched.run_metadata()['snapshot_age_gate_ms'] is None
+        assert sched.run_metadata()['snapshot_dispatch_wait_s'] == 0
+        # Old work remains owned until completion, irrespective of its age.
+        assert sum(sched.lifetime.unfinished_counts().values()) == 2
     asyncio.run(run())
 
 
-def test_permanently_stale_engine_times_out_without_dispatch(monkeypatch, tmp_path):
+def test_missing_publication_fails_without_dispatch(monkeypatch, tmp_path):
     async def run():
-        sched, clients = scheduler(monkeypatch, tmp_path, snapshot_wait_timeout_s=.03)
-        for c in clients.values(): c.raw = state(busy=True, age=1.7)
-        with pytest.raises(RuntimeError, match='freshness stalled'):
+        sched, clients = scheduler(monkeypatch, tmp_path)
+        async def broken():
+            raise RuntimeError('Failed to read consistent baseline scheduler snapshot')
+        next(iter(clients.values())).refresh_baseline_state = broken
+        with pytest.raises(RuntimeError, match='consistent'):
             await sched._dispatch_batch([queued('new')])
         assert all(not c.submissions for c in clients.values())
         assert not sched._routing_state_lock.locked()
-        assert not any(sched.lifetime.unfinished_counts().values())
-    asyncio.run(run())
-
-
-def test_completions_can_release_reservations_during_freshness_wait(monkeypatch, tmp_path):
-    async def run():
-        sched, clients = scheduler(monkeypatch, tmp_path, snapshot_wait_timeout_s=.2)
-        key = next(iter(clients));clients[key].raw = state(age=10)
-        sched.lifetime.reserve('old',key,prompt_tokens=8,predicted_output_tokens=0)
-        sched._dispatch_times['old'] = time.perf_counter()-2
-        async def complete():
-            await asyncio.sleep(.015)
-            async with sched._routing_state_lock: sched.lifetime.release('old')
-        task=asyncio.create_task(complete());req=queued('next')
-        await sched._dispatch_batch([req]);await task
-        await req.payload['_completion_future']
-        assert sum(len(c.submissions) for c in clients.values()) == 1
     asyncio.run(run())
 
 
@@ -99,13 +85,17 @@ def test_version_regression_is_not_retried(monkeypatch, tmp_path):
     asyncio.run(run())
 
 
-def test_cancellation_releases_lock_and_does_not_submit(monkeypatch, tmp_path):
+def test_cancellation_of_pending_transport_releases_lock(monkeypatch, tmp_path):
     async def run():
         sched, clients = scheduler(monkeypatch, tmp_path)
-        for c in clients.values(): c.raw = state(busy=True, age=2)
-        task=asyncio.create_task(sched._dispatch_batch([queued('new')]))
-        await asyncio.sleep(.015);task.cancel()
-        with pytest.raises(asyncio.CancelledError):await task
+        gate = asyncio.Event()
+        async def hung_transport():
+            await gate.wait()
+        for c in clients.values(): c.refresh_baseline_state = hung_transport
+        task = asyncio.create_task(sched._dispatch_batch([queued('new')]))
+        await asyncio.sleep(.015)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError): await task
         assert not sched._routing_state_lock.locked()
         assert all(not c.submissions for c in clients.values())
     asyncio.run(run())

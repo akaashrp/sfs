@@ -229,7 +229,7 @@ def test_submission_cancelled_before_coroutine_start_releases_reservation(monkey
     asyncio.run(run())
 
 
-def test_routebalance_unknown_and_stale_snapshots_fail_but_tombstones_are_ignored(monkeypatch, tmp_path):
+def test_routebalance_unknown_and_regressed_snapshots_fail_but_old_tombstones_are_ignored(monkeypatch, tmp_path):
     async def run():
         scheduler, clients, _, _ = make_scheduler(monkeypatch, tmp_path, "routebalance")
         clients["a"].raw = snapshot_payload(requests={"old": request_state("old")})
@@ -243,27 +243,28 @@ def test_routebalance_unknown_and_stale_snapshots_fail_but_tombstones_are_ignore
         await scheduler.drain()
         assert "error" not in await good.payload["_completion_future"]
         clients["a"].raw = snapshot_payload(requests={"old": request_state("old")}, age=10)
-        with pytest.raises(RuntimeError, match="Stale"):
-            await scheduler._read_snapshots()
+        snapshots = await scheduler._read_snapshots()
+        assert snapshots["a"].age_ms >= 10000
+        assert not scheduler._capacity_current["a"]
         clients["a"].raw = snapshot_payload(version=0)
         with pytest.raises(RuntimeError, match="regressed"):
             await scheduler._read_snapshots()
     asyncio.run(run())
 
 
-def test_stale_empty_snapshot_requires_absence_of_own_unobserved_requests(monkeypatch, tmp_path):
+def test_old_empty_snapshot_retains_unobserved_requests(monkeypatch, tmp_path):
     async def run():
         scheduler, clients, _, _ = make_scheduler(monkeypatch, tmp_path, "routebalance")
         clients["a"].raw = snapshot_payload(age=10)
         snapshots = await scheduler._read_snapshots()
         assert snapshots["a"].age_ms >= 10000
         scheduler.lifetime.reserve("unobserved", "a", predicted_output_tokens=10)
-        with pytest.raises(RuntimeError, match="Stale"):
-            await scheduler._read_snapshots()
+        snapshots = await scheduler._read_snapshots()
+        assert snapshots["a"].age_ms >= 10000
     asyncio.run(run())
 
 
-def test_old_empty_snapshot_handoff_grace_is_bounded_by_local_dispatch_age(monkeypatch, tmp_path):
+def test_old_empty_snapshot_handoff_retains_work_without_age_deadline(monkeypatch, tmp_path):
     async def run():
         scheduler, clients, _, _ = make_scheduler(
             monkeypatch, tmp_path, "routebalance", weights=RouteBalanceWeights(0, 1, 0))
@@ -279,8 +280,8 @@ def test_old_empty_snapshot_handoff_grace_is_bounded_by_local_dispatch_age(monke
         assert snapshots["a"].age_ms >= 10000
         assert scheduler.lifetime.unfinished_counts()["a"] == 1
         scheduler._dispatch_times["handoff"] = time.perf_counter() - 2
-        with pytest.raises(RuntimeError, match="Stale"):
-            await scheduler._read_snapshots()
+        snapshots = await scheduler._read_snapshots()
+        assert snapshots["a"].age_ms >= 10000
         gate.set()
         await scheduler.drain()
     asyncio.run(run())

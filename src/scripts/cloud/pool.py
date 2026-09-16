@@ -75,8 +75,8 @@ def hardware(gpus):
 
 @contextlib.contextmanager
 def pool(family, definition, model_paths, bundle, output, gpus, state, length_predictor):
-    if len(gpus) != 4:
-        raise ValueError("Reserve four GPUs per lane (Ministral uses three; fourth stays idle)")
+    if len(gpus) not in ((4,) if family == 'qwen' else (3, 4)):
+        raise ValueError("Qwen requires four GPUs; Ministral requires three (legacy four-GPU lanes also accepted)")
     fingerprint = hardware(gpus)
     # Same lock namespace across different output directories/checkouts.
     lockdir = Path('/dev/shm') / f"sfs-cloud-locks-{os.getuid()}"

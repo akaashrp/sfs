@@ -181,14 +181,15 @@ def test_unused_sequence_limit_is_not_admission_evidence():
     assert evidence.reason == "waiting_requests_have_admission_priority"
 
 
-def test_idle_admission_checks_kv_and_local_assignments_and_staleness():
+def test_idle_admission_checks_kv_local_assignments_and_capacity_evidence():
     state = parse_baseline_snapshot(_idle_payload(), observed_at=10)
     evidence = state.admission_evidence(prompt_tokens=32, predicted_output_tokens=8)
     assert evidence.free_decode_slot
     assert evidence.proxy == "conservative_capacity_proxy"
     assert evidence.required_kv_blocks == 3
     assert not state.admission_evidence(prompt_tokens=32, predicted_output_tokens=8, local_outstanding_requests=1).free_decode_slot
-    assert state.observed_again(12).admission_evidence(prompt_tokens=32, predicted_output_tokens=8).reason == "stale_snapshot"
+    assert state.observed_again(12).admission_evidence(prompt_tokens=32, predicted_output_tokens=8).free_decode_slot
+    assert not state.admission_evidence(prompt_tokens=32, predicted_output_tokens=8, capacity_current=False).free_decode_slot
     raw = _idle_payload()
     raw["kv_cache_config"]["kv_cache_free_blocks"] = 2
     assert parse_baseline_snapshot(raw, observed_at=10).admission_evidence(prompt_tokens=32, predicted_output_tokens=8).reason == "insufficient_kv_blocks"
