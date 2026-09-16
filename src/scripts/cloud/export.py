@@ -5,6 +5,7 @@ from pathlib import Path
 import shutil
 
 from scripts.cloud.common import digest, read, write, set_option
+from scripts.cloud.schedule import QWEN_QPS
 
 
 def export(source, output, wheel):
@@ -55,7 +56,7 @@ def export(source, output, wheel):
             metrics = source / "experiments/campaign_cold_start_fix_20260912/qwen_smoke/model_metrics.json"
             model_ids, pins = list(qw.MODELS), qw.PINS
             repos = ["Qwen/" + name for name in qw.HF_NAMES]
-            profile, rates, policies = qw.PROFILE, list(qw.QPS), list(qw.NEW_POLICIES)
+            profile, rates, policies = qw.PROFILE, list(QWEN_QPS), list(qw.NEW_POLICIES)
             warmup = q["latency_warmup"]
         else:
             stage = Path(m["stage_dir"])
@@ -122,7 +123,7 @@ def export(source, output, wheel):
                 cells.append({"id": f"{family}-{policy}-{rate:g}", "family": family, "variant": "canonical",
                     "policy": policy, "qps": rate, "requests": f["requests"]})
     for arm in variants:
-        for rate in qw.QPS:
+        for rate in QWEN_QPS:
             cells.append({"id": f"qwen-{arm}-{rate:g}", "family": "qwen", "variant": arm,
                 "policy": "hard", "qps": rate, "requests": 16000})
     files = {str(p.relative_to(output)): digest(p) for p in output.rglob("*") if p.is_file()}

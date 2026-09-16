@@ -309,8 +309,8 @@ taskset -c 0-47 python -m scripts.cloud.canonical_control run \
   --qps 8.6 --gpus 0,1,2,3
 taskset -c 48-95 python -m scripts.cloud.canonical_control run \
   --bundle /workspace/sfs/bundle --models /workspace/sfs/models.json \
-  --state /workspace/sfs/state --output /workspace/sfs/state/controls/qps8p9 \
-  --qps 8.9 --gpus 4,5,6,7
+  --state /workspace/sfs/state --output /workspace/sfs/state/controls/qps8p75 \
+  --qps 8.75 --gpus 4,5,6,7
 ```
 
 Raw points, per-request responses, server/driver logs, hardware and source
@@ -318,3 +318,11 @@ provenance stay in each output directory. `result_summary.json` reports TTFT
 attainment over all 16,000 requests and both Pro/Flash OnTimeUtility on the common
 15,996 observed scored queries; Pro is primary for these canonical controls.
 Historical Bridges results remain a separate hardware comparison.
+
+The bootstrap explicitly places Conda environments and package caches on
+`SFS_STORAGE`. On NVIDIA's Conda CUDA 12.9 packaging, `CUDA_HOME` points to
+`$CONDA_PREFIX/targets/x86_64-linux` for headers and libraries, while `CUDACXX`
+points to `$CONDA_PREFIX/bin/nvcc` beside its required `nvcc.profile`. Source
+`env.sh` for every session so these paths and the pinned environment remain
+consistent. The bootstrap tolerates optional unset variables in vendor activation
+hooks and preserves Python 3.12.11 when installing the CUDA toolkit.

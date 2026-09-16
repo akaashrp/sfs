@@ -155,6 +155,6 @@ if __name__ == '__main__':
     parser.add_argument('--state', required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--models')
-    parser.add_argument('--qps', type=float, choices=[8.6, 8.9], required=True)
+    parser.add_argument('--qps', type=float, choices=[8.6, 8.75], required=True)
     parser.add_argument('--gpus', choices=['0,1,2,3', '4,5,6,7'], required=True)
     execute(parser.parse_args())

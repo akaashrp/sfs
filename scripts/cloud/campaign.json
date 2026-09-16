@@ -10,11 +10,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-mooncake_prefill-8.3",
+      "id": "qwen-mooncake_prefill-8",
       "family": "qwen",
       "variant": "canonical",
       "policy": "mooncake_prefill",
-      "qps": 8.3,
+      "qps": 8.0,
       "requests": 16000
     },
     {
@@ -26,11 +26,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-mooncake_prefill-8.9",
+      "id": "qwen-mooncake_prefill-8.75",
       "family": "qwen",
       "variant": "canonical",
       "policy": "mooncake_prefill",
-      "qps": 8.9,
+      "qps": 8.75,
       "requests": 16000
     },
     {
@@ -42,11 +42,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-lmdeploy_proxy-8.3",
+      "id": "qwen-lmdeploy_proxy-8",
       "family": "qwen",
       "variant": "canonical",
       "policy": "lmdeploy_proxy",
-      "qps": 8.3,
+      "qps": 8.0,
       "requests": 16000
     },
     {
@@ -58,11 +58,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-lmdeploy_proxy-8.9",
+      "id": "qwen-lmdeploy_proxy-8.75",
       "family": "qwen",
       "variant": "canonical",
       "policy": "lmdeploy_proxy",
-      "qps": 8.9,
+      "qps": 8.75,
       "requests": 16000
     },
     {
@@ -74,11 +74,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-routebalance-8.3",
+      "id": "qwen-routebalance-8",
       "family": "qwen",
       "variant": "canonical",
       "policy": "routebalance",
-      "qps": 8.3,
+      "qps": 8.0,
       "requests": 16000
     },
     {
@@ -90,11 +90,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-routebalance-8.9",
+      "id": "qwen-routebalance-8.75",
       "family": "qwen",
       "variant": "canonical",
       "policy": "routebalance",
-      "qps": 8.9,
+      "qps": 8.75,
       "requests": 16000
     },
     {
@@ -106,11 +106,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-score-8.3",
+      "id": "qwen-score-8",
       "family": "qwen",
       "variant": "canonical",
       "policy": "score",
-      "qps": 8.3,
+      "qps": 8.0,
       "requests": 16000
     },
     {
@@ -122,11 +122,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-score-8.9",
+      "id": "qwen-score-8.75",
       "family": "qwen",
       "variant": "canonical",
       "policy": "score",
-      "qps": 8.9,
+      "qps": 8.75,
       "requests": 16000
     },
     {
@@ -138,11 +138,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-vllm_sr_latency-8.3",
+      "id": "qwen-vllm_sr_latency-8",
       "family": "qwen",
       "variant": "canonical",
       "policy": "vllm_sr_latency",
-      "qps": 8.3,
+      "qps": 8.0,
       "requests": 16000
     },
     {
@@ -154,11 +154,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-vllm_sr_latency-8.9",
+      "id": "qwen-vllm_sr_latency-8.75",
       "family": "qwen",
       "variant": "canonical",
       "policy": "vllm_sr_latency",
-      "qps": 8.9,
+      "qps": 8.75,
       "requests": 16000
     },
     {
@@ -458,11 +458,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-mlp_quality-8.3",
+      "id": "qwen-mlp_quality-8",
       "family": "qwen",
       "variant": "mlp_quality",
       "policy": "hard",
-      "qps": 8.3,
+      "qps": 8.0,
       "requests": 16000
     },
     {
@@ -474,11 +474,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-mlp_quality-8.9",
+      "id": "qwen-mlp_quality-8.75",
       "family": "qwen",
       "variant": "mlp_quality",
       "policy": "hard",
-      "qps": 8.9,
+      "qps": 8.75,
       "requests": 16000
     },
     {
@@ -490,11 +490,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-mlp_length-8.3",
+      "id": "qwen-mlp_length-8",
       "family": "qwen",
       "variant": "mlp_length",
       "policy": "hard",
-      "qps": 8.3,
+      "qps": 8.0,
       "requests": 16000
     },
     {
@@ -506,11 +506,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-mlp_length-8.9",
+      "id": "qwen-mlp_length-8.75",
       "family": "qwen",
       "variant": "mlp_length",
       "policy": "hard",
-      "qps": 8.9,
+      "qps": 8.75,
       "requests": 16000
     },
     {
@@ -522,11 +522,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-flash_quality-8.3",
+      "id": "qwen-flash_quality-8",
       "family": "qwen",
       "variant": "flash_quality",
       "policy": "hard",
-      "qps": 8.3,
+      "qps": 8.0,
       "requests": 16000
     },
     {
@@ -538,11 +538,11 @@
       "requests": 16000
     },
     {
-      "id": "qwen-flash_quality-8.9",
+      "id": "qwen-flash_quality-8.75",
       "family": "qwen",
       "variant": "flash_quality",
       "policy": "hard",
-      "qps": 8.9,
+      "qps": 8.75,
       "requests": 16000
     }
   ],
