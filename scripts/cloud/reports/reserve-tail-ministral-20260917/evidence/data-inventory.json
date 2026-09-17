@@ -1,0 +1,442 @@
+{
+ "online_rows_total": 184000,
+ "online_rows_with_prediction": 172862,
+ "online_rows_with_router_prediction": 88000,
+ "online_rows_with_imputed_prediction": 84862,
+ "prediction_handling": {
+  "policies_logging_sfs_prediction": [
+   "hard",
+   "latency_agnostic",
+   "round_robin",
+   "score",
+   "shortest_queue"
+  ],
+  "rows_with_router_prediction": 88000,
+  "rows_with_imputed_prediction": 84862,
+  "rows_without_prediction": 11138,
+  "distinct_request_model_pairs_with_prediction": 20743,
+  "possible_pairs": 24000,
+  "router_prediction_conflicts": 0,
+  "note": "the SFS prediction depends only on (prompt, model); rows of policies that do not log it (mooncake_prefill, lmdeploy_proxy, vllm_sr_latency, routebalance) take the value logged for the same (request, model) in a shortest_queue / latency_agnostic / round_robin cell; routebalance's own logged prediction is kept in router_predicted_output_tokens and not used."
+ },
+ "calibration_rows": 30000,
+ "holdout2_rows": 24000,
+ "checks": {
+  "calibration_prompts_overlapping_online": 0,
+  "holdout2_prompts_overlapping_online": 0,
+  "holdout2_prompts_overlapping_calibration": 0,
+  "predictor_test_ids": 1000,
+  "predictor_test_ids_in_calibration": 1000,
+  "predictor_test_ids_in_online": 0,
+  "predictor_training_summary": 30000,
+  "bundle_scores_note": "bundle ministral/scores/*_scored.jsonl hold holdout indices 2500-6499: the first 2,000 per bucket ARE the online evaluation prompts and were excluded; the remaining 2,000 per bucket are kept as holdout2."
+ },
+ "cells": [
+  {
+   "host": "vast",
+   "cell": "vast:mooncake_prefill:6.0125",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 0,
+   "by_model": {
+    "ministral3-3b": 4346,
+    "ministral3-8b": 2801,
+    "ministral3-14b": 853
+   }
+  },
+  {
+   "host": "vast",
+   "cell": "vast:shortest_queue:6.0125",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 8000,
+   "by_model": {
+    "ministral3-14b": 1793,
+    "ministral3-3b": 3728,
+    "ministral3-8b": 2479
+   }
+  },
+  {
+   "host": "vast",
+   "cell": "vast:shortest_queue:7.8625",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 8000,
+   "by_model": {
+    "ministral3-14b": 1759,
+    "ministral3-3b": 3755,
+    "ministral3-8b": 2486
+   }
+  },
+  {
+   "host": "vast",
+   "cell": "vast:shortest_queue:8.7875",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 8000,
+   "by_model": {
+    "ministral3-14b": 1549,
+    "ministral3-3b": 3782,
+    "ministral3-8b": 2669
+   }
+  },
+  {
+   "host": "vast",
+   "cell": "vast:vllm_sr_latency:6.0125",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 0,
+   "by_model": {
+    "ministral3-3b": 3608,
+    "ministral3-8b": 2653,
+    "ministral3-14b": 1739
+   }
+  },
+  {
+   "host": "vast",
+   "cell": "vast:vllm_sr_latency:7.8625",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 0,
+   "by_model": {
+    "ministral3-3b": 4357,
+    "ministral3-8b": 2796,
+    "ministral3-14b": 847
+   }
+  },
+  {
+   "host": "vast",
+   "cell": "vast:mooncake_prefill:7.8625",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 0,
+   "by_model": {
+    "ministral3-3b": 2754,
+    "ministral3-8b": 3191,
+    "ministral3-14b": 2055
+   }
+  },
+  {
+   "host": "vast",
+   "cell": "vast:mooncake_prefill:8.7875",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 0,
+   "by_model": {
+    "ministral3-3b": 2302,
+    "ministral3-8b": 2836,
+    "ministral3-14b": 2862
+   }
+  },
+  {
+   "host": "vast",
+   "cell": "vast:routebalance:6.0125",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 0,
+   "by_model": {
+    "ministral3-3b": 4558,
+    "ministral3-8b": 2658,
+    "ministral3-14b": 784
+   }
+  },
+  {
+   "host": "vast",
+   "cell": "vast:routebalance:7.8625",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 0,
+   "by_model": {
+    "ministral3-3b": 3990,
+    "ministral3-8b": 2624,
+    "ministral3-14b": 1386
+   }
+  },
+  {
+   "host": "vast",
+   "cell": "vast:routebalance:8.7875",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 0,
+   "by_model": {
+    "ministral3-3b": 3582,
+    "ministral3-8b": 2350,
+    "ministral3-14b": 2068
+   }
+  },
+  {
+   "host": "bridges",
+   "cell": "bridges:lmdeploy_proxy:6.0125",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 0,
+   "by_model": {
+    "ministral3-8b": 2459,
+    "ministral3-14b": 1441,
+    "ministral3-3b": 4100
+   }
+  },
+  {
+   "host": "bridges",
+   "cell": "bridges:latency_agnostic:6.0125",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 8000,
+   "by_model": {
+    "ministral3-3b": 2293,
+    "ministral3-8b": 2037,
+    "ministral3-14b": 3670
+   }
+  },
+  {
+   "host": "bridges",
+   "cell": "bridges:round_robin:6.0125",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 8000,
+   "by_model": {
+    "ministral3-3b": 2667,
+    "ministral3-8b": 2667,
+    "ministral3-14b": 2666
+   }
+  },
+  {
+   "host": "bridges",
+   "cell": "bridges:lmdeploy_proxy:7.8625",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 0,
+   "by_model": {
+    "ministral3-8b": 2578,
+    "ministral3-14b": 1554,
+    "ministral3-3b": 3868
+   }
+  },
+  {
+   "host": "bridges",
+   "cell": "bridges:latency_agnostic:7.8625",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 8000,
+   "by_model": {
+    "ministral3-3b": 2293,
+    "ministral3-8b": 2037,
+    "ministral3-14b": 3670
+   }
+  },
+  {
+   "host": "bridges",
+   "cell": "bridges:round_robin:7.8625",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 8000,
+   "by_model": {
+    "ministral3-3b": 2667,
+    "ministral3-8b": 2667,
+    "ministral3-14b": 2666
+   }
+  },
+  {
+   "host": "bridges",
+   "cell": "bridges:lmdeploy_proxy:8.7875",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 0,
+   "by_model": {
+    "ministral3-8b": 2498,
+    "ministral3-14b": 1581,
+    "ministral3-3b": 3921
+   }
+  },
+  {
+   "host": "bridges",
+   "cell": "bridges:latency_agnostic:8.7875",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 8000,
+   "by_model": {
+    "ministral3-3b": 2293,
+    "ministral3-8b": 2037,
+    "ministral3-14b": 3670
+   }
+  },
+  {
+   "host": "bridges",
+   "cell": "bridges:round_robin:8.7875",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 8000,
+   "by_model": {
+    "ministral3-3b": 2667,
+    "ministral3-8b": 2667,
+    "ministral3-14b": 2666
+   }
+  },
+  {
+   "host": "bridges",
+   "cell": "bridges:lmdeploy_proxy:9.7125",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 0,
+   "by_model": {
+    "ministral3-8b": 2557,
+    "ministral3-14b": 1659,
+    "ministral3-3b": 3784
+   }
+  },
+  {
+   "host": "bridges",
+   "cell": "bridges:latency_agnostic:9.7125",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 8000,
+   "by_model": {
+    "ministral3-3b": 2293,
+    "ministral3-8b": 2037,
+    "ministral3-14b": 3670
+   }
+  },
+  {
+   "host": "bridges",
+   "cell": "bridges:round_robin:9.7125",
+   "requests": 8000,
+   "failed": 0,
+   "with_sfs_prediction": 8000,
+   "by_model": {
+    "ministral3-3b": 2667,
+    "ministral3-8b": 2667,
+    "ministral3-14b": 2666
+   }
+  }
+ ],
+ "by_model": {
+  "ministral3-3b": {
+   "online_rows": 76275,
+   "online_distinct_prompts": 7999,
+   "online_rows_with_prediction": 73141,
+   "online_prompts_with_prediction": 7419,
+   "online_capped_pct": 0.0471976401179941,
+   "online_near_cap_ge_8181_pct": 0.0471976401179941,
+   "online_zero_length": 0,
+   "online_p50": 799.0,
+   "online_p90": 1481.0,
+   "online_p99": 2203.0,
+   "calibration_rows": 10000,
+   "calibration_capped_pct": 0.08,
+   "calibration_finish_length": 8,
+   "calibration_p50": 692.0,
+   "calibration_p90": 1438.0,
+   "calibration_p99": 2396.0200000000004,
+   "holdout2_rows": 8000,
+   "holdout2_capped_pct": 0.13749999999999998,
+   "holdout2_p50": 696.0,
+   "holdout2_p90": 1430.0,
+   "pred_le_1_pct": 0.07109555516058025,
+   "by_host": {
+    "vast": {
+     "rows": 40762,
+     "capped_pct": 0.04170551003385506
+    },
+    "bridges": {
+     "rows": 35513,
+     "capped_pct": 0.05350153464928336
+    }
+   }
+  },
+  "ministral3-8b": {
+   "online_rows": 58451,
+   "online_distinct_prompts": 7991,
+   "online_rows_with_prediction": 53462,
+   "online_prompts_with_prediction": 6747,
+   "online_capped_pct": 0.09751757882670954,
+   "online_near_cap_ge_8181_pct": 0.09751757882670954,
+   "online_zero_length": 0,
+   "online_p50": 697.0,
+   "online_p90": 1455.0,
+   "online_p99": 2436.5,
+   "calibration_rows": 10000,
+   "calibration_capped_pct": 0.1,
+   "calibration_finish_length": 10,
+   "calibration_p50": 787.0,
+   "calibration_p90": 1487.1000000000004,
+   "calibration_p99": 2489.0600000000013,
+   "holdout2_rows": 8000,
+   "holdout2_capped_pct": 0.075,
+   "holdout2_p50": 795.5,
+   "holdout2_p90": 1493.1000000000004,
+   "pred_le_1_pct": 0.09352437245146085,
+   "by_host": {
+    "vast": {
+     "rows": 29543,
+     "capped_pct": 0.09139220796804658
+    },
+    "bridges": {
+     "rows": 28908,
+     "capped_pct": 0.10377750103777503
+    }
+   }
+  },
+  "ministral3-14b": {
+   "online_rows": 49274,
+   "online_distinct_prompts": 7840,
+   "online_rows_with_prediction": 46259,
+   "online_prompts_with_prediction": 6577,
+   "online_capped_pct": 0.06494297195275399,
+   "online_near_cap_ge_8181_pct": 0.06494297195275399,
+   "online_zero_length": 0,
+   "online_p50": 747.0,
+   "online_p90": 1492.0,
+   "online_p99": 2314.0,
+   "calibration_rows": 10000,
+   "calibration_capped_pct": 0.05,
+   "calibration_finish_length": 5,
+   "calibration_p50": 840.0,
+   "calibration_p90": 1539.0,
+   "calibration_p99": 2278.040000000001,
+   "holdout2_rows": 8000,
+   "holdout2_capped_pct": 0.1,
+   "holdout2_p50": 836.5,
+   "holdout2_p90": 1538.0,
+   "pred_le_1_pct": 0.14051319743185112,
+   "by_host": {
+    "vast": {
+     "rows": 17695,
+     "capped_pct": 0.07911839502684374
+    },
+    "bridges": {
+     "rows": 31579,
+     "capped_pct": 0.056999905000158335
+    }
+   }
+  }
+ },
+ "length_reproducibility": {
+  "ministral3-3b": {
+   "repeated_pairs": 7995,
+   "same_host_range_p50": 157.0,
+   "same_host_range_p90": 595.0,
+   "same_host_identical_pct": 19.33474779275888,
+   "cross_host_absdiff_p50": 26.0,
+   "cross_host_absdiff_p90": 195.0,
+   "cross_host_identical_pct": 25.28482651475919
+  },
+  "ministral3-8b": {
+   "repeated_pairs": 7903,
+   "same_host_range_p50": 89.0,
+   "same_host_range_p90": 518.0,
+   "same_host_identical_pct": 24.101529146937825,
+   "cross_host_absdiff_p50": 24.5,
+   "cross_host_absdiff_p90": 205.0,
+   "cross_host_identical_pct": 29.030880888003413
+  },
+  "ministral3-14b": {
+   "repeated_pairs": 7360,
+   "same_host_range_p50": 89.0,
+   "same_host_range_p90": 549.0,
+   "same_host_identical_pct": 22.63454260131081,
+   "cross_host_absdiff_p50": 26.5,
+   "cross_host_absdiff_p90": 216.80000000000018,
+   "cross_host_identical_pct": 26.546938775510203
+  }
+ }
+}

@@ -421,10 +421,16 @@ class WaitTimeScheduler:
         critical_wait_time_timeout_s: float = 0.05,
         route_random_seed: Optional[int] = None,
         readiness_predictor_path: Optional[str] = None,
+        remaining_length_tables: Optional[Dict[str, Any]] = None,
     ) -> None:
         if not instances:
             raise ValueError("At least one instance must be provided")
         self._instances = instances
+        # instance_id -> RemainingLengthTable; only set when the engines run the
+        # flag-gated remaining-length rule (see scripts.cloud.pool).
+        self._remaining_length_tables: Dict[str, Any] = dict(
+            remaining_length_tables or {}
+        )
         self._request_log: Dict[str, WaitTimeResult] = {}
         self._log_path = request_log_path
         self._response_map_path = response_map_path
@@ -794,6 +800,19 @@ class WaitTimeScheduler:
             if completion_cap is not None
             else 2**31 - 1
         )
+        predicted_output_tokens = float(predicted_output_tokens)
+        remaining_length_table = (
+            getattr(self, "_remaining_length_tables", None) or {}
+        ).get(instance_id)
+        if predicted_output_tokens <= 1.0 and remaining_length_table is not None:
+            # Missing/degenerate prediction (the 1.0 default): use the table's
+            # unconditional prompt-bin median instead of one token.
+            fallback = remaining_length_table.unconditional_quantile(
+                quantile=0.5,
+                num_prompt_tokens=max(0, int(prompt_tokens)),
+            )
+            if fallback is not None:
+                predicted_output_tokens = min(float(fallback), float(resolved_cap))
         self._pending_dispatch_ledger.reserve(
             instance_id,
             PendingDispatch(

@@ -1,0 +1,1215 @@
+{
+ "construction": "conditional distribution of total length L among requests with L > g, by prompt bin; share capped = L >= 8192; stop_soon = L - g <= 250; sources: Ministral calibration outputs and online rows (all policies); Qwen 0.6B calibration table bins.",
+ "ministral": {
+  "ministral3-3b/prompt_bin3/calibration": {
+   "n": 1328,
+   "capped_pct": 0.0,
+   "p50": 1036.0,
+   "p90": 1456.6,
+   "at_g": {
+    "0": {
+     "survivors": 1328,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 11.370481927710843,
+     "remaining_p50": 1036.0,
+     "remaining_p90": 1456.6,
+     "survival_q50_total": 1036.0,
+     "survival_q65_total": 1149.5500000000002
+    },
+    "250": {
+     "survivors": 1177,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 1.0195412064570943,
+     "remaining_p50": 825.0,
+     "remaining_p90": 1232.4,
+     "survival_q50_total": 1075.0,
+     "survival_q65_total": 1185.4
+    },
+    "500": {
+     "survivors": 1165,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 5.064377682403434,
+     "remaining_p50": 578.0,
+     "remaining_p90": 984.8000000000004,
+     "survival_q50_total": 1078.0,
+     "survival_q65_total": 1189.6
+    },
+    "1000": {
+     "survivors": 728,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 54.12087912087912,
+     "remaining_p50": 223.0,
+     "remaining_p90": 574.9000000000002,
+     "survival_q50_total": 1223.0,
+     "survival_q65_total": 1319.55
+    },
+    "1500": {
+     "survivors": 107,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 80.37383177570094,
+     "remaining_p50": 124.0,
+     "remaining_p90": 352.4,
+     "survival_q50_total": 1624.0,
+     "survival_q65_total": 1669.0
+    },
+    "2000": {
+     "survivors": 5
+    },
+    "3000": {
+     "survivors": 0
+    },
+    "4000": {
+     "survivors": 0
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "ministral3-3b/prompt_bin3/online": {
+   "n": 12696,
+   "capped_pct": 0.0,
+   "p50": 1073.0,
+   "p90": 1470.0,
+   "at_g": {
+    "0": {
+     "survivors": 12696,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 7.364524259609325,
+     "remaining_p50": 1073.0,
+     "remaining_p90": 1470.0,
+     "survival_q50_total": 1073.0,
+     "survival_q65_total": 1178.0
+    },
+    "250": {
+     "survivors": 11761,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.493155343933339,
+     "remaining_p50": 847.0,
+     "remaining_p90": 1237.0,
+     "survival_q50_total": 1097.0,
+     "survival_q65_total": 1199.0
+    },
+    "500": {
+     "survivors": 11703,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 4.656925574638981,
+     "remaining_p50": 598.0,
+     "remaining_p90": 987.0,
+     "survival_q50_total": 1098.0,
+     "survival_q65_total": 1200.0
+    },
+    "1000": {
+     "survivors": 7674,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 56.137607505863954,
+     "remaining_p50": 217.0,
+     "remaining_p90": 569.0,
+     "survival_q50_total": 1217.0,
+     "survival_q65_total": 1304.0
+    },
+    "1500": {
+     "survivors": 1088,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 75.27573529411765,
+     "remaining_p50": 128.0,
+     "remaining_p90": 406.9000000000002,
+     "survival_q50_total": 1628.0,
+     "survival_q65_total": 1694.0
+    },
+    "2000": {
+     "survivors": 68,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 70.58823529411765,
+     "remaining_p50": 123.5,
+     "remaining_p90": 1558.3000000000004,
+     "survival_q50_total": 2123.5,
+     "survival_q65_total": 2183.3
+    },
+    "3000": {
+     "survivors": 12,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 25.0,
+     "remaining_p50": 785.0,
+     "remaining_p90": 1185.7,
+     "survival_q50_total": 3785.0,
+     "survival_q65_total": 3951.75
+    },
+    "4000": {
+     "survivors": 2
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "ministral3-3b/prompt_bin4/calibration": {
+   "n": 1309,
+   "capped_pct": 0.0,
+   "p50": 1266.0,
+   "p90": 1686.4,
+   "at_g": {
+    "0": {
+     "survivors": 1309,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1266.0,
+     "remaining_p90": 1686.4,
+     "survival_q50_total": 1266.0,
+     "survival_q65_total": 1370.4
+    },
+    "250": {
+     "survivors": 1309,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1016.0,
+     "remaining_p90": 1436.4,
+     "survival_q50_total": 1266.0,
+     "survival_q65_total": 1370.4
+    },
+    "500": {
+     "survivors": 1309,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 1.3750954927425516,
+     "remaining_p50": 766.0,
+     "remaining_p90": 1186.4,
+     "survival_q50_total": 1266.0,
+     "survival_q65_total": 1370.4
+    },
+    "1000": {
+     "survivors": 1113,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 38.36477987421384,
+     "remaining_p50": 320.0,
+     "remaining_p90": 719.6000000000001,
+     "survival_q50_total": 1320.0,
+     "survival_q65_total": 1416.8000000000002
+    },
+    "1500": {
+     "survivors": 274,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 65.69343065693431,
+     "remaining_p50": 167.0,
+     "remaining_p90": 482.70000000000005,
+     "survival_q50_total": 1667.0,
+     "survival_q65_total": 1743.45
+    },
+    "2000": {
+     "survivors": 25,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 56.00000000000001,
+     "remaining_p50": 216.0,
+     "remaining_p90": 466.0,
+     "survival_q50_total": 2216.0,
+     "survival_q65_total": 2300.6
+    },
+    "3000": {
+     "survivors": 0
+    },
+    "4000": {
+     "survivors": 0
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "ministral3-3b/prompt_bin4/online": {
+   "n": 13827,
+   "capped_pct": 0.0,
+   "p50": 1273.0,
+   "p90": 1690.3999999999996,
+   "at_g": {
+    "0": {
+     "survivors": 13827,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1273.0,
+     "remaining_p90": 1690.3999999999996,
+     "survival_q50_total": 1273.0,
+     "survival_q65_total": 1392.0
+    },
+    "250": {
+     "survivors": 13827,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1023.0,
+     "remaining_p90": 1440.3999999999996,
+     "survival_q50_total": 1273.0,
+     "survival_q65_total": 1392.0
+    },
+    "500": {
+     "survivors": 13827,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.9401894843422289,
+     "remaining_p50": 773.0,
+     "remaining_p90": 1190.3999999999996,
+     "survival_q50_total": 1273.0,
+     "survival_q65_total": 1392.0
+    },
+    "1000": {
+     "survivors": 11840,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 37.939189189189186,
+     "remaining_p50": 329.0,
+     "remaining_p90": 719.0,
+     "survival_q50_total": 1329.0,
+     "survival_q65_total": 1436.3500000000004
+    },
+    "1500": {
+     "survivors": 3209,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 68.46369585540667,
+     "remaining_p50": 165.0,
+     "remaining_p90": 474.0,
+     "survival_q50_total": 1665.0,
+     "survival_q65_total": 1729.0
+    },
+    "2000": {
+     "survivors": 275,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 81.81818181818183,
+     "remaining_p50": 92.0,
+     "remaining_p90": 324.5999999999999,
+     "survival_q50_total": 2092.0,
+     "survival_q65_total": 2142.1
+    },
+    "3000": {
+     "survivors": 0
+    },
+    "4000": {
+     "survivors": 0
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "ministral3-3b/govreport/online": {
+   "n": 25764,
+   "capped_pct": 0.0,
+   "p50": 1193.0,
+   "p90": 1624.0,
+   "at_g": {
+    "0": {
+     "survivors": 25764,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1193.0,
+     "remaining_p90": 1624.0,
+     "survival_q50_total": 1193.0,
+     "survival_q65_total": 1310.0
+    },
+    "250": {
+     "survivors": 25764,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 943.0,
+     "remaining_p90": 1374.0,
+     "survival_q50_total": 1193.0,
+     "survival_q65_total": 1310.0
+    },
+    "500": {
+     "survivors": 25764,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 2.5927650985871757,
+     "remaining_p50": 693.0,
+     "remaining_p90": 1124.0,
+     "survival_q50_total": 1193.0,
+     "survival_q65_total": 1310.0
+    },
+    "1000": {
+     "survivors": 19735,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 44.9049911325057,
+     "remaining_p50": 281.0,
+     "remaining_p90": 679.0,
+     "survival_q50_total": 1281.0,
+     "survival_q65_total": 1388.0
+    },
+    "1500": {
+     "survivors": 4395,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 69.73833902161547,
+     "remaining_p50": 159.0,
+     "remaining_p90": 465.0,
+     "survival_q50_total": 1659.0,
+     "survival_q65_total": 1722.1
+    },
+    "2000": {
+     "survivors": 359,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 79.94428969359332,
+     "remaining_p50": 101.0,
+     "remaining_p90": 403.39999999999986,
+     "survival_q50_total": 2101.0,
+     "survival_q65_total": 2148.0
+    },
+    "3000": {
+     "survivors": 12,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 25.0,
+     "remaining_p50": 785.0,
+     "remaining_p90": 1185.7,
+     "survival_q50_total": 3785.0,
+     "survival_q65_total": 3951.75
+    },
+    "4000": {
+     "survivors": 2
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "ministral3-8b/prompt_bin3/calibration": {
+   "n": 1328,
+   "capped_pct": 0.0,
+   "p50": 1048.5,
+   "p90": 1417.6,
+   "at_g": {
+    "0": {
+     "survivors": 1328,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 11.44578313253012,
+     "remaining_p50": 1048.5,
+     "remaining_p90": 1417.6,
+     "survival_q50_total": 1048.5,
+     "survival_q65_total": 1161.5500000000002
+    },
+    "250": {
+     "survivors": 1176,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.6802721088435374,
+     "remaining_p50": 845.0,
+     "remaining_p90": 1194.5,
+     "survival_q50_total": 1095.0,
+     "survival_q65_total": 1189.0
+    },
+    "500": {
+     "survivors": 1168,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 4.537671232876712,
+     "remaining_p50": 596.0,
+     "remaining_p90": 946.0,
+     "survival_q50_total": 1096.0,
+     "survival_q65_total": 1190.0
+    },
+    "1000": {
+     "survivors": 738,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 56.50406504065041,
+     "remaining_p50": 208.5,
+     "remaining_p90": 502.9000000000002,
+     "survival_q50_total": 1208.5,
+     "survival_q65_total": 1295.0
+    },
+    "1500": {
+     "survivors": 76,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 78.94736842105263,
+     "remaining_p50": 102.0,
+     "remaining_p90": 319.5,
+     "survival_q50_total": 1602.0,
+     "survival_q65_total": 1665.0
+    },
+    "2000": {
+     "survivors": 1
+    },
+    "3000": {
+     "survivors": 0
+    },
+    "4000": {
+     "survivors": 0
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "ministral3-8b/prompt_bin3/online": {
+   "n": 7270,
+   "capped_pct": 0.0,
+   "p50": 1061.0,
+   "p90": 1411.0,
+   "at_g": {
+    "0": {
+     "survivors": 7270,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 11.348005502063273,
+     "remaining_p50": 1061.0,
+     "remaining_p90": 1411.0,
+     "survival_q50_total": 1061.0,
+     "survival_q65_total": 1153.8500000000004
+    },
+    "250": {
+     "survivors": 6445,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.8223429014740109,
+     "remaining_p50": 845.0,
+     "remaining_p90": 1183.0,
+     "survival_q50_total": 1095.0,
+     "survival_q65_total": 1185.0
+    },
+    "500": {
+     "survivors": 6392,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 3.942428035043805,
+     "remaining_p50": 596.0,
+     "remaining_p90": 935.0,
+     "survival_q50_total": 1096.0,
+     "survival_q65_total": 1187.0
+    },
+    "1000": {
+     "survivors": 4340,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 61.105990783410135,
+     "remaining_p50": 194.0,
+     "remaining_p90": 497.0,
+     "survival_q50_total": 1194.0,
+     "survival_q65_total": 1273.0
+    },
+    "1500": {
+     "survivors": 430,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 86.04651162790698,
+     "remaining_p50": 98.0,
+     "remaining_p90": 281.20000000000005,
+     "survival_q50_total": 1598.0,
+     "survival_q65_total": 1639.7
+    },
+    "2000": {
+     "survivors": 14,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 42.857142857142854,
+     "remaining_p50": 487.0,
+     "remaining_p90": 1311.1000000000004,
+     "survival_q50_total": 2487.0,
+     "survival_q65_total": 2703.7000000000003
+    },
+    "3000": {
+     "survivors": 3
+    },
+    "4000": {
+     "survivors": 0
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "ministral3-8b/prompt_bin4/calibration": {
+   "n": 1309,
+   "capped_pct": 0.0,
+   "p50": 1267.0,
+   "p90": 1621.2,
+   "at_g": {
+    "0": {
+     "survivors": 1309,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1267.0,
+     "remaining_p90": 1621.2,
+     "survival_q50_total": 1267.0,
+     "survival_q65_total": 1355.2
+    },
+    "250": {
+     "survivors": 1309,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1017.0,
+     "remaining_p90": 1371.2,
+     "survival_q50_total": 1267.0,
+     "survival_q65_total": 1355.2
+    },
+    "500": {
+     "survivors": 1309,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.6111535523300229,
+     "remaining_p50": 767.0,
+     "remaining_p90": 1121.2,
+     "survival_q50_total": 1267.0,
+     "survival_q65_total": 1355.2
+    },
+    "1000": {
+     "survivors": 1152,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 41.92708333333333,
+     "remaining_p50": 298.0,
+     "remaining_p90": 641.9000000000001,
+     "survival_q50_total": 1298.0,
+     "survival_q65_total": 1393.0
+    },
+    "1500": {
+     "survivors": 241,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 76.76348547717843,
+     "remaining_p50": 139.0,
+     "remaining_p90": 415.0,
+     "survival_q50_total": 1639.0,
+     "survival_q65_total": 1696.0
+    },
+    "2000": {
+     "survivors": 16,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 81.25,
+     "remaining_p50": 136.0,
+     "remaining_p90": 382.5,
+     "survival_q50_total": 2136.0,
+     "survival_q65_total": 2169.25
+    },
+    "3000": {
+     "survivors": 0
+    },
+    "4000": {
+     "survivors": 0
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "ministral3-8b/prompt_bin4/online": {
+   "n": 6172,
+   "capped_pct": 0.0,
+   "p50": 1245.0,
+   "p90": 1623.0,
+   "at_g": {
+    "0": {
+     "survivors": 6172,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1245.0,
+     "remaining_p90": 1623.0,
+     "survival_q50_total": 1245.0,
+     "survival_q65_total": 1352.0
+    },
+    "250": {
+     "survivors": 6172,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 995.0,
+     "remaining_p90": 1373.0,
+     "survival_q50_total": 1245.0,
+     "survival_q65_total": 1352.0
+    },
+    "500": {
+     "survivors": 6172,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.5670771224886585,
+     "remaining_p50": 745.0,
+     "remaining_p90": 1123.0,
+     "survival_q50_total": 1245.0,
+     "survival_q65_total": 1352.0
+    },
+    "1000": {
+     "survivors": 5364,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 43.288590604026844,
+     "remaining_p50": 292.0,
+     "remaining_p90": 648.0,
+     "survival_q50_total": 1292.0,
+     "survival_q65_total": 1391.0
+    },
+    "1500": {
+     "survivors": 1157,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 74.33016421780466,
+     "remaining_p50": 135.0,
+     "remaining_p90": 396.4000000000001,
+     "survival_q50_total": 1635.0,
+     "survival_q65_total": 1698.4
+    },
+    "2000": {
+     "survivors": 57,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 87.71929824561403,
+     "remaining_p50": 111.0,
+     "remaining_p90": 297.0,
+     "survival_q50_total": 2111.0,
+     "survival_q65_total": 2143.4
+    },
+    "3000": {
+     "survivors": 0
+    },
+    "4000": {
+     "survivors": 0
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "ministral3-8b/govreport/online": {
+   "n": 12647,
+   "capped_pct": 0.0,
+   "p50": 1168.0,
+   "p90": 1545.3999999999996,
+   "at_g": {
+    "0": {
+     "survivors": 12647,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1168.0,
+     "remaining_p90": 1545.3999999999996,
+     "survival_q50_total": 1168.0,
+     "survival_q65_total": 1271.0
+    },
+    "250": {
+     "survivors": 12647,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.023721040562979363,
+     "remaining_p50": 918.0,
+     "remaining_p90": 1295.3999999999996,
+     "survival_q50_total": 1168.0,
+     "survival_q65_total": 1271.0
+    },
+    "500": {
+     "survivors": 12644,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 2.2698513128756725,
+     "remaining_p50": 668.0,
+     "remaining_p90": 1045.7000000000007,
+     "survival_q50_total": 1168.0,
+     "survival_q65_total": 1271.0
+    },
+    "1000": {
+     "survivors": 9757,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 51.16326739776571,
+     "remaining_p50": 243.0,
+     "remaining_p90": 589.3999999999996,
+     "survival_q50_total": 1243.0,
+     "survival_q65_total": 1339.0
+    },
+    "1500": {
+     "survivors": 1607,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 77.28686994399501,
+     "remaining_p50": 123.0,
+     "remaining_p90": 372.0,
+     "survival_q50_total": 1623.0,
+     "survival_q65_total": 1680.0
+    },
+    "2000": {
+     "survivors": 71,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 78.87323943661971,
+     "remaining_p50": 120.0,
+     "remaining_p90": 481.0,
+     "survival_q50_total": 2120.0,
+     "survival_q65_total": 2151.5
+    },
+    "3000": {
+     "survivors": 3
+    },
+    "4000": {
+     "survivors": 0
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "ministral3-14b/prompt_bin3/calibration": {
+   "n": 1328,
+   "capped_pct": 0.0,
+   "p50": 1143.0,
+   "p90": 1474.0,
+   "at_g": {
+    "0": {
+     "survivors": 1328,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 11.897590361445783,
+     "remaining_p50": 1143.0,
+     "remaining_p90": 1474.0,
+     "survival_q50_total": 1143.0,
+     "survival_q65_total": 1246.0
+    },
+    "250": {
+     "survivors": 1170,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.5128205128205128,
+     "remaining_p50": 930.5,
+     "remaining_p90": 1249.0,
+     "survival_q50_total": 1180.5,
+     "survival_q65_total": 1268.85
+    },
+    "500": {
+     "survivors": 1164,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 1.632302405498282,
+     "remaining_p50": 683.0,
+     "remaining_p90": 999.0,
+     "survival_q50_total": 1183.0,
+     "survival_q65_total": 1269.95
+    },
+    "1000": {
+     "survivors": 941,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 52.072263549415524,
+     "remaining_p50": 243.0,
+     "remaining_p90": 532.0,
+     "survival_q50_total": 1243.0,
+     "survival_q65_total": 1308.0
+    },
+    "1500": {
+     "survivors": 114,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 84.21052631578947,
+     "remaining_p50": 103.5,
+     "remaining_p90": 276.4,
+     "survival_q50_total": 1603.5,
+     "survival_q65_total": 1673.35
+    },
+    "2000": {
+     "survivors": 1
+    },
+    "3000": {
+     "survivors": 0
+    },
+    "4000": {
+     "survivors": 0
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "ministral3-14b/prompt_bin3/online": {
+   "n": 4391,
+   "capped_pct": 0.0,
+   "p50": 1133.0,
+   "p90": 1471.0,
+   "at_g": {
+    "0": {
+     "survivors": 4391,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 14.210885902983375,
+     "remaining_p50": 1133.0,
+     "remaining_p90": 1471.0,
+     "survival_q50_total": 1133.0,
+     "survival_q65_total": 1223.0
+    },
+    "250": {
+     "survivors": 3767,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 1.4600477833820016,
+     "remaining_p50": 927.0,
+     "remaining_p90": 1248.4,
+     "survival_q50_total": 1177.0,
+     "survival_q65_total": 1259.0
+    },
+    "500": {
+     "survivors": 3712,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 1.4816810344827587,
+     "remaining_p50": 680.0,
+     "remaining_p90": 1001.9000000000001,
+     "survival_q50_total": 1180.0,
+     "survival_q65_total": 1262.0
+    },
+    "1000": {
+     "survivors": 3035,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 54.69522240527183,
+     "remaining_p50": 226.0,
+     "remaining_p90": 538.0,
+     "survival_q50_total": 1226.0,
+     "survival_q65_total": 1302.0
+    },
+    "1500": {
+     "survivors": 373,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 84.98659517426273,
+     "remaining_p50": 106.0,
+     "remaining_p90": 326.6,
+     "survival_q50_total": 1606.0,
+     "survival_q65_total": 1656.0
+    },
+    "2000": {
+     "survivors": 14,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 64.28571428571429,
+     "remaining_p50": 112.5,
+     "remaining_p90": 708.3000000000002,
+     "survival_q50_total": 2112.5,
+     "survival_q65_total": 2240.65
+    },
+    "3000": {
+     "survivors": 0
+    },
+    "4000": {
+     "survivors": 0
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "ministral3-14b/prompt_bin4/calibration": {
+   "n": 1309,
+   "capped_pct": 0.0,
+   "p50": 1363.0,
+   "p90": 1734.0,
+   "at_g": {
+    "0": {
+     "survivors": 1309,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1363.0,
+     "remaining_p90": 1734.0,
+     "survival_q50_total": 1363.0,
+     "survival_q65_total": 1467.2
+    },
+    "250": {
+     "survivors": 1309,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1113.0,
+     "remaining_p90": 1484.0,
+     "survival_q50_total": 1363.0,
+     "survival_q65_total": 1467.2
+    },
+    "500": {
+     "survivors": 1309,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 863.0,
+     "remaining_p90": 1234.0,
+     "survival_q50_total": 1363.0,
+     "survival_q65_total": 1467.2
+    },
+    "1000": {
+     "survivors": 1249,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 28.823058446757404,
+     "remaining_p50": 377.0,
+     "remaining_p90": 739.2,
+     "survival_q50_total": 1377.0,
+     "survival_q65_total": 1475.0
+    },
+    "1500": {
+     "survivors": 392,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 70.66326530612244,
+     "remaining_p50": 167.5,
+     "remaining_p90": 386.2000000000003,
+     "survival_q50_total": 1667.5,
+     "survival_q65_total": 1726.15
+    },
+    "2000": {
+     "survivors": 15,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 86.66666666666667,
+     "remaining_p50": 58.0,
+     "remaining_p90": 304.4,
+     "survival_q50_total": 2058.0,
+     "survival_q65_total": 2074.8
+    },
+    "3000": {
+     "survivors": 0
+    },
+    "4000": {
+     "survivors": 0
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "ministral3-14b/prompt_bin4/online": {
+   "n": 3806,
+   "capped_pct": 0.0,
+   "p50": 1363.0,
+   "p90": 1712.5,
+   "at_g": {
+    "0": {
+     "survivors": 3806,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1363.0,
+     "remaining_p90": 1712.5,
+     "survival_q50_total": 1363.0,
+     "survival_q65_total": 1459.25
+    },
+    "250": {
+     "survivors": 3806,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1113.0,
+     "remaining_p90": 1462.5,
+     "survival_q50_total": 1363.0,
+     "survival_q65_total": 1459.25
+    },
+    "500": {
+     "survivors": 3806,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.05254860746190226,
+     "remaining_p50": 863.0,
+     "remaining_p90": 1212.5,
+     "survival_q50_total": 1363.0,
+     "survival_q65_total": 1459.25
+    },
+    "1000": {
+     "survivors": 3649,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 28.117292408879145,
+     "remaining_p50": 375.0,
+     "remaining_p90": 721.0,
+     "survival_q50_total": 1375.0,
+     "survival_q65_total": 1468.0
+    },
+    "1500": {
+     "survivors": 1103,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 72.16681776971895,
+     "remaining_p50": 143.0,
+     "remaining_p90": 392.0,
+     "survival_q50_total": 1643.0,
+     "survival_q65_total": 1709.3000000000002
+    },
+    "2000": {
+     "survivors": 47,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 85.1063829787234,
+     "remaining_p50": 112.0,
+     "remaining_p90": 328.2,
+     "survival_q50_total": 2112.0,
+     "survival_q65_total": 2168.9
+    },
+    "3000": {
+     "survivors": 0
+    },
+    "4000": {
+     "survivors": 0
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "ministral3-14b/govreport/online": {
+   "n": 7589,
+   "capped_pct": 0.0,
+   "p50": 1271.0,
+   "p90": 1633.0,
+   "at_g": {
+    "0": {
+     "survivors": 7589,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1271.0,
+     "remaining_p90": 1633.0,
+     "survival_q50_total": 1271.0,
+     "survival_q65_total": 1373.0
+    },
+    "250": {
+     "survivors": 7589,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.0,
+     "remaining_p50": 1021.0,
+     "remaining_p90": 1383.0,
+     "survival_q50_total": 1271.0,
+     "survival_q65_total": 1373.0
+    },
+    "500": {
+     "survivors": 7589,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 0.5797865331400711,
+     "remaining_p50": 771.0,
+     "remaining_p90": 1133.0,
+     "survival_q50_total": 1271.0,
+     "survival_q65_total": 1373.0
+    },
+    "1000": {
+     "survivors": 6759,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 39.99112294718154,
+     "remaining_p50": 305.0,
+     "remaining_p90": 656.0,
+     "survival_q50_total": 1305.0,
+     "survival_q65_total": 1402.0
+    },
+    "1500": {
+     "survivors": 1513,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 74.95042961004627,
+     "remaining_p50": 134.0,
+     "remaining_p90": 390.79999999999995,
+     "survival_q50_total": 1634.0,
+     "survival_q65_total": 1693.8000000000002
+    },
+    "2000": {
+     "survivors": 69,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 81.15942028985508,
+     "remaining_p50": 112.0,
+     "remaining_p90": 378.0000000000002,
+     "survival_q50_total": 2112.0,
+     "survival_q65_total": 2186.0
+    },
+    "3000": {
+     "survivors": 0
+    },
+    "4000": {
+     "survivors": 0
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  }
+ },
+ "qwen3-0.6b_calibration": {
+  "prompt_bin3": {
+   "n": 1357,
+   "capped_pct": 0.0,
+   "p50": 364.0,
+   "p90": 634.0,
+   "at_g": {
+    "0": {
+     "survivors": 1357,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 24.53942520265291,
+     "remaining_p50": 364.0,
+     "remaining_p90": 634.0,
+     "survival_q50_total": 364.0,
+     "survival_q65_total": 430.0
+    },
+    "250": {
+     "survivors": 1024,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 69.82421875,
+     "remaining_p50": 166.0,
+     "remaining_p90": 439.8000000000002,
+     "survival_q50_total": 416.0,
+     "survival_q65_total": 480.95000000000005
+    },
+    "500": {
+     "survivors": 309,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 74.4336569579288,
+     "remaining_p50": 112.0,
+     "remaining_p90": 399.4,
+     "survival_q50_total": 612.0,
+     "survival_q65_total": 679.0
+    },
+    "1000": {
+     "survivors": 17,
+     "capped_pct": 0.0,
+     "stop_within_250_pct": 58.82352941176471,
+     "remaining_p50": 182.0,
+     "remaining_p90": 813.6000000000001,
+     "survival_q50_total": 1182.0,
+     "survival_q65_total": 1274.0
+    },
+    "1500": {
+     "survivors": 4
+    },
+    "2000": {
+     "survivors": 2
+    },
+    "3000": {
+     "survivors": 1
+    },
+    "4000": {
+     "survivors": 1
+    },
+    "6000": {
+     "survivors": 0
+    }
+   }
+  },
+  "prompt_bin4": {
+   "n": 1293,
+   "capped_pct": 10.2861562258314,
+   "p50": 619.0,
+   "p90": 8192.0,
+   "at_g": {
+    "0": {
+     "survivors": 1293,
+     "capped_pct": 10.2861562258314,
+     "stop_within_250_pct": 5.877803557617943,
+     "remaining_p50": 619.0,
+     "remaining_p90": 8192.0,
+     "survival_q50_total": 619.0,
+     "survival_q65_total": 834.0
+    },
+    "250": {
+     "survivors": 1217,
+     "capped_pct": 10.928512736236648,
+     "stop_within_250_pct": 31.14215283483977,
+     "remaining_p50": 408.0,
+     "remaining_p90": 7942.0,
+     "survival_q50_total": 658.0,
+     "survival_q65_total": 866.0
+    },
+    "500": {
+     "survivors": 838,
+     "capped_pct": 15.871121718377088,
+     "stop_within_250_pct": 39.140811455847256,
+     "remaining_p50": 371.0,
+     "remaining_p90": 7692.0,
+     "survival_q50_total": 871.0,
+     "survival_q65_total": 1180.2500000000005
+    },
+    "1000": {
+     "survivors": 350,
+     "capped_pct": 38.0,
+     "stop_within_250_pct": 20.57142857142857,
+     "remaining_p50": 1749.5,
+     "remaining_p90": 7192.0,
+     "survival_q50_total": 2749.5,
+     "survival_q65_total": 8192.0
+    },
+    "1500": {
+     "survivors": 239,
+     "capped_pct": 55.64853556485355,
+     "stop_within_250_pct": 10.0418410041841,
+     "remaining_p50": 6692.0,
+     "remaining_p90": 6692.0,
+     "survival_q50_total": 8192.0,
+     "survival_q65_total": 8192.0
+    },
+    "2000": {
+     "survivors": 204,
+     "capped_pct": 65.19607843137256,
+     "stop_within_250_pct": 6.862745098039216,
+     "remaining_p50": 6192.0,
+     "remaining_p90": 6192.0,
+     "survival_q50_total": 8192.0,
+     "survival_q65_total": 8192.0
+    },
+    "3000": {
+     "survivors": 164,
+     "capped_pct": 81.09756097560977,
+     "stop_within_250_pct": 3.048780487804878,
+     "remaining_p50": 5192.0,
+     "remaining_p90": 5192.0,
+     "survival_q50_total": 8192.0,
+     "survival_q65_total": 8192.0
+    },
+    "4000": {
+     "survivors": 150,
+     "capped_pct": 88.66666666666667,
+     "stop_within_250_pct": 0.6666666666666667,
+     "remaining_p50": 4192.0,
+     "remaining_p90": 4192.0,
+     "survival_q50_total": 8192.0,
+     "survival_q65_total": 8192.0
+    },
+    "6000": {
+     "survivors": 139,
+     "capped_pct": 95.68345323741008,
+     "stop_within_250_pct": 0.7194244604316548,
+     "remaining_p50": 2192.0,
+     "remaining_p90": 2192.0,
+     "survival_q50_total": 8192.0,
+     "survival_q65_total": 8192.0
+    }
+   }
+  },
+  "source": "/ocean/projects/cis250162p/aparthas/sfs_reserve_20260916/.scratch/reserve-tail-20260916/tables/qwen3-0.6b.json"
+ }
+}

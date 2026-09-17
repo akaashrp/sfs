@@ -1,0 +1,24 @@
+online rows 184000 with prediction 172862 calibration 30000 holdout2 24000
+reserve_used {'ministral3-3b': 410, 'ministral3-8b': 399, 'ministral3-14b': 390}
+synthetic observations 1382896
+ministral3-3b current {'mae': 381, 'median_ae': 288, 'p90_ae': 755, 'p95_ae': 964, 'p99_ae': 1673} cov 31 exh% 19.9 cap% 0.51 backlog 0.74
+    cal_model_q50 {'mae': 323, 'median_ae': 225, 'p90_ae': 664, 'p95_ae': 803, 'p99_ae': 1583} cov 46 backlog 0.84
+    cal_prompt_q50 {'mae': 273, 'median_ae': 183, 'p90_ae': 556, 'p95_ae': 764, 'p99_ae': 1661} cov 50 backlog 0.86
+    cal_prompt_q65 {'mae': 290, 'median_ae': 222, 'p90_ae': 543, 'p95_ae': 722, 'p99_ae': 1489} cov 64 backlog 1.06
+    exhausted_only_cal_prompt_q50 {'mae': 353, 'median_ae': 260, 'p90_ae': 720, 'p95_ae': 928, 'p99_ae': 1563} cov 42 backlog 0.84
+    online_prompt_pred_q50 {'mae': 269, 'median_ae': 181, 'p90_ae': 539, 'p95_ae': 735, 'p99_ae': 1630} cov 50 backlog 0.87
+   pseudo-snapshots 5913 running p50 57.0 {'current': 0.74, 'cal_prompt_q50': 0.89, 'exhausted_only_cal_prompt_q50': 0.83}
+ministral3-8b current {'mae': 429, 'median_ae': 299, 'p90_ae': 836, 'p95_ae': 1142, 'p99_ae': 2559} cov 36 exh% 18.3 cap% 1.23 backlog 0.79
+    cal_model_q50 {'mae': 359, 'median_ae': 226, 'p90_ae': 752, 'p95_ae': 903, 'p99_ae': 2140} cov 51 backlog 0.9
+    cal_prompt_q50 {'mae': 322, 'median_ae': 205, 'p90_ae': 667, 'p95_ae': 943, 'p99_ae': 2169} cov 51 backlog 0.85
+    cal_prompt_q65 {'mae': 347, 'median_ae': 242, 'p90_ae': 655, 'p95_ae': 910, 'p99_ae': 2146} cov 66 backlog 1.07
+    exhausted_only_cal_prompt_q50 {'mae': 392, 'median_ae': 268, 'p90_ae': 795, 'p95_ae': 1074, 'p99_ae': 1997} cov 46 backlog 0.9
+    online_prompt_pred_q50 {'mae': 316, 'median_ae': 192, 'p90_ae': 646, 'p95_ae': 893, 'p99_ae': 2203} cov 50 backlog 0.85
+   pseudo-snapshots 5122 running p50 40.0 {'current': 0.81, 'cal_prompt_q50': 0.88, 'exhausted_only_cal_prompt_q50': 0.92}
+ministral3-14b current {'mae': 394, 'median_ae': 295, 'p90_ae': 788, 'p95_ae': 1011, 'p99_ae': 1840} cov 38 exh% 17.3 cap% 0.65 backlog 0.82
+    cal_model_q50 {'mae': 346, 'median_ae': 237, 'p90_ae': 754, 'p95_ae': 881, 'p99_ae': 1688} cov 55 backlog 0.98
+    cal_prompt_q50 {'mae': 307, 'median_ae': 204, 'p90_ae': 659, 'p95_ae': 848, 'p99_ae': 1772} cov 52 backlog 0.89
+    cal_prompt_q65 {'mae': 336, 'median_ae': 255, 'p90_ae': 651, 'p95_ae': 893, 'p99_ae': 1690} cov 67 backlog 1.12
+    exhausted_only_cal_prompt_q50 {'mae': 370, 'median_ae': 265, 'p90_ae': 760, 'p95_ae': 987, 'p99_ae': 1691} cov 48 backlog 0.91
+    online_prompt_pred_q50 {'mae': 297, 'median_ae': 189, 'p90_ae': 632, 'p95_ae': 840, 'p99_ae': 1769} cov 50 backlog 0.87
+   pseudo-snapshots 5585 running p50 40.0 {'current': 0.83, 'cal_prompt_q50': 0.93, 'exhausted_only_cal_prompt_q50': 0.91}

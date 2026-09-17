@@ -11,8 +11,11 @@ import time
 
 from scripts.cloud.common import ROOT, digest, read, write, source_hashes, validate_bundle, expand
 from scripts.cloud.worker import arguments, parse, run_point, audit_cell
-from scripts.cloud.pool import pool
+from scripts.cloud.pool import pool, parse_remaining_length_rules, remaining_length_provenance
 
+# Paired-run default (reserve-tail-20260916 README section 6): survival median for every running
+# 0.6B request, conditioned on the prompt-length bin; 8B and 32B keep the current rule.
+PAIRED_RUN_RULES = ['qwen3-0.6b=running_all:0.5:prompt_bin']
 # All 16,000 identities and SLOs from the reference used by Bridges job 46116020.
 REFERENCE_REQUESTS = '611f7b53a01c71c6fd8bd3d3b67249689d554b62301e9b2d4cbee402a31d4fb2'
 REQUEST_FIELDS = ('request_id', 'bucket', 'prompt_tokens', 'latency_slo_ms', 'queue_slo_ms', 'ttft_slo_ms')
@@ -120,13 +123,17 @@ def execute(options):
                 raise ValueError(f'Model configuration differs from bundle: {model}/{name}')
     output.mkdir(parents=True, exist_ok=False)
     write(output/'preflight.json', evidence)
+    remaining_length = ({'tables': options.remaining_length_tables,
+                         'rules': parse_remaining_length_rules(options.remaining_length_rules or PAIRED_RUN_RULES)}
+                        if options.remaining_length_tables else None)
     write(output/'provenance.json', {'source_sha256': source, 'bundle_sha256': digest(bundle/'bundle.json'),
           'qps': options.qps, 'gpus': options.gpus, 'cpu_affinity': sorted(os.sched_getaffinity(0)),
+          'remaining_length': remaining_length_provenance(definition, remaining_length),
           'comparison_boundary': 'Same canonical SFS predictors, coefficients and SLOs; destination hardware differs from Bridges'})
     write(output/'status.json', {'state': 'STARTING_SERVERS', 'pid': os.getpid(), 'time': time.time()})
     try:
         with pool('qwen', definition, models, bundle, output, options.gpus.split(','), state,
-                  bundle/'qwen/length') as (instances, machine, processes):
+                  bundle/'qwen/length', remaining_length) as (instances, machine, processes):
             write(output/'status.json', {'state': 'SMOKE', 'pid': os.getpid(), 'time': time.time()})
             asyncio.run(smoke(argv, bundle, definition, instances, output))
             command = [sys.executable, '-m', 'scripts.runs.experiments_sweep', '--sweep', 'qps',
@@ -157,4 +164,8 @@ if __name__ == '__main__':
     parser.add_argument('--models')
     parser.add_argument('--qps', type=float, choices=[8.6, 8.75], required=True)
     parser.add_argument('--gpus', choices=['0,1,2,3', '4,5,6,7'], required=True)
+    parser.add_argument('--remaining-length-tables', help='Directory of <model>.json survival tables built by '
+                        'scripts.prep.remaining_length_tables; enables the per-model remaining-length rules (default: current rule)')
+    parser.add_argument('--remaining-length-rules', action='append', help='MODEL=MODE[:QUANTILE[:CONDITIONING]] with MODE in '
+                        f'off/running_all/exhausted_only and CONDITIONING in model/prompt_bin; repeatable; default {PAIRED_RUN_RULES}')
     execute(parser.parse_args())
