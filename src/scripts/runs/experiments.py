@@ -138,6 +138,12 @@ BUILTIN_WAIT_ESTIMATORS = (
 )
 EXPERIMENT_MODES = ("router", "wait_gof", "batch_fit", "all")
 ARRIVAL_PROCESSES = ("poisson", "deterministic", "mmpp2")
+# Arrival generator provenance recorded per run: absolute schedule (sleep until
+# origin + cumulative sampled offset) rather than per-gap relative sleeps.
+ARRIVAL_TIMING = "absolute_schedule"
+# Decoupled arrivals are generated on a dedicated thread so that stream
+# parsing or routing work on the event loop cannot starve the arrival timer.
+ARRIVAL_TIMING_THREAD = "absolute_schedule_thread"
 FEASIBLE_SLO_MODES = ("queue", "ttft", "e2e")
 SHORTEST_QUEUE_SENTINEL = 10**12
 DEFAULT_AFFINITY_QUALITY_EPSILON = 0.40
@@ -1835,6 +1841,46 @@ def _sample_mmpp2_interarrival_s(
             state["current_state"] = current_state
             return float(elapsed_s)
         current_state = switched_state
+
+
+class _ArrivalSchedule:
+    """Absolute arrival timeline: sleep until origin + cumulative sampled offset.
+
+    A late event-loop wakeup (e.g. under heavy streaming load) delays only the
+    current arrival instead of shifting every later one, so lag never
+    accumulates into the realized rate. The sampled gap sequence is unchanged.
+    """
+
+    def __init__(self, *, clock=time.perf_counter, sleep=asyncio.sleep,
+                 blocking_sleep=time.sleep) -> None:
+        self._clock = clock
+        self._sleep = sleep
+        self._blocking_sleep = blocking_sleep
+        self.origin_perf: Optional[float] = None
+        self.offset_s = 0.0
+
+    def start(self) -> None:
+        self.origin_perf = self._clock()
+
+    def deadline(self, interarrival_s: float) -> Optional[float]:
+        """Advance the schedule; None means no sleep (non-positive gap)."""
+        if self.origin_perf is None:
+            self.start()
+        if interarrival_s <= 0:
+            return None
+        self.offset_s += float(interarrival_s)
+        return self.origin_perf + self.offset_s
+
+    async def wait(self, interarrival_s: float) -> None:
+        deadline = self.deadline(interarrival_s)
+        if deadline is not None:
+            await self._sleep(max(deadline - self._clock(), 0.0))
+
+    def wait_blocking(self, interarrival_s: float) -> None:
+        """Thread variant: block until the deadline without touching the loop."""
+        deadline = self.deadline(interarrival_s)
+        if deadline is not None:
+            self._blocking_sleep(max(deadline - self._clock(), 0.0))
 
 
 def _sample_interarrival_s(
@@ -4602,8 +4648,11 @@ async def run_policy(
             **payload,
         )
 
+    arrival_schedule = _ArrivalSchedule()
+
     async def _sleep_for_interarrival(idx: int) -> None:
         if idx <= 0:
+            arrival_schedule.start()
             return
         interarrival_s = _sample_interarrival_s(
             request_rate_qps=request_rate_qps,
@@ -4612,8 +4661,7 @@ async def run_policy(
             mmpp2_params=mmpp2_params,
             mmpp2_state=mmpp2_state,
         )
-        if interarrival_s > 0:
-            await asyncio.sleep(interarrival_s)
+        await arrival_schedule.wait(interarrival_s)
 
     try:
         if decouple_arrivals:
@@ -4621,20 +4669,39 @@ async def run_policy(
                 Optional[tuple[ExperimentRequest, asyncio.Future, float]]
             ] = asyncio.Queue()
 
-            async def _producer() -> None:
-                for idx, req in enumerate(requests):
-                    await _sleep_for_interarrival(idx)
-                    if trial_monitor is not None and trial_monitor.stop_reason():
-                        break
-                    completion_future: asyncio.Future = loop.create_future()
-                    completion_futures.append(completion_future)
-                    system_entry_perf = time.perf_counter()
-                    if trial_monitor is not None:
-                        trial_monitor.arrived(req, completion_future, system_entry_perf)
-                    await ingress_queue.put((req, completion_future, system_entry_perf))
+            def _admit(req: ExperimentRequest, system_entry_perf: float) -> None:
+                # Loop thread: futures, the monitor and the queue are loop-owned.
+                completion_future: asyncio.Future = loop.create_future()
+                completion_futures.append(completion_future)
+                if trial_monitor is not None:
+                    trial_monitor.arrived(req, completion_future, system_entry_perf)
+                ingress_queue.put_nowait((req, completion_future, system_entry_perf))
+
+            def _finish_arrivals() -> None:
                 if trial_monitor is not None:
                     trial_monitor.end_arrivals()
-                await ingress_queue.put(None)
+                ingress_queue.put_nowait(None)
+
+            def _producer() -> None:
+                # Runs on its own thread: the offered load and the system-entry
+                # stamp are independent of event-loop load (thousands of SSE
+                # streams saturate the loop; a starved timer under-delivers).
+                # Same RNG object and draw order as the loop-side generator.
+                for idx, req in enumerate(requests):
+                    if idx <= 0:
+                        arrival_schedule.start()
+                    else:
+                        arrival_schedule.wait_blocking(_sample_interarrival_s(
+                            request_rate_qps=request_rate_qps,
+                            arrival_process=resolved_arrival_process,
+                            rng=arrival_rng,
+                            mmpp2_params=mmpp2_params,
+                            mmpp2_state=mmpp2_state,
+                        ))
+                    if trial_monitor is not None and trial_monitor.stop_reason():
+                        break
+                    loop.call_soon_threadsafe(_admit, req, time.perf_counter())
+                loop.call_soon_threadsafe(_finish_arrivals)
 
             async def _submitter() -> None:
                 while True:
@@ -4648,7 +4715,7 @@ async def run_policy(
                         system_entry_perf=system_entry_perf,
                     )
 
-            await asyncio.gather(_producer(), _submitter())
+            await asyncio.gather(asyncio.to_thread(_producer), _submitter())
         else:
             for idx, req in enumerate(requests):
                 await _sleep_for_interarrival(idx)
@@ -5063,6 +5130,7 @@ async def run_policy(
         "label": run_label or utility_name,
         "utility": utility_name,
         "arrival_process": resolved_arrival_process,
+        "arrival_timing": ARRIVAL_TIMING_THREAD if decouple_arrivals else ARRIVAL_TIMING,
         "route_strategy": route_strategy,
         "wait_estimator": wait_estimator_name,
         "feasible_slo_mode": resolved_feasible_slo_mode,

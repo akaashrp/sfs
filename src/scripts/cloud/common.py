@@ -65,6 +65,11 @@ def source_hashes():
     return {str(p.relative_to(ROOT)): digest(p) for p in sorted(set(paths)) if p.is_file()}
 
 
+def source_digest(hashes):
+    """Stable digest of a source pin, used to name accepted prior source lineages."""
+    return hashlib.sha256(json.dumps(hashes, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
 def validate_bundle(bundle):
     bundle = Path(bundle).resolve()
     manifest = read(bundle / "bundle.json")

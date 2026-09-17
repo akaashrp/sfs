@@ -11,7 +11,7 @@ import signal
 import time
 import uuid
 
-from scripts.cloud.common import ROOT, digest, read, write, expand, set_option, source_hashes, validate_bundle, locks, portable_cache, portable_routebalance
+from scripts.cloud.common import ROOT, digest, read, write, expand, set_option, source_hashes, source_digest, validate_bundle, locks, portable_cache, portable_routebalance
 from scripts.cloud.pool import pool, hardware
 
 
@@ -47,6 +47,12 @@ def configuration(options):
         from scripts.cloud.fcfs.config import CONFIG_ID
         return CONFIG_ID
     return 'canonical'
+
+
+def completed_source_accepted(previous, source, manifest):
+    """A completed cell is reusable under the current source or an explicitly accepted prior pin."""
+    prior = previous['source_sha256']
+    return prior == source or source_digest(prior) in manifest.get('accepted_prior_source_digests', {})
 
 
 def audit_cell(payload, cell):
@@ -314,7 +320,7 @@ async def execute(options, manifest, definition, model_paths, output):
                         previous = read(done)
                         if previous['bundle_sha256'] != digest(Path(options.bundle)/'bundle.json'):
                             raise ValueError('Completed cell belongs to a different bundle')
-                        if previous['source_sha256'] != source:
+                        if not completed_source_accepted(previous, source, manifest):
                             raise ValueError('Completed cell used different source; review before mixing implementations')
                         if digest(previous['point']) != previous['point_sha256']:
                             raise ValueError('Completed point checksum changed')

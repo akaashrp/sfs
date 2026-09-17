@@ -20,12 +20,18 @@ TTFT or divide by tokens minus one.** Its implementation differs from the
 usual decode-only interpretation of TPOT.
 
 Our harness uses its system-entry monotonic timestamp for both start origins,
-since it has no separate Envoy/ext_proc ingress stage. The first parsed OpenAI
-SSE chunk (including role-only) supplies TTFT immediately; total stream duration
-and actual terminal usage supply TPOT on successful completion. Parsed SSE
-chunk delivery can lag raw HTTP body arrival; report this as a selector
-adaptation, not a full-stack reproduction. Generated text is not retained in
-memory by this client. Streaming is enabled only for this policy. Final paper
+since it has no separate Envoy/ext_proc ingress stage. The first OpenAI SSE
+data event (including role-only) supplies TTFT immediately; total stream
+duration and actual terminal usage supply TPOT on successful completion. The
+client consumes the raw SSE body (`latency_stream.RawChunks`) instead of the
+SDK's per-chunk model construction: it JSON-decodes only the first chunk and
+chunks that may carry a new response ID/model, a non-null finish_reason or a
+usage object, recognizing the remaining compact vLLM content chunks by
+substring checks, so per-chunk event-loop load stays small under thousands of
+concurrent streams. Parsed SSE chunk delivery can still lag raw HTTP body
+arrival; report this as a selector adaptation, not a full-stack reproduction.
+Generated text is neither decoded nor retained in memory by this client.
+Streaming is enabled only for this policy. Final paper
 TTFT/SLO metrics retain the existing server-log joins and end-to-end boundaries;
 feedback metric definitions are recorded separately.
 

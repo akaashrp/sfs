@@ -3,11 +3,57 @@
 First parsed SSE chunk (including role-only) approximates upstream first body
 chunk. TPOT intentionally includes initial wait: total duration/output tokens.
 """
+import json
 import time
 
 
 def field(value, name, default=None):
     return value.get(name,default) if isinstance(value,dict) else getattr(value,name,default)
+
+
+async def sse_data(response):
+    """Yield each SSE event's `data` payload (bytes) from a streaming httpx response."""
+    buffer = b''; parts = []
+    async for block in response.aiter_bytes():
+        buffer += block
+        while (cut := buffer.find(b'\n')) >= 0:
+            line, buffer = buffer[:cut].rstrip(b'\r'), buffer[cut+1:]
+            if line.startswith(b'data:'): parts.append(line[5:].strip())
+            elif not line and parts: yield b'\n'.join(parts); parts = []
+    if parts: yield b'\n'.join(parts)
+
+
+class RawChunks:
+    """Lightweight consumer of the SDK stream's raw httpx SSE body.
+
+    Yields dict chunks for `submit_latency_stream`. JSON is decoded only for the
+    first chunk and for chunks that may carry new facts: an unknown response
+    ID/model, a non-null finish_reason, or a usage object. Other compact vLLM
+    chunks are recognized by substring checks and yielded as a cached ID/model
+    stub, so generated text is never decoded or retained; any other formatting
+    falls back to full decoding, never to skipped guards.
+    """
+    def __init__(self, stream): self.stream = stream; self.stub = None; self.tokens = ()
+
+    def __aiter__(self): return self.chunks()
+
+    async def chunks(self):
+        async for data in sse_data(self.stream.response):
+            if data == b'[DONE]': return
+            if (self.stub and all(t in data for t in self.tokens) and b'"index":0' in data
+                    and b'"finish_reason":null' in data and b'"finish_reason":"' not in data
+                    and (b'"usage"' not in data or b'"usage":null' in data)):
+                yield self.stub; continue
+            chunk = json.loads(data)
+            if not isinstance(chunk, dict): raise ValueError('Malformed stream chunk')
+            if chunk.get('error') is not None: raise ValueError(f"Stream error: {chunk['error']}")
+            if self.stub is None and chunk.get('id') and chunk.get('model'):
+                self.stub = {'id': chunk['id'], 'model': chunk['model']}
+                self.tokens = tuple(json.dumps({k: v}, separators=(',', ':'), ensure_ascii=False)[1:-1].encode()
+                                    for k, v in self.stub.items())
+            yield chunk
+
+    async def close(self): await self.stream.close()
 
 
 async def submit_latency_stream(client, payload, *, started_perf, on_first, clock=time.perf_counter):

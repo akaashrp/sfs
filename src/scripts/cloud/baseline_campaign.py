@@ -23,4 +23,10 @@ def apply_campaign(bundle, campaign):
         definition['qps'] = list(RATES[family])
     result['cells'] = deepcopy(cells)
     result['requests_total'] = sum(c['requests'] for c in cells)
+    # Completed cells audited under an earlier, explicitly accepted source pin
+    # are skipped rather than rerun; the digest and its reason stay auditable.
+    accepted = campaign.get('accepted_prior_source_digests', {})
+    if not isinstance(accepted, dict) or not all(isinstance(k, str) and len(k) == 64 and isinstance(v, str) and v for k, v in accepted.items()):
+        raise ValueError('accepted_prior_source_digests must map 64-hex source digests to reasons')
+    result['accepted_prior_source_digests'] = dict(accepted)
     return result
