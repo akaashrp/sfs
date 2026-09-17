@@ -11,6 +11,7 @@ python -m scripts.cloud.test_gate start "$test_output"
 python -m pytest -q --basetemp="$test_output/pytest" --junitxml="$test_output/results.xml" \
  src/scripts/cloud/tests \
  src/sfs_core/routing/tests/test_methodology_scheduler.py \
+ src/sfs_core/routing/tests/test_snapshot_read_fallback.py \
  src/sfs_core/routing/tests/test_methodology_snapshot.py \
  src/sfs_core/routing/tests/test_methodology_policies.py \
  src/sfs_core/routing/tests/test_latency_history.py \

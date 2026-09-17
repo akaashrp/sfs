@@ -22,6 +22,67 @@ if TYPE_CHECKING:
     from vllm.v1.engine.scheduler_simulator import SimulationStopMode
 
 
+# Transient per-engine snapshot-read faults. The publication exists (or is about
+# to), but this particular read did not obtain it: the native watcher thread had
+# not parsed the newest snapshot inside the critical-path budget, or the Python
+# seqlock reader exhausted its retry budget against a concurrent publication.
+# They are properties of one read of one engine, not of the request, so the
+# router degrades that candidate instead of failing the request; see
+# ``InstanceClient._fetch_local_wait_with_fallback`` in ``wait_time_scheduler``.
+SNAPSHOT_FAULT_NATIVE_TIMEOUT = "native_snapshot_timeout"
+SNAPSHOT_FAULT_INCONSISTENT_HEADER = "inconsistent_shm_header"
+SNAPSHOT_FAULT_NOT_PUBLISHED = "snapshot_not_published"
+SNAPSHOT_FAULT_NATIVE_ERROR = "native_simulation_error"
+SNAPSHOT_FAULT_KINDS = (
+    SNAPSHOT_FAULT_NATIVE_TIMEOUT,
+    SNAPSHOT_FAULT_INCONSISTENT_HEADER,
+    SNAPSHOT_FAULT_NOT_PUBLISHED,
+    SNAPSHOT_FAULT_NATIVE_ERROR,
+)
+
+# Corruption, not contention: retrying or reusing a cached estimate would hide a
+# broken transport, so these keep failing hard exactly as before.
+_NON_TRANSIENT_SNAPSHOT_READ_MESSAGES = (
+    "version regressed",
+    "timestamp changed without version increment",
+)
+
+
+class SnapshotReadFault(RuntimeError):
+    """A transient failure to read one engine's snapshot, tagged with its kind."""
+
+    def __init__(self, kind: str, message: str) -> None:
+        super().__init__(message)
+        self.kind = str(kind)
+
+
+def classify_snapshot_read_fault(exc: BaseException) -> Optional[str]:
+    """Return the transient fault kind for ``exc``, or ``None`` if it is not transient.
+
+    Only ``RuntimeError`` reaches a kind: configuration problems (``ValueError``),
+    a missing SHM segment at startup (``FileNotFoundError``) and attribution
+    errors are programming/setup faults that must still stop the run.
+    """
+    if isinstance(exc, SnapshotReadFault):
+        return exc.kind
+    if not isinstance(exc, RuntimeError):
+        return None
+    message = str(exc)
+    if any(marker in message for marker in _NON_TRANSIENT_SNAPSHOT_READ_MESSAGES):
+        return None
+    if "Timed out waiting for the parsed scheduler snapshot" in message:
+        return SNAPSHOT_FAULT_NATIVE_TIMEOUT
+    if "consistent scheduler snapshot header" in message:
+        return SNAPSHOT_FAULT_INCONSISTENT_HEADER
+    if "consistent baseline scheduler snapshot" in message:
+        return SNAPSHOT_FAULT_INCONSISTENT_HEADER
+    if "no parsed snapshot yet" in message or "is not published yet" in message:
+        return SNAPSHOT_FAULT_NOT_PUBLISHED
+    # Any other error raised out of the native simulation/baseline read is a
+    # read fault for this candidate only; it must not void the whole cell.
+    return SNAPSHOT_FAULT_NATIVE_ERROR
+
+
 @dataclass(slots=True)
 class SnapshotEstimate:
     wait_ms: float
