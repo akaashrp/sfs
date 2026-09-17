@@ -12,7 +12,7 @@ import time
 import uuid
 
 from scripts.cloud.common import ROOT, digest, read, write, expand, set_option, source_hashes, source_digest, validate_bundle, locks, portable_cache, portable_routebalance
-from scripts.cloud.pool import pool, hardware
+from scripts.cloud.pool import pool, hardware, remaining_length_provenance
 
 
 def arguments(definition, bundle, variant, manifest, qualification=None):
@@ -39,6 +39,33 @@ def arguments(definition, bundle, variant, manifest, qualification=None):
 def parse(argv):
     from scripts.runs.experiments_sweep import _parse_experiment_args
     return _parse_experiment_args(argv)
+
+
+def policies_for(manifest, family, variant, definition):
+    """Policies this pool will run, and therefore must smoke: those of the manifest's cells for the family/variant.
+
+    Order follows the family definition; with the frozen bundle this yields the canonical lists and
+    ['hard'] for the frozen predictor variants, with an overlay the campaign's own policies.
+    """
+    found = {c['policy'] for c in manifest['cells'] if c['family'] == family and c['variant'] == variant}
+    if not found:
+        return list(definition['policies']) if variant == 'canonical' else ['hard']
+    return [p for p in definition['policies'] if p in found] + sorted(found - set(definition['policies']))
+
+
+def family_remaining_length(manifest, definition):
+    """Pool-ready {'tables', 'rules'} for this family's models, or None (current rule everywhere)."""
+    block = manifest.get('remaining_length')
+    if not block:
+        return None
+    rules = {model: rule for model, rule in block['rules'].items() if model in definition['models']}
+    return {'tables': block['tables'], 'rules': rules} if rules else None
+
+
+def remaining_length_record(block):
+    """Ledger/qualification summary of a pool's remaining-length provenance (the instances.json block)."""
+    return {'rule': block['rule'], 'models': {model: {'rule': rule['rule'], 'table_sha256': (rule.get('table') or {}).get('sha256')}
+                                              for model, rule in block['models'].items()}}
 
 
 def completed_source_accepted(previous, source, manifest):
@@ -202,10 +229,18 @@ async def execute(options, manifest, definition, model_paths, output):
             if frozen.exists() and digest(path/name) != digest(frozen):
                 raise ValueError(f'Model/tokenizer configuration differs from the frozen checkpoint: {model}/{name}')
     qualification = Path(options.qualification).resolve() if options.qualification else output
+    # Per-engine remaining-length rule (SFS/SCORE and predictor-variant overlays): tables and rules
+    # come from the validated campaign; the provenance below is what the pool writes to instances.json.
+    remaining_length = family_remaining_length(manifest, definition)
+    expected_rule = remaining_length_provenance(definition, remaining_length)
     if options.mode == 'run':
-        validate_release(qualification, options, source)
-    with pool(options.family, definition, model_paths, options.bundle, output, gpus, options.state, length) as (instances_path, machine, processes):
+        validate_release(qualification, options, source, expected_rule['rule'])
+    with pool(options.family, definition, model_paths, options.bundle, output, gpus, options.state, length,
+              remaining_length) as (instances_path, machine, processes):
         clients, costs, metadata = exp.load_instances(instances_path)
+        active_rule = metadata.get('remaining_length') or {'rule': 'current', 'models': {}}
+        if active_rule != expected_rule:
+            raise ValueError('Pool remaining-length provenance differs from the campaign manifest')
         async def heartbeat():
             while True:
                 if any(p.poll() is not None for p in processes):
@@ -225,7 +260,7 @@ async def execute(options, manifest, definition, model_paths, output):
                 args.utilities, args.num_requests, args.request_rate_qps = [policy], count, rate
                 args.per_request_wait_log = [str(output/f'wait_{m}.log') for m in definition['models']]
                 return args
-            policies = definition['policies'] if options.variant == 'canonical' else ['hard']
+            policies = policies_for(manifest, options.family, options.variant, definition)
             # Every new pool passes matching smoke, including resumption on the same host.
             smoke = smoke_requests(calibration)
             for policy in policies:
@@ -269,7 +304,8 @@ async def execute(options, manifest, definition, model_paths, output):
                     'source_sha256': source, 'bundle_sha256': digest(Path(options.bundle)/'bundle.json'),
                     'load_probes': load_probes, 'files': evidence,
                     'campaign_sha256': digest(options.campaign) if getattr(options, 'campaign', None) else None,
-                    'policy_smoke': policies,
+                    'campaign_kind': manifest.get('kind'), 'policy_smoke': policies,
+                    'remaining_length_rule': active_rule['rule'], 'remaining_length': remaining_length_record(active_rule),
                     'serving_coefficients': 'Canonical SFS batch coefficients retained; destination residuals require review',
                     'evaluation_started': False})
                 if options.mode == 'qualify':
@@ -279,7 +315,7 @@ async def execute(options, manifest, definition, model_paths, output):
                 # residuals and stress results. No evaluation before release.
                 while not (qualification/'release.json').exists():
                     await asyncio.sleep(5)
-                validate_release(qualification, options, source)
+                validate_release(qualification, options, source, active_rule['rule'])
             cells = [c for c in manifest['cells'] if c['family'] == options.family and c['variant'] == options.variant]
             if options.cells:
                 requested = set(options.cells.split(','))
@@ -299,7 +335,7 @@ async def execute(options, manifest, definition, model_paths, output):
                         if digest(previous['point']) != previous['point_sha256']:
                             raise ValueError('Completed point checksum changed')
                         continue
-                    validate_release(qualification, options, source_hashes())
+                    validate_release(qualification, options, source_hashes(), active_rule['rule'])
                     args = args_for(cell['policy'], cell['qps'], cell['requests'])
                     requests, _, _ = exp._build_request_set(args)
                     if len(requests) != cell['requests']:
@@ -308,15 +344,21 @@ async def execute(options, manifest, definition, model_paths, output):
                     write(output/'active_cell.json', {'cell': cell, 'started': time.time()})
                     payload = await run_point(options.family, args, requests, clients, costs, metadata, folder)
                     audit = audit_cell(payload, cell)
+                    if payload['router']['runs'][0].get('remaining_length_rule', 'current') != active_rule['rule']:
+                        raise ValueError('Router did not record the pool remaining-length rule')
                     if source_hashes() != source:
                         raise ValueError('Runtime source changed during evaluation')
                     point = folder/'point.json'
                     entry = {**audit, 'cell': cell, 'point': str(point), 'point_sha256': digest(point),
                         'source_sha256': source, 'bundle_sha256': digest(Path(options.bundle)/'bundle.json'),
-                        'qualification_sha256': digest(qualification/'qualification.json'), 'hardware': machine}
+                        'qualification_sha256': digest(qualification/'qualification.json'), 'hardware': machine,
+                        'campaign_sha256': digest(options.campaign) if getattr(options, 'campaign', None) else None,
+                        'campaign_kind': manifest.get('kind'), 'remaining_length_rule': active_rule['rule'],
+                        'remaining_length': remaining_length_record(active_rule)}
                     write(folder/'audit.json', entry)
                     write(done, entry)
-                    write(output/'phase.json', {'state': 'CELL_COMPLETE', 'cell': cell['id'], 'time': time.time()})
+                    write(output/'phase.json', {'state': 'CELL_COMPLETE', 'cell': cell['id'], 'time': time.time(),
+                                                'remaining_length_rule': active_rule['rule']})
         watcher = asyncio.create_task(heartbeat())
         task = asyncio.create_task(workload())
         try:
@@ -329,7 +371,7 @@ async def execute(options, manifest, definition, model_paths, output):
             for client in clients.values(): client.close()
 
 
-def validate_release(qualification, options, source):
+def validate_release(qualification, options, source, remaining_length_rule='current'):
     report, release = read(qualification/'qualification.json'), read(qualification/'release.json')
     if (release.get('status') != 'RELEASED' or release.get('qualification_sha256') != digest(qualification/'qualification.json')
             or not release.get('timing_review') or not release.get('load_review')
@@ -339,6 +381,8 @@ def validate_release(qualification, options, source):
         raise ValueError('Missing/stale destination qualification and reviewed release')
     if getattr(options, 'campaign', None) and report.get('campaign_sha256') != digest(options.campaign):
         raise ValueError('Active campaign changed after qualification')
+    if report.get('remaining_length_rule', 'current') != remaining_length_rule:
+        raise ValueError('Pool remaining-length rule differs from the qualification')
     for name, expected in report['files'].items():
         if digest(qualification/name) != expected:
             raise ValueError(f'Qualification evidence changed: {name}')
@@ -352,7 +396,7 @@ def main():
     p.add_argument('--family', choices=['qwen', 'ministral'], required=True)
     p.add_argument('--variant', choices=['canonical', 'mlp_quality', 'mlp_length', 'flash_quality'], default='canonical')
     p.add_argument('--gpus', required=True); p.add_argument('--cpus'); p.add_argument('--qualification'); p.add_argument('--cells')
-    p.add_argument('--campaign', help='Explicit baseline-only overlay on the frozen artifact bundle')
+    p.add_argument('--campaign', help='Explicit overlay on the frozen artifact bundle (baseline, sfs_score or predictor_variants kind)')
     options = p.parse_args()
     if options.family == 'ministral' and options.variant != 'canonical':
         p.error('Predictor ablations are Qwen only')
@@ -363,8 +407,8 @@ def main():
     if options.mode == 'campaign' and not options.campaign:
         p.error('Campaign mode requires its explicit manifest')
     if options.campaign:
-        from scripts.cloud.baseline_campaign import apply_campaign
-        manifest = apply_campaign(manifest, read(options.campaign))
+        from scripts.cloud.campaigns import apply_any_campaign
+        manifest = apply_any_campaign(manifest, read(options.campaign))
     if options.mode == 'campaign':
         options.qualification = str(Path(options.output).resolve())
     output = Path(options.output).resolve(); output.mkdir(parents=True, exist_ok=False)
