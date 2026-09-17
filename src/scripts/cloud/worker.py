@@ -409,6 +409,8 @@ def main():
     if options.campaign:
         from scripts.cloud.campaigns import apply_any_campaign
         manifest = apply_any_campaign(manifest, read(options.campaign))
+        if not any(c['family'] == options.family and c['variant'] == options.variant for c in manifest['cells']):
+            p.error('The campaign overlay has no cells for this family/variant')
     if options.mode == 'campaign':
         options.qualification = str(Path(options.output).resolve())
     output = Path(options.output).resolve(); output.mkdir(parents=True, exist_ok=False)

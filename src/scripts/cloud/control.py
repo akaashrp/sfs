@@ -24,9 +24,13 @@ def submit(state, argv):
     print(record)
 
 
-def status(state, bundle):
+def status(state, bundle, campaign=None):
     state = Path(state)
-    cells = read(Path(bundle)/'bundle.json')['cells']
+    manifest = read(Path(bundle)/'bundle.json')
+    if campaign:
+        from scripts.cloud.campaigns import apply_any_campaign
+        manifest = apply_any_campaign(manifest, read(campaign))
+    cells = manifest['cells']
     completed, invalid = [], []
     for path in (state/'completed').glob('*.json'):
         entry = read(path)
@@ -46,8 +50,12 @@ def status(state, bundle):
         jobs.append({'job': path.stem, **report, 'alive': alive,
             'heartbeat_age_s': time.time()-heartbeat['time'] if heartbeat else None,
             'output': str(folder), 'log': record['log']})
-    result = {'expected':len(cells), 'completed':len(set(completed)), 'invalid':invalid,
-              'remaining':[c['id'] for c in cells if c['id'] not in completed], 'jobs':jobs}
+    ids = {c['id'] for c in cells}
+    result = {'expected':len(cells), 'completed':len(set(completed) & ids), 'invalid':invalid,
+              'remaining':[c['id'] for c in cells if c['id'] not in completed], 'jobs':jobs,
+              'completed_outside_campaign':sorted(set(completed) - ids),
+              'campaign':str(campaign) if campaign else None, 'campaign_kind':manifest.get('kind'),
+              'campaign_sha256':digest(campaign) if campaign else None}
     print(__import__('json').dumps(result, indent=2))
 
 
@@ -67,9 +75,10 @@ if __name__ == '__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('mode', choices=['submit','status','release'])
     p.add_argument('--state'); p.add_argument('--bundle'); p.add_argument('--qualification')
+    p.add_argument('--campaign', help='Overlay whose cells status accounts for (baseline, sfs_score or predictor_variants)')
     p.add_argument('--timing-review'); p.add_argument('--load-review')
     options, argv = p.parse_known_args()
     if argv[:1] == ['--']: argv=argv[1:]
     if options.mode == 'submit': submit(options.state, argv)
-    elif options.mode == 'status': status(options.state, options.bundle)
+    elif options.mode == 'status': status(options.state, options.bundle, options.campaign)
     else: release(options.qualification, options.timing_review or '', options.load_review or '')
