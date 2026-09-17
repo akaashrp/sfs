@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_epoch": 1789555655.7590802,
+  "updated_epoch": 1789621422.539305,
   "identity_fields": [
     "family",
     "variant",
@@ -1119,12 +1119,14 @@
     {
       "job_id": "45842578",
       "role": "qwen baseline campaign",
-      "observed_state": "PENDING"
+      "observed_state": "CANCELLED_BY_USER_20260917",
+      "reason": "Superseded by audited Vast cells (Qwen LMDeploy/vLLM-SR/Mooncake/RouteBalance at 6/7/8/8.3; Ministral shortest queue/vLLM-SR/Mooncake/RouteBalance at 6.0125/7.8625/8.7875). Ministral SFS will run on Vast after the reserve decision. Replaced by bridges_side_jobs (calibration extension, hard_prefill_tps)."
     },
     {
       "job_id": "46077428",
       "role": "ministral recovery including three requested SFS rates",
-      "observed_state": "PENDING"
+      "observed_state": "CANCELLED_BY_USER_20260917",
+      "reason": "Superseded by audited Vast cells (Qwen LMDeploy/vLLM-SR/Mooncake/RouteBalance at 6/7/8/8.3; Ministral shortest queue/vLLM-SR/Mooncake/RouteBalance at 6.0125/7.8625/8.7875). Ministral SFS will run on Vast after the reserve decision. Replaced by bridges_side_jobs (calibration extension, hard_prefill_tps)."
     }
   ],
   "dispatch_rule": "Check live cloud completed ledger and Bridges output/scheduler immediately before dispatch. Successful matching cells are reused; failed/partial or differing-count/profile cells remain distinct. Never cancel pending jobs automatically. Older predictor/judge results remain archived; no repeat until canonical controls and variant review justify it.",
@@ -1200,5 +1202,843 @@
       "priority": "FALLBACK_ONLY",
       "submission": "UNSUBMITTED_UNTIL_NO_HIGHER_PRIORITY_WORK"
     }
-  ]
+  ],
+  "bridges_side_jobs": {
+    "hard_prefill_tps": {
+      "purpose": "Deferred prefill-throughput-estimator baseline: hard_prefill_tps (SFS selector with the prefill-TPS wait estimator) as fresh reruns on the current harness, plus its Qwen predictor ablations (mlp_length, mlp_quality, flash_quality)",
+      "provider": "bridges",
+      "status": "SUBMITTED_PENDING_LOW_PRIORITY",
+      "recorded_at_utc": "2026-09-17T03:42:45.019421+00:00",
+      "worktree": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917",
+      "branch": "experiments/bridges-ptps-20260917",
+      "sfs_commit": "80e26878e829517e8f63bc57502cc04253f2b4bb",
+      "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
+      "vllm_provisioning": "git worktree of the sfs_model_family vllm submodule repo plus symlinks to its compiled extensions (as sfs_cloud_20260914 / sfs_ministral_recovery_20260915)",
+      "uncommitted_additions": {
+        "src/scripts/runs/qwen_hard_prefill_tps.py": "d5e3a82c08abce4b2d736127e0ded6493de8f9053de29584bc86e899bfef0b0b",
+        "src/scripts/runs/tests/test_qwen_hard_prefill_tps.py": "c380bb8042318e4e6480ff9dedf57ea4749f76955ffc94c7d0054f3c2926722d"
+      },
+      "worktree_name_deviation": "Requested sfs_bridges_ptps_20260917 makes the validate-mode IPC socket path 114 bytes (> 107 allowed by serving_ipc.validate_ipc_paths); relocated to sfs_ptps_20260917 (106 bytes) on the same branch/commit",
+      "policy": "hard_prefill_tps",
+      "family": "qwen",
+      "requests_per_cell": 16000,
+      "qps_values": [
+        6.0,
+        7.0,
+        8.0,
+        8.3
+      ],
+      "request_identity_slo_sha256": "611f7b53a01c71c6fd8bd3d3b67249689d554b62301e9b2d4cbee402a31d4fb2",
+      "gates": {
+        "cpu_validation": {
+          "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/qwen_cpu_validation.json",
+          "sha256": "e5bc89a58a1d94b44681e0fd754fc77e8d9404e638efe065086296720f253533",
+          "status": "PASS_CPU",
+          "unique_test_cases": 174,
+          "upstream_differential_passed": true
+        },
+        "canonical_manifest": {
+          "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/qwen/qwen_manifest.json",
+          "sha256": "3028c48e1e4e4c4145da2d34bc39494bd7c29e7c8b4c8cb392562432b29d1a7e"
+        },
+        "calibration_reuse": {
+          "stage": "/ocean/projects/cis250162p/aparthas/sfs_model_family/experiments/paper_recovery_20260910_round2/qwen_calibration_attempt_2",
+          "smoke_audit_sha256": "618ecbb3ce726973d0ca55d84705585ccf78d611dc937cd0c97b60b3c1540616",
+          "metrics_sha256": "f30d6cb40898aa7f0338fe312a646139dab2cb55dd66c8fa5fb1245daaf70745",
+          "timing_sha256": "c61af44d6a4d2a573cc9f8852f876e7b67bc78fc6f99d2f5d9969aff8889828b",
+          "prefill_tps_by_model": {
+            "qwen3-0.6b": 130911.2546191015,
+            "qwen3-8b": 32992.44831080712,
+            "qwen3-32b": 14959.078953698923
+          },
+          "note": "Measured Bridges H100 calibration reused through the smoke reuse mode; hard_prefill_tps reads score_proxy.prefill_tps from these service metrics"
+        },
+        "gpu_gates_in_order": [
+          "canonical smoke: all nine canonical policies + hard_prefill_tps, 192 calibration requests each at 2 QPS on reused measured calibration",
+          "canonical sweep gated on that smoke audit",
+          "each predictor arm: CPU variant preparation, then its own hard_prefill_tps smoke, then its sweep",
+          "per-cell audits (scripts.cloud.worker.audit_cell) labelled provider=bridges after every sweep"
+        ],
+        "rehearsal": {
+          "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/rehearsal.json",
+          "sha256": "43f2709f4e5c5dd6fd39bc7831222c646689be6f0ba5bc155bf7bc19c922dbbf"
+        }
+      },
+      "jobs": [
+        {
+          "name": "sfs-ptps-canonical-smoke",
+          "job_id": "46206357",
+          "arm": "canonical",
+          "stage": "smoke",
+          "dependency": null,
+          "nice": 0,
+          "account": "cis260115p",
+          "qos": "gpu",
+          "partition": "GPU-shared",
+          "gpus": 4,
+          "script": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/jobs/sfs-ptps-canonical-smoke.sbatch",
+          "script_sha256": "a499d2e3520c8f174167547f7d8d096a7b990bca81c9ef33af684521ad6f5c76",
+          "stored_script_verified": true,
+          "submitted_at_utc": "2026-09-17T03:42:23.095195+00:00",
+          "cells": [],
+          "evaluation_cells": 0
+        },
+        {
+          "name": "sfs-ptps-canonical-sweep",
+          "job_id": "46206358",
+          "arm": "canonical",
+          "stage": "sweep",
+          "dependency": "46206357",
+          "nice": 0,
+          "account": "cis260115p",
+          "qos": "gpu",
+          "partition": "GPU-shared",
+          "gpus": 4,
+          "script": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/jobs/sfs-ptps-canonical-sweep.sbatch",
+          "script_sha256": "7e7895f582aa86ce591981258ac7293fa07cd7767a0a0f1f33e75d464d6d10da",
+          "stored_script_verified": true,
+          "submitted_at_utc": "2026-09-17T03:42:23.149763+00:00",
+          "cells": [
+            "qwen-hard_prefill_tps-6-rerun",
+            "qwen-hard_prefill_tps-7-rerun",
+            "qwen-hard_prefill_tps-8-rerun",
+            "qwen-hard_prefill_tps-8.3-rerun"
+          ],
+          "evaluation_cells": 4
+        },
+        {
+          "name": "sfs-ptps-mlp_length-smoke",
+          "job_id": "46206359",
+          "arm": "mlp_length",
+          "stage": "smoke",
+          "dependency": "46206357",
+          "nice": 100,
+          "account": "cis260115p",
+          "qos": "gpu",
+          "partition": "GPU-shared",
+          "gpus": 4,
+          "script": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/jobs/sfs-ptps-mlp_length-smoke.sbatch",
+          "script_sha256": "4c7f7bad1674ddceaa3d0a605c25a3101b53361b78d27ae4baefbf31021f4855",
+          "stored_script_verified": true,
+          "submitted_at_utc": "2026-09-17T03:42:23.172100+00:00",
+          "cells": [],
+          "evaluation_cells": 0
+        },
+        {
+          "name": "sfs-ptps-mlp_length-sweep",
+          "job_id": "46206360",
+          "arm": "mlp_length",
+          "stage": "sweep",
+          "dependency": "46206359",
+          "nice": 100,
+          "account": "cis260115p",
+          "qos": "gpu",
+          "partition": "GPU-shared",
+          "gpus": 4,
+          "script": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/jobs/sfs-ptps-mlp_length-sweep.sbatch",
+          "script_sha256": "24850c67c3d2623d8fe9852c73c1f848b6f990aec97f2f96003248a472c28f35",
+          "stored_script_verified": true,
+          "submitted_at_utc": "2026-09-17T03:42:23.191971+00:00",
+          "cells": [
+            "qwen-mlp_length-hard_prefill_tps-6",
+            "qwen-mlp_length-hard_prefill_tps-7",
+            "qwen-mlp_length-hard_prefill_tps-8",
+            "qwen-mlp_length-hard_prefill_tps-8.3"
+          ],
+          "evaluation_cells": 4
+        },
+        {
+          "name": "sfs-ptps-mlp_quality-smoke",
+          "job_id": "46206361",
+          "arm": "mlp_quality",
+          "stage": "smoke",
+          "dependency": "46206357",
+          "nice": 200,
+          "account": "cis260115p",
+          "qos": "gpu",
+          "partition": "GPU-shared",
+          "gpus": 4,
+          "script": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/jobs/sfs-ptps-mlp_quality-smoke.sbatch",
+          "script_sha256": "14511bab2c2add2f9cb2077a1d16ac13068b9091c3596ffd86b8b9ce34e871ba",
+          "stored_script_verified": true,
+          "submitted_at_utc": "2026-09-17T03:42:23.213166+00:00",
+          "cells": [],
+          "evaluation_cells": 0
+        },
+        {
+          "name": "sfs-ptps-mlp_quality-sweep",
+          "job_id": "46206362",
+          "arm": "mlp_quality",
+          "stage": "sweep",
+          "dependency": "46206361",
+          "nice": 200,
+          "account": "cis260115p",
+          "qos": "gpu",
+          "partition": "GPU-shared",
+          "gpus": 4,
+          "script": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/jobs/sfs-ptps-mlp_quality-sweep.sbatch",
+          "script_sha256": "fa688f699c21c40c769d5c2367f36ed5530796e2988fc45def6bc4de534e0376",
+          "stored_script_verified": true,
+          "submitted_at_utc": "2026-09-17T03:42:23.233799+00:00",
+          "cells": [
+            "qwen-mlp_quality-hard_prefill_tps-6",
+            "qwen-mlp_quality-hard_prefill_tps-7",
+            "qwen-mlp_quality-hard_prefill_tps-8",
+            "qwen-mlp_quality-hard_prefill_tps-8.3"
+          ],
+          "evaluation_cells": 4
+        },
+        {
+          "name": "sfs-ptps-flash_quality-smoke",
+          "job_id": "46206363",
+          "arm": "flash_quality",
+          "stage": "smoke",
+          "dependency": "46206357",
+          "nice": 300,
+          "account": "cis260115p",
+          "qos": "gpu",
+          "partition": "GPU-shared",
+          "gpus": 4,
+          "script": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/jobs/sfs-ptps-flash_quality-smoke.sbatch",
+          "script_sha256": "2bdb2b93558f38a06c5aab9004cbaab3a51b289f5fcea04419e2ea72245009b4",
+          "stored_script_verified": true,
+          "submitted_at_utc": "2026-09-17T03:42:23.253454+00:00",
+          "cells": [],
+          "evaluation_cells": 0
+        },
+        {
+          "name": "sfs-ptps-flash_quality-sweep",
+          "job_id": "46206364",
+          "arm": "flash_quality",
+          "stage": "sweep",
+          "dependency": "46206363",
+          "nice": 300,
+          "account": "cis260115p",
+          "qos": "gpu",
+          "partition": "GPU-shared",
+          "gpus": 4,
+          "script": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/jobs/sfs-ptps-flash_quality-sweep.sbatch",
+          "script_sha256": "b0c12915aa6f6d49cb13978ad95c0523f99bb28ee0a6f92ba0ba812097518903",
+          "stored_script_verified": true,
+          "submitted_at_utc": "2026-09-17T03:42:23.275182+00:00",
+          "cells": [
+            "qwen-flash_quality-hard_prefill_tps-6",
+            "qwen-flash_quality-hard_prefill_tps-7",
+            "qwen-flash_quality-hard_prefill_tps-8",
+            "qwen-flash_quality-hard_prefill_tps-8.3"
+          ],
+          "evaluation_cells": 4
+        }
+      ],
+      "cells": [
+        {
+          "id": "qwen-hard_prefill_tps-6-rerun",
+          "family": "qwen",
+          "variant": "canonical",
+          "policy": "hard_prefill_tps",
+          "qps": 6.0,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206358"
+        },
+        {
+          "id": "qwen-hard_prefill_tps-7-rerun",
+          "family": "qwen",
+          "variant": "canonical",
+          "policy": "hard_prefill_tps",
+          "qps": 7.0,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206358"
+        },
+        {
+          "id": "qwen-hard_prefill_tps-8-rerun",
+          "family": "qwen",
+          "variant": "canonical",
+          "policy": "hard_prefill_tps",
+          "qps": 8.0,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206358"
+        },
+        {
+          "id": "qwen-hard_prefill_tps-8.3-rerun",
+          "family": "qwen",
+          "variant": "canonical",
+          "policy": "hard_prefill_tps",
+          "qps": 8.3,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206358"
+        },
+        {
+          "id": "qwen-mlp_quality-hard_prefill_tps-6",
+          "family": "qwen",
+          "variant": "mlp_quality",
+          "policy": "hard_prefill_tps",
+          "qps": 6.0,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206362"
+        },
+        {
+          "id": "qwen-mlp_quality-hard_prefill_tps-7",
+          "family": "qwen",
+          "variant": "mlp_quality",
+          "policy": "hard_prefill_tps",
+          "qps": 7.0,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206362"
+        },
+        {
+          "id": "qwen-mlp_quality-hard_prefill_tps-8",
+          "family": "qwen",
+          "variant": "mlp_quality",
+          "policy": "hard_prefill_tps",
+          "qps": 8.0,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206362"
+        },
+        {
+          "id": "qwen-mlp_quality-hard_prefill_tps-8.3",
+          "family": "qwen",
+          "variant": "mlp_quality",
+          "policy": "hard_prefill_tps",
+          "qps": 8.3,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206362"
+        },
+        {
+          "id": "qwen-mlp_length-hard_prefill_tps-6",
+          "family": "qwen",
+          "variant": "mlp_length",
+          "policy": "hard_prefill_tps",
+          "qps": 6.0,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206360"
+        },
+        {
+          "id": "qwen-mlp_length-hard_prefill_tps-7",
+          "family": "qwen",
+          "variant": "mlp_length",
+          "policy": "hard_prefill_tps",
+          "qps": 7.0,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206360"
+        },
+        {
+          "id": "qwen-mlp_length-hard_prefill_tps-8",
+          "family": "qwen",
+          "variant": "mlp_length",
+          "policy": "hard_prefill_tps",
+          "qps": 8.0,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206360"
+        },
+        {
+          "id": "qwen-mlp_length-hard_prefill_tps-8.3",
+          "family": "qwen",
+          "variant": "mlp_length",
+          "policy": "hard_prefill_tps",
+          "qps": 8.3,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206360"
+        },
+        {
+          "id": "qwen-flash_quality-hard_prefill_tps-6",
+          "family": "qwen",
+          "variant": "flash_quality",
+          "policy": "hard_prefill_tps",
+          "qps": 6.0,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206364"
+        },
+        {
+          "id": "qwen-flash_quality-hard_prefill_tps-7",
+          "family": "qwen",
+          "variant": "flash_quality",
+          "policy": "hard_prefill_tps",
+          "qps": 7.0,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206364"
+        },
+        {
+          "id": "qwen-flash_quality-hard_prefill_tps-8",
+          "family": "qwen",
+          "variant": "flash_quality",
+          "policy": "hard_prefill_tps",
+          "qps": 8.0,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206364"
+        },
+        {
+          "id": "qwen-flash_quality-hard_prefill_tps-8.3",
+          "family": "qwen",
+          "variant": "flash_quality",
+          "policy": "hard_prefill_tps",
+          "qps": 8.3,
+          "requests": 16000,
+          "provider": "bridges",
+          "status": "SUBMITTED_PENDING",
+          "sweep_job_id": "46206364"
+        }
+      ],
+      "ministral": {
+        "status": "SUBMITTED_PENDING_LOW_PRIORITY",
+        "recorded_at_utc": "2026-09-17T04:52:12.916363+00:00",
+        "purpose": "Ministral prefill-throughput-estimator baseline: hard_prefill_tps at 0.65/0.85/0.95 of K_M=9.25 (6.0125/7.8625/8.7875 QPS), 8,000 requests per cell, on the frozen Figure 5 workload and measured calibration",
+        "provider": "bridges",
+        "family": "ministral",
+        "policy": "hard_prefill_tps",
+        "wait_estimator": "prefill_tps_ttft",
+        "arrival_timing": "absolute_schedule_thread",
+        "worktree": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917",
+        "branch": "experiments/bridges-ptps-20260917",
+        "sfs_commit": "670a0af3cb1a4579eb2bada2255222e47666ebab",
+        "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
+        "runner": {
+          "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/src/scripts/runs/ministral3_hard_prefill_tps.py",
+          "sha256": "f7f6c92452141d9f9368a40ca91ce752a3a0a31f7fe08aee3274f50e97e7f306",
+          "test": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/src/scripts/runs/tests/test_ministral3_hard_prefill_tps.py",
+          "test_sha256": "5d94e2832f7cb42dde935698ef47adb75f7f414ae6acfef3c4462b396bc1bd78"
+        },
+        "estimator_path": "hard_prefill_tps is not a methodology-scheduler policy (only lmdeploy_proxy/mooncake_prefill/routebalance are); like canonical hard it runs on the generic wait-time scheduler with prefill_tps_ttft reading score_proxy.prefill_tps per model from the frozen Ministral service metrics. Points run through scripts.cloud.worker.run_point(family=ministral) -> ministral3_reliable.run_router_experiment; the MinistralMethodologyScheduler substitution is inert for this policy. Arrivals: absolute_schedule_thread (commit 80e2687).",
+        "requests_per_cell": 8000,
+        "qps_values": [
+          6.0125,
+          7.8625,
+          8.7875
+        ],
+        "request_identity_slo_sha256": "fb268ebd517a0cb0ef83c408b6b9283cee10cc991035271d35c8b5dff5c797fb",
+        "reference": "ops/cloud/ministral_sfs.py REFERENCE (Vast canonical Ministral SFS cells on the same frozen workload)",
+        "side_manifest": {
+          "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/side/manifest.json",
+          "sha256": "4cb135b124db9d7de73cd89d8234ef43ec0e4034b7351eb2274b6d0f795e8598",
+          "legacy_manifest": "/ocean/projects/cis250162p/aparthas/sfs_model_family/experiments/campaign_cold_start_fix_20260912/ministral_figure5_manifest.json",
+          "legacy_manifest_sha256": "865325ce8a5b3cf642a55a889bd67eae61e29f5deb48d8e5813a7fa704d52ff2",
+          "legacy_32_cells_unchanged": true,
+          "legacy_policies_unchanged": [
+            "hard",
+            "score",
+            "lmdeploy_proxy",
+            "mooncake_prefill",
+            "routebalance",
+            "shortest_queue",
+            "latency_agnostic",
+            "round_robin"
+          ]
+        },
+        "calibration_reuse": {
+          "stage": "/ocean/projects/cis250162p/aparthas/sfs_model_family/experiments/campaign_cold_start_fix_20260912/ministral_smoke/derived_stage",
+          "prepared_dir": "/ocean/projects/cis250162p/aparthas/sfs_model_family/experiments/methodology_baselines/prepared_20260906",
+          "smoke_audit_sha256": "9f8da7241803ae1b168ffcb9fdbccc7e9811ab9be891c3f61260b89b4be0bdfc",
+          "timing": "/ocean/projects/cis250162p/aparthas/sfs_model_family/experiments/campaign_cold_start_fix_20260912/ministral_smoke/derived_stage/timing_models/methodology_calibration.json",
+          "timing_sha256": "0ccc6aaac1bf82a644aaef8055a673101c887b1ac19eb3b9aeb7d5cffc64653c",
+          "service_metrics": "/ocean/projects/cis250162p/aparthas/sfs_model_family/experiments/ministral3_h100-80_service_metrics_45088929_20260905_084501/model_metrics.json",
+          "metrics_sha256": "4499a6d60ca37943a14c423fb43169065f16e1cf218e1df60618193bc970ff02",
+          "prefill_tps_by_model": {
+            "ministral3-3b": 61731.20540353454,
+            "ministral3-8b": 33112.3634504369,
+            "ministral3-14b": 21767.68254574815
+          },
+          "note": "Measured Bridges H100 Ministral stage reused unchanged (no calibration rerun); hard_prefill_tps reads score_proxy.prefill_tps from these service metrics"
+        },
+        "serving": "Frozen ministral3_router_common.sh pool: ministral3-3b/8b/14b, TP 1/1/1 on three H100-80, audited profile, served aliases ministral3-{3,8,14}b-instruct; SFS_ROOT=this worktree so the vLLM commit check binds to 28bbf92",
+        "gates": {
+          "cpu_regression": {
+            "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/tests/regression/gate.json",
+            "sha256": "720fd33c870e301890142fa59670080e7475bfa282cafe51544d73d479f0029b",
+            "status": "PASS_CPU_REGRESSION",
+            "tests": 168
+          },
+          "side_tests": {
+            "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/tests/side_tests.xml",
+            "sha256": "f52bd9b3aa1ecd6b9a1dfd1deabe17c441d37a5877a2635678e1863c3b2616f6"
+          },
+          "cpu_preflight": {
+            "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/preflight/sfs-ptps-ministral-smoke_cpu.json",
+            "status": "PASS_CPU_PREFLIGHT"
+          },
+          "rehearsal": {
+            "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/rehearsal.json",
+            "sha256": "08c5f847d7760e4694ae8f6f50624766b126c315ea47709795f81228abd011d1"
+          },
+          "gpu_gates_in_order": [
+            "ministral3_figure5 validate (frozen 32-cell manifest, service/predictor dirs)",
+            "side manifest validate (frozen inputs, source, side module, legacy policy tuple)",
+            "smoke: hard_prefill_tps, 192 calibration requests at 2 QPS; audit_run + complete TTFT + estimator path (prefill_tps_ttft, prefill TPS == service metrics, thread arrivals)",
+            "sweep gated on that smoke audit; per-cell scripts.cloud.worker.audit_cell + ministral3_figure5.audit_points + estimator audit, labelled provider=bridges"
+          ]
+        },
+        "jobs": [
+          {
+            "name": "sfs-ptps-ministral-smoke",
+            "job_id": "46211709",
+            "arm": "canonical",
+            "stage": "smoke",
+            "dependency": null,
+            "nice": 400,
+            "account": "cis260115p",
+            "qos": "gpu",
+            "partition": "GPU-shared",
+            "gpus": 3,
+            "script": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/jobs/sfs-ptps-ministral-smoke.sbatch",
+            "script_sha256": "8d748fd2d71cd4a2b084507d4f108423ae451889afc05aa1de1b4267d5b68a29",
+            "stored_script_verified": true,
+            "submitted_at_utc": "2026-09-17T04:52:06.798211+00:00",
+            "cells": [],
+            "evaluation_cells": 0
+          },
+          {
+            "name": "sfs-ptps-ministral-sweep",
+            "job_id": "46211710",
+            "arm": "canonical",
+            "stage": "sweep",
+            "dependency": "46211709",
+            "nice": 400,
+            "account": "cis260115p",
+            "qos": "gpu",
+            "partition": "GPU-shared",
+            "gpus": 3,
+            "script": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/jobs/sfs-ptps-ministral-sweep.sbatch",
+            "script_sha256": "c7a524501d87ef228247599967aa6f1457f2145f6c104142d1b748b368bca86a",
+            "stored_script_verified": true,
+            "submitted_at_utc": "2026-09-17T04:52:06.820351+00:00",
+            "cells": [
+              "ministral-hard_prefill_tps-6.0125-rerun",
+              "ministral-hard_prefill_tps-7.8625-rerun",
+              "ministral-hard_prefill_tps-8.7875-rerun"
+            ],
+            "evaluation_cells": 3
+          }
+        ],
+        "cells": [
+          {
+            "id": "ministral-hard_prefill_tps-6.0125-rerun",
+            "family": "ministral",
+            "variant": "canonical",
+            "policy": "hard_prefill_tps",
+            "qps": 6.0125,
+            "requests": 8000,
+            "provider": "bridges",
+            "status": "SUBMITTED_PENDING",
+            "sweep_job_id": "46211710"
+          },
+          {
+            "id": "ministral-hard_prefill_tps-7.8625-rerun",
+            "family": "ministral",
+            "variant": "canonical",
+            "policy": "hard_prefill_tps",
+            "qps": 7.8625,
+            "requests": 8000,
+            "provider": "bridges",
+            "status": "SUBMITTED_PENDING",
+            "sweep_job_id": "46211710"
+          },
+          {
+            "id": "ministral-hard_prefill_tps-8.7875-rerun",
+            "family": "ministral",
+            "variant": "canonical",
+            "policy": "hard_prefill_tps",
+            "qps": 8.7875,
+            "requests": 8000,
+            "provider": "bridges",
+            "status": "SUBMITTED_PENDING",
+            "sweep_job_id": "46211710"
+          }
+        ],
+        "cell_ids": [
+          "ministral-hard_prefill_tps-6.0125-rerun",
+          "ministral-hard_prefill_tps-7.8625-rerun",
+          "ministral-hard_prefill_tps-8.7875-rerun"
+        ],
+        "priority": "Low. --nice=400 (after the Qwen chain at 0/100/200/300); sweep afterok smoke with --kill-on-invalid-dep=yes",
+        "results_root": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral",
+        "submission_record": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/submission.json",
+        "previous_reason_superseded": "The additive runner keeps ministral3_methodology_stage.POLICIES and the frozen Figure 5 manifest unchanged; it freezes a separate three-cell side manifest instead",
+        "superseded_record": {
+          "status": "NOT_SUBMITTED",
+          "cells": [
+            "ministral-hard_prefill_tps-6.0125-rerun",
+            "ministral-hard_prefill_tps-7.8625-rerun",
+            "ministral-hard_prefill_tps-8.7875-rerun"
+          ],
+          "reason": "The Bridges Ministral path cannot run hard_prefill_tps without source changes: ministral3_methodology_stage.POLICIES and the frozen Figure 5 manifest contain only hard (live estimator); ministral3_figure5.load_manifest requires policies == POLICIES; ministral3_recovery RERUN/plan cells are fixed"
+        }
+      },
+      "priority": "Low. Canonical first, then mlp_length, mlp_quality, flash_quality via Slurm afterok dependencies and increasing --nice",
+      "results_root": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917",
+      "submission_record": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/submission.json",
+      "fcfs_unchunked": {
+        "purpose": "Prefill-throughput-estimator baseline hard_prefill_tps under the Qwen FCFS unchunked serving configuration (qwen-fcfs-unchunked-65536), qualified on Bridges hardware first (32B TP=2 smoke, calibrate, coefficient fit, qualify, reviews, coordinator release), then 6/7/8/8.3 QPS x 16,000 requests",
+        "provider": "bridges",
+        "status": "SUBMITTED_PENDING_QUALIFICATION_THEN_RELEASE",
+        "recorded_at_utc": "2026-09-17T05:03:42.523880+00:00",
+        "worktree": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917",
+        "branch": "experiments/bridges-fcfs-ptps-20260917",
+        "sfs_commit": "0c6e06e6563f2cd62c254046e4a21a277abb3921",
+        "base_commit": "2a8c061",
+        "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
+        "vllm_provisioning": "git worktree of the sfs_model_family vllm submodule repo at 28bbf92 plus symlinks to its compiled extensions built at b70f4dbb4 (no csrc/CMake changes between b70f4dbb4 and 28bbf92; same provisioning as sfs_ptps_20260917)",
+        "models_provisioning": "models.json from scripts.cloud.prepare models (HF_HUB_OFFLINE) against a private hub cache whose snapshot directories symlink the pinned Qwen snapshots already under /ocean/projects/cis250162p/aparthas/.cache/huggingface/hub; nothing downloaded",
+        "storage_root": "/ocean/projects/cis250162p/aparthas/sfs_fb17",
+        "storage_root_alias": "/ocean/projects/cis250162p/aparthas/sfs_artifacts/fcfs_bridges_20260917 (symlink)",
+        "storage_root_deviation": "Short root keeps the worker pool IPC socket path at 106 bytes (serving_ipc.validate_ipc_paths limit 107)",
+        "bundle": "/ocean/projects/cis250162p/aparthas/sfs_fb17/bundle",
+        "bundle_sha256": "4e36359aaa8dce4c833b854a553b5f6afc9aafaa8f57e6ef2b58a49864bbf60d",
+        "models": {
+          "qwen3-0.6b": "/ocean/projects/cis250162p/aparthas/sfs_fb17/hf/hub/models--Qwen--Qwen3-0.6B/snapshots/c1899de289a04d12100db370d81485cdf75e47ca",
+          "qwen3-8b": "/ocean/projects/cis250162p/aparthas/sfs_fb17/hf/hub/models--Qwen--Qwen3-8B/snapshots/b968826d9c46dd6066d109eabc6255188de91218",
+          "qwen3-32b": "/ocean/projects/cis250162p/aparthas/sfs_fb17/hf/hub/models--Qwen--Qwen3-32B/snapshots/9216db5781bf21249d130ec9da846c4624c16137"
+        },
+        "campaign": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/scripts/cloud/fcfs/campaign-ptps-bridges-20260917.json",
+        "campaign_sha256": "cedac71c76d8934511e1d6122a0f1c911ce150444935b1a3ee029952db30191f",
+        "validator_change": "scripts.cloud.fcfs.campaign accepts an explicit policy_allowance (policies outside the nine plus authorization text) on a side overlay; the nine-policy grid check is unchanged for the main overlay. scripts.cloud.worker gained --hardware-match model (run mode only) because the qualification and run jobs are separate Slurm allocations; cell entries record both hardware fingerprints.",
+        "policy": "hard_prefill_tps",
+        "family": "qwen",
+        "configuration_id": "qwen-fcfs-unchunked-65536",
+        "requests_per_cell": 16000,
+        "qps_values": [
+          6.0,
+          7.0,
+          8.0,
+          8.3
+        ],
+        "cells": [
+          {
+            "id": "qwen-fcfs-unchunked-65536-hard_prefill_tps-6",
+            "policy": "hard_prefill_tps",
+            "qps": 6.0,
+            "requests": 16000,
+            "provider": "bridges",
+            "status": "SUBMITTED_PENDING",
+            "run_job_id": "46212712"
+          },
+          {
+            "id": "qwen-fcfs-unchunked-65536-hard_prefill_tps-7",
+            "policy": "hard_prefill_tps",
+            "qps": 7.0,
+            "requests": 16000,
+            "provider": "bridges",
+            "status": "SUBMITTED_PENDING",
+            "run_job_id": "46212712"
+          },
+          {
+            "id": "qwen-fcfs-unchunked-65536-hard_prefill_tps-8",
+            "policy": "hard_prefill_tps",
+            "qps": 8.0,
+            "requests": 16000,
+            "provider": "bridges",
+            "status": "SUBMITTED_PENDING",
+            "run_job_id": "46212712"
+          },
+          {
+            "id": "qwen-fcfs-unchunked-65536-hard_prefill_tps-8.3",
+            "policy": "hard_prefill_tps",
+            "qps": 8.3,
+            "requests": 16000,
+            "provider": "bridges",
+            "status": "SUBMITTED_PENDING",
+            "run_job_id": "46212712"
+          }
+        ],
+        "jobs": [
+          {
+            "name": "sfs-fcfsb-qualify",
+            "job_id": "46212711",
+            "dependency": null,
+            "nice": 400,
+            "account": "cis260115p",
+            "qos": "gpu",
+            "partition": "GPU-shared",
+            "gpus": 4,
+            "script": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/experiments/bridges_fcfs_ptps_20260917/jobs/sfs-fcfsb-qualify.sbatch",
+            "script_sha256": "4b98700aff8138e5bbc167031dc74387452b834e0e132bf9e1194ea0ccdb7e35",
+            "stored_script_verified": true,
+            "submitted_at_utc": "2026-09-17T05:03:33.992712+00:00",
+            "cells": [],
+            "evaluation_cells": 0
+          },
+          {
+            "name": "sfs-fcfsb-run",
+            "job_id": "46212712",
+            "dependency": "46212711",
+            "nice": 400,
+            "account": "cis260115p",
+            "qos": "gpu",
+            "partition": "GPU-shared",
+            "gpus": 4,
+            "script": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/experiments/bridges_fcfs_ptps_20260917/jobs/sfs-fcfsb-run.sbatch",
+            "script_sha256": "0d1fc5d4d5f4f0d03b4cb26a64985b1bf3a4c7a60bddab850146f6db76b0c2b9",
+            "stored_script_verified": true,
+            "submitted_at_utc": "2026-09-17T05:03:34.013837+00:00",
+            "cells": [
+              "qwen-fcfs-unchunked-65536-hard_prefill_tps-6",
+              "qwen-fcfs-unchunked-65536-hard_prefill_tps-7",
+              "qwen-fcfs-unchunked-65536-hard_prefill_tps-8",
+              "qwen-fcfs-unchunked-65536-hard_prefill_tps-8.3"
+            ],
+            "evaluation_cells": 4
+          }
+        ],
+        "gates": {
+          "rehearsal": {
+            "path": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/experiments/bridges_fcfs_ptps_20260917/rehearsal.json",
+            "sha256": "e64d6a4256ccee12248f44a56aec21ea9d79207547c75070b5f6fd0bf5a11231",
+            "exit_codes": {
+              "sfs-fcfsb-qualify": 0,
+              "sfs-fcfsb-run": 0
+            }
+          },
+          "cpu_preflight": {
+            "path": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/experiments/bridges_fcfs_ptps_20260917/preflight/sfs-fcfsb-qualify_cpu.json",
+            "source_digest": "dde9c13449ec339527d40a306463cbaaf56c71e8d45ea92489ddcc9b29f3c9f4"
+          },
+          "gpu_gates_in_order": [
+            "job A: CPU gates (test.sh, prepare cpu/serving, FCFS chat admission audit)",
+            "job A: 32B TP=2 bounded FCFS smoke on two GPUs",
+            "job A: worker calibrate (four GPUs), coefficients fit (CPU), worker qualify with fitted coefficients, coefficients validate, review_baseline_timing",
+            "coordinator: review, then scripts.cloud.control release writes release.json",
+            "job B: waits <= 90 min for release.json, then worker run on the four cells with per-cell audits"
+          ],
+          "release_rule": "Job B exits 3 without running any cell if release.json does not appear within 90 minutes"
+        },
+        "pointer": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/experiments/bridges_fcfs_ptps_20260917/qualification-pointer.json",
+        "results_root": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/experiments/bridges_fcfs_ptps_20260917",
+        "submission_record": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/experiments/bridges_fcfs_ptps_20260917/submission.json",
+        "priority": "After the queued Qwen hard_prefill_tps chain (46206357-46206364): --nice=400, afterok dependency A->B, --kill-on-invalid-dep=yes"
+      }
+    },
+    "calibration_extension": {
+      "purpose": "Additional greedy calibration completions for all six campaign models (temperature 0, top_p 1, max_completion_tokens 8192, campaign serving profile, pinned revisions) on raw bucket rows 6500-8999 (2,500 per bucket, 10,000 per model, 60,000 total), disjoint from the original calibration rows 0-2499 and the evaluation holdout rows 2500-6499; inputs for retraining the SFS output-length predictor mean head per prompt-length band and for the Ministral tail analysis. Not evaluation cells.",
+      "provider": "bridges",
+      "status": "SUBMITTED",
+      "recorded_at_utc": "2026-09-17T09:54:05.474724+00:00",
+      "worktree": "/ocean/projects/cis250162p/aparthas/sfs_calib_ext_20260917",
+      "branch": "detached HEAD (no branch, no commits)",
+      "sfs_commit": "80e26878e829517e8f63bc57502cc04253f2b4bb",
+      "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
+      "vllm_provisioning": "git worktree of the vllm submodule repo detached at 28bbf92 plus symlinks to the sfs_model_family compiled extensions (as sfs_cloud_20260914); PYTHONPATH puts it ahead of the editable install and both launchers verify the active commit",
+      "pipeline": "scripts.prep.run_qwen_bucketed_prompts (the generator behind the original Qwen and Ministral per-bucket calibration outputs) driven by src/slurm/prep/run_ministral3_bucketed_prompts_all_models.sh for Ministral and by a campaign-profile Qwen launcher; audited by scripts.prep.audit_generation_outputs; manifest by scripts.prep.calibration_extension_manifest",
+      "uncommitted_changes": {
+        "src/scripts/prep/run_qwen_bucketed_prompts.py": "adds --prompt-start-index (default 0); prompt_index/request_id keep the raw bucket row index",
+        "src/slurm/prep/run_ministral3_bucketed_prompts_all_models.sh": "PROMPT_START_INDEX passthrough and provenance lines",
+        "src/scripts/prep/calibration_extension_manifest.py": "new: verifies outputs against raw bucket rows and writes manifest.json with per-file sha256",
+        "src/slurm/prep/calibration_extension_qwen.sbatch": "new",
+        "src/slurm/prep/calibration_extension_ministral.sbatch": "new"
+      },
+      "bundle": "/ocean/projects/cis250162p/aparthas/sfs_cloud_artifacts_20260916/bundle.json",
+      "bundle_sha256": "4e36359aaa8dce4c833b854a553b5f6afc9aafaa8f57e6ef2b58a49864bbf60d",
+      "bucket_dir": "/ocean/projects/cis250162p/aparthas/vllm_utils/bucketed_prompts_0.6B",
+      "raw_bucket_rows": 17000,
+      "index_range": {
+        "start": 6500,
+        "end_exclusive": 9000,
+        "per_bucket": 2500,
+        "buckets": [
+          "alpaca",
+          "govreport-summarization",
+          "hotpot_qa",
+          "writingprompts"
+        ],
+        "original_calibration_rows": "0-2499",
+        "evaluation_holdout_rows": "2500-6499"
+      },
+      "settings": {
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "seed": 69,
+        "max_completion_tokens": 8192,
+        "context_length": 65536,
+        "prompt_token_limit": 32768,
+        "dtype": "auto (BF16)",
+        "chunked_prefill": true,
+        "max_num_batched_tokens": 32768,
+        "max_num_seqs": 512,
+        "prefix_caching": false,
+        "gpu_memory_utilization": 0.9,
+        "attention_backend": "FLASH_ATTN",
+        "client_worker_count": 128
+      },
+      "output_root": "/ocean/projects/cis250162p/aparthas/sfs_artifacts/calibration_extension_20260917",
+      "slurm_logs": "/ocean/projects/cis250162p/aparthas/sfs_artifacts/calibration_extension_20260917/slurm/",
+      "jobs": [
+        {
+          "family": "qwen",
+          "slurm_job_id": "46231211",
+          "time_limit": "08:00:00",
+          "partition": "GPU-shared",
+          "gres": "gpu:h100-80:4",
+          "models": [
+            "qwen3-0.6b",
+            "qwen3-8b",
+            "qwen3-32b"
+          ],
+          "tensor_parallel": [
+            1,
+            1,
+            2
+          ],
+          "requests_per_model": 10000,
+          "system_prompt": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant.",
+          "chat_template_kwargs": {
+            "enable_thinking": false
+          },
+          "sbatch": "/ocean/projects/cis250162p/aparthas/sfs_calib_ext_20260917/src/slurm/prep/calibration_extension_qwen.sbatch",
+          "output_root": "/ocean/projects/cis250162p/aparthas/sfs_artifacts/calibration_extension_20260917/qwen",
+          "manifest": "/ocean/projects/cis250162p/aparthas/sfs_artifacts/calibration_extension_20260917/qwen/manifest.json"
+        },
+        {
+          "family": "ministral",
+          "slurm_job_id": "46231212",
+          "time_limit": "06:00:00",
+          "partition": "GPU-shared",
+          "gres": "gpu:h100-80:3",
+          "models": [
+            "ministral3-3b",
+            "ministral3-8b",
+            "ministral3-14b"
+          ],
+          "tensor_parallel": [
+            1,
+            1,
+            1
+          ],
+          "requests_per_model": 10000,
+          "system_prompt": "You are a helpful assistant.",
+          "chat_template_kwargs": {},
+          "tokenizer_mode": "mistral",
+          "sbatch": "/ocean/projects/cis250162p/aparthas/sfs_calib_ext_20260917/src/slurm/prep/calibration_extension_ministral.sbatch",
+          "output_root": "/ocean/projects/cis250162p/aparthas/sfs_artifacts/calibration_extension_20260917/ministral",
+          "manifest": "/ocean/projects/cis250162p/aparthas/sfs_artifacts/calibration_extension_20260917/ministral/manifest.json"
+        }
+      ],
+      "dispatch_note": "Timing-insensitive, embarrassingly parallel GPU work; no dependency on Vast; existing Slurm jobs untouched (45842578 and 46077428 were already CANCELLED at 2026-09-16T23:02:23 before this submission)."
+    }
+  }
 }
