@@ -1,0 +1,140 @@
+{
+  "instances": [
+    {
+      "instance_id": "vllm-0.6b",
+      "address": "http://127.0.0.1:46723",
+      "default_model": "qwen3-0.6b",
+      "model_id": "qwen3-0.6b",
+      "snapshot_shm_name": "sfs_57aa62dc84_0",
+      "snapshot_shm_size_bytes": 8388608,
+      "max_num_batched_tokens": 32768,
+      "max_num_seqs": 512,
+      "chunked_prefill_enabled": true,
+      "long_prefill_token_threshold": 0,
+      "ttft_batch_model": {
+        "intercept": 0.002582076153059547,
+        "prefill_coeff": 2.0335711505545034e-06,
+        "prefill_sq_coeff": 1.8925400079684374e-10,
+        "decode_coeff": 1.6889500804006565e-05,
+        "sum_coeff": 3.5429418765562916e-08,
+        "sum_sq_coeff": 1.5754738957656986e-13
+      }
+    },
+    {
+      "instance_id": "vllm-8b",
+      "address": "http://127.0.0.1:38413",
+      "default_model": "qwen3-8b",
+      "model_id": "qwen3-8b",
+      "snapshot_shm_name": "sfs_57aa62dc84_1",
+      "snapshot_shm_size_bytes": 8388608,
+      "max_num_batched_tokens": 32768,
+      "max_num_seqs": 512,
+      "chunked_prefill_enabled": true,
+      "long_prefill_token_threshold": 0,
+      "ttft_batch_model": {
+        "intercept": 0.007295929680901453,
+        "prefill_coeff": 2.0789009922784725e-05,
+        "prefill_sq_coeff": 5.119559033569263e-10,
+        "decode_coeff": 2.5632010897991973e-05,
+        "sum_coeff": 4.6490885513702363e-08,
+        "sum_sq_coeff": 2.6851287984524727e-13
+      }
+    },
+    {
+      "instance_id": "vllm-32b",
+      "address": "http://127.0.0.1:48961",
+      "default_model": "qwen3-32b",
+      "model_id": "qwen3-32b",
+      "snapshot_shm_name": "sfs_57aa62dc84_2",
+      "snapshot_shm_size_bytes": 8388608,
+      "max_num_batched_tokens": 32768,
+      "max_num_seqs": 512,
+      "chunked_prefill_enabled": true,
+      "long_prefill_token_threshold": 0,
+      "ttft_batch_model": {
+        "intercept": 0.014347877296187458,
+        "prefill_coeff": 5.294185118159464e-05,
+        "prefill_sq_coeff": 8.774059443201359e-10,
+        "decode_coeff": 6.304876078328351e-05,
+        "sum_coeff": 3.6863941393981496e-08,
+        "sum_sq_coeff": 4.519593317761812e-13
+      }
+    }
+  ],
+  "serving_profile": {
+    "dtype": "auto (BF16 checkpoints)",
+    "max_model_len": 131072,
+    "context_length": 65536,
+    "prompt_token_limit": 32768,
+    "max_completion_tokens": 8192,
+    "chunked_prefill": true,
+    "max_num_batched_tokens": 32768,
+    "max_num_seqs": 512,
+    "prefix_caching": false,
+    "gpu_memory_utilization": 0.9,
+    "tensor_parallel_sizes": [
+      1,
+      1,
+      2
+    ],
+    "gpu": "H100-80GB",
+    "rope_scaling": {
+      "rope_type": "yarn",
+      "factor": 4.0,
+      "original_max_position_embeddings": 32768
+    }
+  },
+  "instance_costs": {
+    "vllm-0.6b": {
+      "prompt": 0.044,
+      "output": 0.173
+    },
+    "vllm-8b": {
+      "prompt": 0.072,
+      "output": 0.287
+    },
+    "vllm-32b": {
+      "prompt": 0.287,
+      "output": 0.64
+    }
+  },
+  "cost_units": "USD per million tokens",
+  "canonical_manifest": null,
+  "remaining_length": {
+    "rule": "qwen3-0.6b=running_all_prompt_bin_q50",
+    "models": {
+      "qwen3-0.6b": {
+        "mode": "running_all",
+        "quantile": 0.5,
+        "conditioning": "prompt_bin",
+        "rule": "running_all_prompt_bin_q50",
+        "table": {
+          "path": "/workspace/sfs/state/diagnostics/reserve-tail-20260916/tables/qwen3-0.6b.json",
+          "sha256": "50a14ca76681895a622cbf2d69ba362e37792b32b76c5967b7b9b67f3f6ed87d",
+          "support": {
+            "0": 4990,
+            "1": 26,
+            "2": 2313,
+            "3": 1357,
+            "4": 1293,
+            "5": 21,
+            "all": 10000
+          }
+        }
+      },
+      "qwen3-8b": {
+        "mode": "off",
+        "quantile": 0.5,
+        "conditioning": "prompt_bin",
+        "rule": "current"
+      },
+      "qwen3-32b": {
+        "mode": "off",
+        "quantile": 0.5,
+        "conditioning": "prompt_bin",
+        "rule": "current"
+      }
+    },
+    "semantics": "running requests with complete prefill: running_all = Q_q(total length | conditioning, total > generated) - generated for every request, exhausted_only = the same only once prediction + reserve leaves <= 1 token, both floored at generated + 1 and capped at max_tokens / decode budget; waiting requests and probes keep prediction + reserve; the router pending-dispatch overlay of an engine with a rule uses the table's unconditional median when the prediction is missing (1.0 default)"
+  }
+}

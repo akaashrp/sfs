@@ -1,0 +1,62 @@
+{
+ "calibration": "/ocean/projects/cis250162p/aparthas/vllm_utils/bucketed_prompt_outputs",
+ "cap": 8192,
+ "evaluation_ids": 16000,
+ "min_support": 8,
+ "prompt_bin_edges": [
+  0,
+  128,
+  512,
+  2048,
+  8192,
+  32768,
+  1000000000
+ ],
+ "request_map": "/ocean/projects/cis250162p/aparthas/sfs_cloud_artifacts_20260916/qwen/request_map.csv",
+ "request_map_sha256": "97c146f6328a776cf23ee6fde23dcdced3720e5f0916c4a5412c375e8d77a2bb",
+ "schema_version": 1,
+ "tables": {
+  "qwen3-0.6b": {
+   "path": "/ocean/projects/cis250162p/aparthas/sfs_reserve_20260916/.scratch/reserve-tail-20260916/tables/qwen3-0.6b.json",
+   "records": 10000,
+   "sha256": "50a14ca76681895a622cbf2d69ba362e37792b32b76c5967b7b9b67f3f6ed87d",
+   "support_per_bin": {
+    "0": 4990,
+    "1": 26,
+    "2": 2313,
+    "3": 1357,
+    "4": 1293,
+    "5": 21,
+    "all": 10000
+   }
+  },
+  "qwen3-32b": {
+   "path": "/ocean/projects/cis250162p/aparthas/sfs_reserve_20260916/.scratch/reserve-tail-20260916/tables/qwen3-32b.json",
+   "records": 10000,
+   "sha256": "74e3a4ef30c8be24e01983b2609c4d76c8641422f26def2a899ec47ec88cf599",
+   "support_per_bin": {
+    "0": 4990,
+    "1": 26,
+    "2": 2313,
+    "3": 1357,
+    "4": 1293,
+    "5": 21,
+    "all": 10000
+   }
+  },
+  "qwen3-8b": {
+   "path": "/ocean/projects/cis250162p/aparthas/sfs_reserve_20260916/.scratch/reserve-tail-20260916/tables/qwen3-8b.json",
+   "records": 10000,
+   "sha256": "2392950a25c04003e945124554fd33654da1c552ccdecf7e59d20770f9c04ce6",
+   "support_per_bin": {
+    "0": 4990,
+    "1": 26,
+    "2": 2313,
+    "3": 1357,
+    "4": 1293,
+    "5": 21,
+    "all": 10000
+   }
+  }
+ }
+}

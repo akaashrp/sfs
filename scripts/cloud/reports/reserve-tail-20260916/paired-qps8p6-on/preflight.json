@@ -1,0 +1,8 @@
+{
+  "status": "PASS_CPU_CONTROL",
+  "requests": 16000,
+  "request_identity_slo_sha256": "611f7b53a01c71c6fd8bd3d3b67249689d554b62301e9b2d4cbee402a31d4fb2",
+  "reference_slurm_job": "46116020",
+  "policy": "hard",
+  "predictors": "canonical Qwen quality and length"
+}

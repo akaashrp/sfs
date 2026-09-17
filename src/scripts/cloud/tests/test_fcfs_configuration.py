@@ -45,27 +45,32 @@ def trace(path, c, rows=400, noise=2e-5, seed=1, start=1e9):
             f.write(f'{start+i},0,{p},{p*p},{d},{d},{p+d},0.0004,{max(y,1e-4):.6f},0,{n},{s},{ssq},{s/n:.3f},{s},0\n')
 
 
-def test_overlay_is_separate_and_not_launchable(bundle):
+def test_overlay_is_separate_and_launchable_only_when_authorized(bundle):
     m=read(bundle/'bundle.json');saved=deepcopy(m)
-    assert len(OVERLAY['cells'])==36 and OVERLAY['requests_total']==576000 and OVERLAY['full_matrix_authorized'] is False
-    assert OVERLAY['configuration_id']==fcfs.CONFIG_ID and OVERLAY['profile']==fcfs.SETTINGS and OVERLAY['status'].startswith('PREPARATION_ONLY')
+    # The user authorized the 28-cell matrix on 16 September 2026 (commit a707597); the generator still emits an unauthorized overlay.
+    assert len(OVERLAY['cells'])==36 and OVERLAY['requests_total']==576000 and OVERLAY['full_matrix_authorized'] is True
+    assert OVERLAY['configuration_id']==fcfs.CONFIG_ID and OVERLAY['profile']==fcfs.SETTINGS and OVERLAY['status'].startswith('FULL_MATRIX_AUTHORIZED')
+    assert OVERLAY['authorization'].startswith('User authorized the full FCFS unchunked matrix on 16 September 2026')
     ids={c['id'] for c in OVERLAY['cells']}
     assert all(i.startswith(fcfs.CONFIG_ID+'-') for i in ids)
     assert ids.isdisjoint({c['id'] for c in BASELINE['cells']+BASELINE['fallback_cells']+read(ROOT/'scripts/cloud/campaign.json')['cells']})
-    assert build(bundle)==OVERLAY  # The committed overlay is exactly what the code generates.
+    generated=build(bundle);volatile=('status','full_matrix_authorized','authorization')
+    assert generated['full_matrix_authorized'] is False and generated['status'].startswith('PREPARATION_ONLY') and 'authorization' not in generated
+    assert {k:v for k,v in OVERLAY.items() if k not in volatile}=={k:v for k,v in generated.items() if k not in volatile}  # only the authorization changed
     with pytest.raises(ValueError):apply_baseline(m,OVERLAY)
     with pytest.raises(ValueError):apply_campaign(m,BASELINE,'qualify')
+    unauthorized=deepcopy(OVERLAY);unauthorized['full_matrix_authorized']=False
     for mode in ('run','campaign'):
-        with pytest.raises(ValueError,match='not authorized'):apply_campaign(m,OVERLAY,mode)
-    applied=apply_campaign(m,OVERLAY,'qualify')
+        with pytest.raises(ValueError,match='not authorized'):apply_campaign(m,unauthorized,mode)
+    applied=apply_campaign(m,unauthorized,'qualify')
     assert m==saved and applied['files']==saved['files'] and applied['families']['ministral']==saved['families']['ministral']
     q=applied['families']['qwen']
     assert q['qps']==[6.,7.,8.,8.3] and q['policies']==list(fcfs.METHODS) and q['configuration_id']==fcfs.CONFIG_ID
     assert all(q['profile'][k]==v for k,v in fcfs.SETTINGS.items()) and q['profile']['rope_scaling']==qwen.PROFILE['rope_scaling']
     assert len(applied['cells'])==28 and len(applied['blocked_cells'])==8 and applied['requests_total']==28*16000
     assert not any(c['policy'] in fcfs.BLOCKED for c in applied['cells']) and set(applied['cells'][0])==set(BASELINE['cells'][0])
-    authorized=deepcopy(OVERLAY);authorized['full_matrix_authorized']=True
-    assert len(apply_campaign(m,authorized,'run')['cells'])==28
+    authorized=OVERLAY
+    assert len(apply_campaign(m,authorized,'run')['cells'])==28 and apply_campaign(m,authorized,'run')['blocked_cells']==applied['blocked_cells']
     for change in (lambda o:o['cells'][0].update(qps=8.6),lambda o:o['cells'][0].update(id='qwen-hard-6'),
                    lambda o:o['cells'][0].update(requests=8000),lambda o:o.update(profile=dict(fcfs.SETTINGS,chunked_prefill=True))):
         bad=deepcopy(authorized);change(bad)
@@ -141,7 +146,7 @@ def test_release_and_cli_bind_configuration_and_coefficients(bundle,tmp_path,mon
                  'run --profile fcfs --family qwen --campaign x --qualification q','calibrate --family qwen','qualify --family qwen --coefficients c'):
         monkeypatch.setattr(sys,'argv',['worker',*argv.split(),*common])
         with pytest.raises(SystemExit):worker.main()
-    overlay=ROOT/'scripts/cloud/fcfs/campaign-20260916.json'
-    monkeypatch.setattr(sys,'argv',['worker','run','--profile','fcfs','--family','qwen','--campaign',str(overlay),'--coefficients','c','--qualification','q',*common])
+    unauthorized=deepcopy(OVERLAY);unauthorized['full_matrix_authorized']=False;write(tmp_path/'unauthorized.json',unauthorized)
+    monkeypatch.setattr(sys,'argv',['worker','run','--profile','fcfs','--family','qwen','--campaign',str(tmp_path/'unauthorized.json'),'--coefficients','c','--qualification','q',*common])
     with pytest.raises(ValueError,match='not authorized'):worker.main()
     assert not (tmp_path/'out').exists()

@@ -1,0 +1,512 @@
+{
+ "ministral3-3b/alpaca": {
+  "n": 15788,
+  "n_all_policies": 16802,
+  "distinct_prompts": 1812,
+  "pred_le_1": 52,
+  "online_p50": 248.5,
+  "online_p90": 1557.0,
+  "online_p99": 2856.0399999999936,
+  "online_capped": 22,
+  "online_capped_pct_all_policies": 0.13093679323890015,
+  "pred_p50": 724.580198204981,
+  "pred_p90": 1322.6808377519358,
+  "pred_over_actual_median_ratio": 2.9158156869415737,
+  "ratio_p_over_L_median": 2.537400535865602,
+  "resid_p50": -329.80647260286315,
+  "resid_p90": 603.741862206105,
+  "resid_p99": 1973.7365008634679,
+  "resid_positive_pct": 23.771218647073727,
+  "calibration_n": 2500,
+  "calibration_p50": 250.0,
+  "calibration_p90": 1625.0,
+  "calibration_capped": 8,
+  "holdout2_n": 2000,
+  "holdout2_p50": 276.5,
+  "holdout2_p90": 1666.4000000000005,
+  "holdout2_capped": 7,
+  "by_host": {
+   "vast": {
+    "n": 9250,
+    "online_p50": 254.0,
+    "resid_p50": -321.13303333454996
+   },
+   "bridges": {
+    "n": 6538,
+    "online_p50": 244.0,
+    "resid_p50": -340.1594921938437
+   }
+  }
+ },
+ "ministral3-3b/govreport-summarization": {
+  "n": 25710,
+  "n_all_policies": 25764,
+  "distinct_prompts": 1989,
+  "pred_le_1": 0,
+  "online_p50": 1193.0,
+  "online_p90": 1625.0,
+  "online_p99": 2055.91,
+  "online_capped": 0,
+  "online_capped_pct_all_policies": 0.0,
+  "pred_p50": 504.45751796849413,
+  "pred_p90": 594.2898363332127,
+  "pred_over_actual_median_ratio": 0.4228478775930378,
+  "ratio_p_over_L_median": 0.42078680177534455,
+  "resid_p50": 686.3587374190427,
+  "resid_p90": 1102.9645781521112,
+  "resid_p99": 1528.3055619477393,
+  "resid_positive_pct": 100.0,
+  "calibration_n": 2500,
+  "calibration_p50": 1180.5,
+  "calibration_p90": 1599.1,
+  "calibration_capped": 0,
+  "holdout2_n": 2000,
+  "holdout2_p50": 1160.0,
+  "holdout2_p90": 1587.2000000000003,
+  "holdout2_capped": 0,
+  "by_host": {
+   "vast": {
+    "n": 11594,
+    "online_p50": 1195.0,
+    "resid_p50": 689.1266451468858
+   },
+   "bridges": {
+    "n": 14116,
+    "online_p50": 1192.0,
+    "resid_p50": 684.0669112468945
+   }
+  }
+ },
+ "ministral3-3b/hotpot_qa": {
+  "n": 16589,
+  "n_all_policies": 17500,
+  "distinct_prompts": 1830,
+  "pred_le_1": 0,
+  "online_p50": 89.0,
+  "online_p90": 264.0,
+  "online_p99": 879.239999999998,
+  "online_capped": 3,
+  "online_capped_pct_all_policies": 0.017142857142857144,
+  "pred_p50": 126.74719105706986,
+  "pred_p90": 193.168399646498,
+  "pred_over_actual_median_ratio": 1.4241257422142681,
+  "ratio_p_over_L_median": 1.4035106565899944,
+  "resid_p50": -34.26235444698651,
+  "resid_p90": 123.89113034637823,
+  "resid_p99": 730.6800290625998,
+  "resid_positive_pct": 30.48405569955995,
+  "calibration_n": 2500,
+  "calibration_p50": 88.0,
+  "calibration_p90": 265.0,
+  "calibration_capped": 0,
+  "holdout2_n": 2000,
+  "holdout2_p50": 90.0,
+  "holdout2_p90": 272.0,
+  "holdout2_capped": 0,
+  "by_host": {
+   "vast": {
+    "n": 9112,
+    "online_p50": 89.0,
+    "resid_p50": -33.95712452573444
+   },
+   "bridges": {
+    "n": 7477,
+    "online_p50": 88.0,
+    "resid_p50": -34.59123078103087
+   }
+  }
+ },
+ "ministral3-3b/writingprompts": {
+  "n": 15054,
+  "n_all_policies": 16209,
+  "distinct_prompts": 1788,
+  "pred_le_1": 0,
+  "online_p50": 845.0,
+  "online_p90": 1331.0,
+  "online_p99": 1984.3499999999967,
+  "online_capped": 10,
+  "online_capped_pct_all_policies": 0.06786353260534271,
+  "pred_p50": 633.4930458840837,
+  "pred_p90": 759.6059542767707,
+  "pred_over_actual_median_ratio": 0.7496959122888565,
+  "ratio_p_over_L_median": 0.747452884481612,
+  "resid_p50": 211.9171971964405,
+  "resid_p90": 705.5081289398859,
+  "resid_p99": 1344.2291532602799,
+  "resid_positive_pct": 77.95934635312874,
+  "calibration_n": 2500,
+  "calibration_p50": 833.0,
+  "calibration_p90": 1310.0,
+  "calibration_capped": 0,
+  "holdout2_n": 2000,
+  "holdout2_p50": 846.5,
+  "holdout2_p90": 1334.0,
+  "holdout2_capped": 4,
+  "by_host": {
+   "vast": {
+    "n": 8804,
+    "online_p50": 848.0,
+    "resid_p50": 213.7342846349103
+   },
+   "bridges": {
+    "n": 6250,
+    "online_p50": 840.0,
+    "resid_p50": 209.85105133040014
+   }
+  }
+ },
+ "ministral3-3b/ALL": {
+  "n": 73141,
+  "pred_le_1": 52,
+  "online_p50": 815.0,
+  "online_p90": 1486.0,
+  "online_p99": 2191.600000000006,
+  "online_capped": 35,
+  "pred_p50": 511.517468313922,
+  "resid_p50": 213.1953811839823,
+  "resid_p90": 926.7333052057268,
+  "resid_p99": 1531.969756250481,
+  "mae_tokens": 458.9725384048679,
+  "coverage_pred_plus_reserve_pct": 60.24391244308938
+ },
+ "ministral3-8b/alpaca": {
+  "n": 14182,
+  "n_all_policies": 15258,
+  "distinct_prompts": 1731,
+  "pred_le_1": 50,
+  "online_p50": 300.0,
+  "online_p90": 1753.8999999999996,
+  "online_p99": 3195.140000000003,
+  "online_capped": 29,
+  "online_capped_pct_all_policies": 0.19661816751867872,
+  "pred_p50": 819.7400039529399,
+  "pred_p90": 1435.1758984189248,
+  "pred_over_actual_median_ratio": 2.732466679843133,
+  "ratio_p_over_L_median": 2.4329642808461545,
+  "resid_p50": -363.4228456073147,
+  "resid_p90": 756.9034308992667,
+  "resid_p99": 2166.224460597315,
+  "resid_positive_pct": 24.439430263714566,
+  "calibration_n": 2500,
+  "calibration_p50": 293.5,
+  "calibration_p90": 1837.1999999999998,
+  "calibration_capped": 8,
+  "holdout2_n": 2000,
+  "holdout2_p50": 310.5,
+  "holdout2_p90": 1847.1000000000001,
+  "holdout2_capped": 5,
+  "by_host": {
+   "vast": {
+    "n": 6566,
+    "online_p50": 283.0,
+    "resid_p50": -359.0673277779912
+   },
+   "bridges": {
+    "n": 7616,
+    "online_p50": 319.0,
+    "resid_p50": -365.888990966608
+   }
+  }
+ },
+ "ministral3-8b/govreport-summarization": {
+  "n": 11043,
+  "n_all_policies": 12647,
+  "distinct_prompts": 1583,
+  "pred_le_1": 0,
+  "online_p50": 1168.0,
+  "online_p90": 1545.0,
+  "online_p99": 1907.0,
+  "online_capped": 0,
+  "online_capped_pct_all_policies": 0.0,
+  "pred_p50": 497.9208626903542,
+  "pred_p90": 586.909215480309,
+  "pred_over_actual_median_ratio": 0.426302108467769,
+  "ratio_p_over_L_median": 0.4232865101146145,
+  "resid_p50": 671.080212341093,
+  "resid_p90": 1029.9217870020414,
+  "resid_p99": 1374.6368532159786,
+  "resid_positive_pct": 99.97283346916599,
+  "calibration_n": 2500,
+  "calibration_p50": 1187.0,
+  "calibration_p90": 1555.1999999999998,
+  "calibration_capped": 0,
+  "holdout2_n": 2000,
+  "holdout2_p50": 1191.0,
+  "holdout2_p90": 1581.0,
+  "holdout2_capped": 0,
+  "by_host": {
+   "vast": {
+    "n": 5957,
+    "online_p50": 1173.0,
+    "resid_p50": 673.0393312847619
+   },
+   "bridges": {
+    "n": 5086,
+    "online_p50": 1161.0,
+    "resid_p50": 669.0195604805697
+   }
+  }
+ },
+ "ministral3-8b/hotpot_qa": {
+  "n": 15585,
+  "n_all_policies": 16560,
+  "distinct_prompts": 1768,
+  "pred_le_1": 0,
+  "online_p50": 80.0,
+  "online_p90": 231.0,
+  "online_p99": 965.7599999999984,
+  "online_capped": 14,
+  "online_capped_pct_all_policies": 0.08454106280193237,
+  "pred_p50": 118.42623740108986,
+  "pred_p90": 181.79684917216647,
+  "pred_over_actual_median_ratio": 1.4803279675136234,
+  "ratio_p_over_L_median": 1.469785221746684,
+  "resid_p50": -37.40719031852544,
+  "resid_p90": 111.49471864089045,
+  "resid_p99": 834.8742776825611,
+  "resid_positive_pct": 29.059993583573952,
+  "calibration_n": 2500,
+  "calibration_p50": 79.0,
+  "calibration_p90": 246.0,
+  "calibration_capped": 0,
+  "holdout2_n": 2000,
+  "holdout2_p50": 80.0,
+  "holdout2_p90": 252.0,
+  "holdout2_capped": 0,
+  "by_host": {
+   "vast": {
+    "n": 7030,
+    "online_p50": 79.0,
+    "resid_p50": -38.10522105749345
+   },
+   "bridges": {
+    "n": 8555,
+    "online_p50": 82.0,
+    "resid_p50": -36.5833077856272
+   }
+  }
+ },
+ "ministral3-8b/writingprompts": {
+  "n": 12652,
+  "n_all_policies": 13986,
+  "distinct_prompts": 1665,
+  "pred_le_1": 0,
+  "online_p50": 961.0,
+  "online_p90": 1474.0,
+  "online_p99": 2074.49,
+  "online_capped": 13,
+  "online_capped_pct_all_policies": 0.09295009295009296,
+  "pred_p50": 676.7208569692104,
+  "pred_p90": 820.239483706327,
+  "pred_over_actual_median_ratio": 0.7041840343071909,
+  "ratio_p_over_L_median": 0.6918136228637886,
+  "resid_p50": 298.0266859753563,
+  "resid_p90": 808.288198165085,
+  "resid_p99": 1427.6590825029787,
+  "resid_positive_pct": 82.61934871957003,
+  "calibration_n": 2500,
+  "calibration_p50": 958.0,
+  "calibration_p90": 1488.2999999999997,
+  "calibration_capped": 2,
+  "holdout2_n": 2000,
+  "holdout2_p50": 960.5,
+  "holdout2_p90": 1480.2000000000003,
+  "holdout2_capped": 1,
+  "by_host": {
+   "vast": {
+    "n": 6558,
+    "online_p50": 955.0,
+    "resid_p50": 293.22166766116027
+   },
+   "bridges": {
+    "n": 6094,
+    "online_p50": 968.0,
+    "resid_p50": 304.26223070329866
+   }
+  }
+ },
+ "ministral3-8b/ALL": {
+  "n": 53462,
+  "pred_le_1": 50,
+  "online_p50": 673.0,
+  "online_p90": 1452.0,
+  "online_p99": 2448.3899999999994,
+  "online_capped": 56,
+  "pred_p50": 517.6044413834586,
+  "resid_p50": 48.140254635658096,
+  "resid_p90": 842.3768393396456,
+  "resid_p99": 1560.3252764554784,
+  "mae_tokens": 423.3982364165946,
+  "coverage_pred_plus_reserve_pct": 67.69481126781639
+ },
+ "ministral3-14b/alpaca": {
+  "n": 13365,
+  "n_all_policies": 13940,
+  "distinct_prompts": 1757,
+  "pred_le_1": 65,
+  "online_p50": 288.0,
+  "online_p90": 1604.6000000000004,
+  "online_p99": 2829.0800000000017,
+  "online_capped": 8,
+  "online_capped_pct_all_policies": 0.05738880918220947,
+  "pred_p50": 741.0516773748329,
+  "pred_p90": 1332.7887666695917,
+  "pred_over_actual_median_ratio": 2.5730961019959477,
+  "ratio_p_over_L_median": 2.252714084955932,
+  "resid_p50": -303.60143286484436,
+  "resid_p90": 647.5808497917138,
+  "resid_p99": 1926.6494056145996,
+  "resid_positive_pct": 27.10063598952488,
+  "calibration_n": 2500,
+  "calibration_p50": 295.0,
+  "calibration_p90": 1698.1,
+  "calibration_capped": 5,
+  "holdout2_n": 2000,
+  "holdout2_p50": 328.0,
+  "holdout2_p90": 1705.0,
+  "holdout2_capped": 7,
+  "by_host": {
+   "vast": {
+    "n": 4385,
+    "online_p50": 300.0,
+    "resid_p50": -309.9805663446677
+   },
+   "bridges": {
+    "n": 8980,
+    "online_p50": 281.5,
+    "resid_p50": -300.43831287242983
+   }
+  }
+ },
+ "ministral3-14b/govreport-summarization": {
+  "n": 6456,
+  "n_all_policies": 7589,
+  "distinct_prompts": 1351,
+  "pred_le_1": 0,
+  "online_p50": 1272.0,
+  "online_p90": 1639.5,
+  "online_p99": 1992.949999999998,
+  "online_capped": 0,
+  "online_capped_pct_all_policies": 0.0,
+  "pred_p50": 521.0838872815254,
+  "pred_p90": 613.406595859532,
+  "pred_over_actual_median_ratio": 0.4096571440892496,
+  "ratio_p_over_L_median": 0.4099122519894491,
+  "resid_p50": 746.9672060017751,
+  "resid_p90": 1107.9336991285577,
+  "resid_p99": 1461.7363951431848,
+  "resid_positive_pct": 100.0,
+  "calibration_n": 2500,
+  "calibration_p50": 1277.0,
+  "calibration_p90": 1663.1999999999998,
+  "calibration_capped": 0,
+  "holdout2_n": 2000,
+  "holdout2_p50": 1291.0,
+  "holdout2_p90": 1645.0,
+  "holdout2_capped": 0,
+  "by_host": {
+   "vast": {
+    "n": 2687,
+    "online_p50": 1266.0,
+    "resid_p50": 741.2768651199142
+   },
+   "bridges": {
+    "n": 3769,
+    "online_p50": 1277.0,
+    "resid_p50": 752.4355450366004
+   }
+  }
+ },
+ "ministral3-14b/hotpot_qa": {
+  "n": 10949,
+  "n_all_policies": 11940,
+  "distinct_prompts": 1594,
+  "pred_le_1": 0,
+  "online_p50": 84.0,
+  "online_p90": 253.0,
+  "online_p99": 855.320000000007,
+  "online_capped": 0,
+  "online_capped_pct_all_policies": 0.016750418760469014,
+  "pred_p50": 120.31575204331074,
+  "pred_p90": 184.12022369367014,
+  "pred_over_actual_median_ratio": 1.432330381467985,
+  "ratio_p_over_L_median": 1.4168591048175847,
+  "resid_p50": -33.31575204331074,
+  "resid_p90": 123.90168658002267,
+  "resid_p99": 696.3263177835743,
+  "resid_positive_pct": 30.58726824367522,
+  "calibration_n": 2500,
+  "calibration_p50": 84.0,
+  "calibration_p90": 231.0,
+  "calibration_capped": 0,
+  "holdout2_n": 2000,
+  "holdout2_p50": 84.0,
+  "holdout2_p90": 247.20000000000027,
+  "holdout2_capped": 0,
+  "by_host": {
+   "vast": {
+    "n": 3931,
+    "online_p50": 84.0,
+    "resid_p50": -33.12387957540824
+   },
+   "bridges": {
+    "n": 7018,
+    "online_p50": 84.0,
+    "resid_p50": -33.519385326635444
+   }
+  }
+ },
+ "ministral3-14b/writingprompts": {
+  "n": 15489,
+  "n_all_policies": 15805,
+  "distinct_prompts": 1875,
+  "pred_le_1": 0,
+  "online_p50": 991.0,
+  "online_p90": 1495.0,
+  "online_p99": 2092.0,
+  "online_capped": 19,
+  "online_capped_pct_all_policies": 0.13919645681746284,
+  "pred_p50": 677.4535942379755,
+  "pred_p90": 816.9510577674363,
+  "pred_over_actual_median_ratio": 0.68360604867606,
+  "ratio_p_over_L_median": 0.6789768537531223,
+  "resid_p50": 317.3947966036918,
+  "resid_p90": 822.9609881979219,
+  "resid_p99": 1416.854003934456,
+  "resid_positive_pct": 84.98934727871392,
+  "calibration_n": 2500,
+  "calibration_p50": 1008.0,
+  "calibration_p90": 1517.0,
+  "calibration_capped": 0,
+  "holdout2_n": 2000,
+  "holdout2_p50": 1005.0,
+  "holdout2_p90": 1520.6000000000008,
+  "holdout2_capped": 1,
+  "by_host": {
+   "vast": {
+    "n": 4737,
+    "online_p50": 999.0,
+    "resid_p50": 328.05235727048455
+   },
+   "bridges": {
+    "n": 10752,
+    "online_p50": 988.0,
+    "resid_p50": 313.5644193887118
+   }
+  }
+ },
+ "ministral3-14b/ALL": {
+  "n": 46259,
+  "pred_le_1": 65,
+  "online_p50": 743.0,
+  "online_p90": 1491.0,
+  "online_p99": 2316.4199999999983,
+  "online_capped": 27,
+  "pred_p50": 579.1929821141995,
+  "resid_p50": 78.42966142282064,
+  "resid_p90": 852.9772372875741,
+  "resid_p99": 1504.1576400544568,
+  "mae_tokens": 416.8268529885085,
+  "coverage_pred_plus_reserve_pct": 67.67764110767635
+ }
+}

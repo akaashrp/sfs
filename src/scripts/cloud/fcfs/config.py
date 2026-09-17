@@ -35,8 +35,9 @@ def instances(bundle, ports, tag, coefficients=None):
     return cfg
 
 
-def server_argv(bundle, model_path, row, index, output):
-    argv=canonical_server('qwen',model_path,row,index,output,bundle/'qwen/length')
+def server_argv(bundle, model_path, row, index, output, remaining_length=None):
+    """Canonical Qwen argv (including any per-engine remaining-length rule) with only the scheduler settings changed."""
+    argv=canonical_server('qwen',model_path,row,index,output,bundle/'qwen/length',remaining_length)
     argv[argv.index('--enable-chunked-prefill')]='--no-enable-chunked-prefill'
     for flag,value in [('--scheduling-policy','fcfs'),('--max-num-batched-tokens',65536),('--max-model-len',65536),
                        ('--max-num-seqs',512),('--long-prefill-token-threshold',0),('--gpu-memory-utilization',.90)]:

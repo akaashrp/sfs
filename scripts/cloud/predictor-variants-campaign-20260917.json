@@ -1,0 +1,444 @@
+{
+  "schema_version": 1,
+  "kind": "predictor_variants",
+  "status": "AUTHORIZED_AFTER_SOURCE_AND_GPU_GATES",
+  "decision": "User decisions 2026-09-16/17 (scripts/cloud/reports/variants-20260916/PLAN.md): predictor/judge ablations {flash_quality, mlp_quality, mlp_length} x {hard, score, latency_agnostic} x {6, 7, 8, 8.3} QPS x 16,000 requests = 36 fresh Qwen cells. No-op policies are not rerun; their canonical cells are reused. Comparators: canonical hard and score from the Vast SFS/SCORE overlay (sfs-score-campaign-20260917.json); canonical latency_agnostic from the April Bridges reference (host/source difference accepted by the user; labelled provider=bridges). hard_prefill_tps is deferred. One pool per variant, each qualified separately (--variant is per pool).",
+  "variants": {
+    "flash_quality": "router --accuracy-model-path = bundle variants/flash_quality (LightGBM trained on Flash labels); servers byte-identical to canonical; primary judge at collation = Flash",
+    "mlp_quality": "router --accuracy-model-path = bundle variants/mlp_quality; servers byte-identical to canonical",
+    "mlp_length": "router and every Qwen server --output-length-model-path = bundle variants/mlp_length"
+  },
+  "policies": {
+    "qwen": [
+      "hard",
+      "score",
+      "latency_agnostic"
+    ]
+  },
+  "cells": [
+    {
+      "id": "qwen-flash_quality-hard-6",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "hard",
+      "qps": 6.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-hard-7",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "hard",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-hard-8",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "hard",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-hard-8.3",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "hard",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-score-6",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "score",
+      "qps": 6.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-score-7",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "score",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-score-8",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "score",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-score-8.3",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "score",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-latency_agnostic-6",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "latency_agnostic",
+      "qps": 6.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-latency_agnostic-7",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "latency_agnostic",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-latency_agnostic-8",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "latency_agnostic",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-latency_agnostic-8.3",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "latency_agnostic",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-hard-6",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "hard",
+      "qps": 6.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-hard-7",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "hard",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-hard-8",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "hard",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-hard-8.3",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "hard",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-score-6",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "score",
+      "qps": 6.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-score-7",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "score",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-score-8",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "score",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-score-8.3",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "score",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-latency_agnostic-6",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "latency_agnostic",
+      "qps": 6.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-latency_agnostic-7",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "latency_agnostic",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-latency_agnostic-8",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "latency_agnostic",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-latency_agnostic-8.3",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "latency_agnostic",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-hard-6",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "hard",
+      "qps": 6.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-hard-7",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "hard",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-hard-8",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "hard",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-hard-8.3",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "hard",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-score-6",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "score",
+      "qps": 6.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-score-7",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "score",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-score-8",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "score",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-score-8.3",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "score",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-latency_agnostic-6",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "latency_agnostic",
+      "qps": 6.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-latency_agnostic-7",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "latency_agnostic",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-latency_agnostic-8",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "latency_agnostic",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-latency_agnostic-8.3",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "latency_agnostic",
+      "qps": 8.3,
+      "requests": 16000
+    }
+  ],
+  "requests_total": 576000,
+  "noop_policies": {
+    "round_robin": {
+      "reuse": "scripts/cloud/reports/baseline-campaign-20260916/qwen-reference-inventory.json (April Bridges references, provider=bridges, via --bridges-reference)",
+      "reason": "predictions logged only; cursor routing with the zero estimator",
+      "label": "reused_canonical"
+    },
+    "shortest_queue": {
+      "reuse": "scripts/cloud/reports/baseline-campaign-20260916/qwen-reference-inventory.json (April Bridges references, provider=bridges, via --bridges-reference)",
+      "reason": "predictions logged only; selection uses snapshot request counts only",
+      "label": "reused_canonical"
+    },
+    "lmdeploy_proxy": {
+      "reuse": "scripts/cloud/baseline-campaign-20260916.json cells qwen-<policy>-<qps> (Vast, canonical; collate output observed_judge_summary.json via --reuse-root)",
+      "reason": "predictors never loaded (MethodologyScheduler); reads no snapshots",
+      "label": "reused_canonical"
+    },
+    "mooncake_prefill": {
+      "reuse": "scripts/cloud/baseline-campaign-20260916.json cells qwen-<policy>-<qps> (Vast, canonical; collate output observed_judge_summary.json via --reuse-root)",
+      "reason": "predictors never loaded; the snapshot parser ignores num_output_target_tokens",
+      "label": "reused_canonical"
+    },
+    "routebalance": {
+      "reuse": "scripts/cloud/baseline-campaign-20260916.json cells qwen-<policy>-<qps> (Vast, canonical; collate output observed_judge_summary.json via --reuse-root)",
+      "reason": "predictors never loaded (own MiniLM/KNN artifact); snapshot target field ignored",
+      "label": "reused_canonical"
+    },
+    "vllm_sr_latency": {
+      "reuse": "scripts/cloud/baseline-campaign-20260916.json cells qwen-<policy>-<qps> (Vast, canonical; collate output observed_judge_summary.json via --reuse-root)",
+      "reason": "predictors never loaded (LatencyHistoryScheduler); reads no snapshots",
+      "label": "reused_canonical"
+    }
+  },
+  "comparators": {
+    "hard": {
+      "provider": "vast",
+      "source": "scripts/cloud/sfs-score-campaign-20260917.json",
+      "cells": [
+        "qwen-hard-6",
+        "qwen-hard-7",
+        "qwen-hard-8",
+        "qwen-hard-8.3"
+      ],
+      "note": "Canonical SFS rerun on Vast with the same rule-ON 0.6B engine; 8 QPS may be a reused lane control only if the user writes its ledger entry (see the SFS/SCORE overlay reuse note)"
+    },
+    "score": {
+      "provider": "vast",
+      "source": "scripts/cloud/sfs-score-campaign-20260917.json",
+      "cells": [
+        "qwen-score-6",
+        "qwen-score-7",
+        "qwen-score-8",
+        "qwen-score-8.3"
+      ],
+      "note": "Canonical SCORE has no result at these rates anywhere; the Vast cells are both main-grid entries and the ablation comparator"
+    },
+    "latency_agnostic": {
+      "provider": "bridges",
+      "source": "scripts/cloud/reports/baseline-campaign-20260916/qwen-reference-inventory.json",
+      "points": {
+        "6": {
+          "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_no_snapshot_38531619_2026-04-07_080337/router_qps_no_snapshot_qwen3_lambda5em4_delta0_20260407_080930_qps6_point01.json",
+          "point_sha256": "2ab50234125e79e07e1c33f7881917c8fdff40fd0d7f5acd27fd104fdf56c6fc",
+          "status": "EXISTING_REFERENCE_RETAINED",
+          "system_entry_e2e_ttft_slo_attainment_pct": 36.86875
+        },
+        "7": {
+          "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_no_snapshot_38531619_2026-04-07_080337/router_qps_no_snapshot_qwen3_lambda5em4_delta0_20260407_080930_qps7_point02.json",
+          "point_sha256": "3fbee017ddfe0ab7b6bc4d76e555ff77fa4855e55a4401870e52858f2c3b036f",
+          "status": "EXISTING_REFERENCE_RETAINED",
+          "system_entry_e2e_ttft_slo_attainment_pct": 31.66875
+        },
+        "8": {
+          "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_no_snapshot_38531619_2026-04-07_080337/router_qps_no_snapshot_qwen3_lambda5em4_delta0_20260407_080930_qps8_point03.json",
+          "point_sha256": "7d0a147d7269401b09417c64ba2754bd03399ad851b4fe9d2d8af6e6b5c613fd",
+          "status": "EXISTING_REFERENCE_RETAINED",
+          "system_entry_e2e_ttft_slo_attainment_pct": 28.63125
+        },
+        "8.3": {
+          "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_no_snapshot_38531626_2026-04-07_081928/router_qps_no_snapshot_qwen3_lambda5em4_delta0_20260407_082207_qps8p3_point01.json",
+          "point_sha256": "6f86537b4899f8430ea3b9f35266baa6b1a503cd13822eecb945f7e8033d6be6",
+          "status": "EXISTING_REFERENCE_RETAINED",
+          "system_entry_e2e_ttft_slo_attainment_pct": 27.3375
+        }
+      },
+      "note": "April 2026 Bridges canonical latency_agnostic reference (current reserve rule, Bridges H100 hosts); the user accepted it as the comparator on 2026-09-17 in place of a Vast rerun. variant_matrix.json labels these rows provider=bridges with the point path and sha256; OnTimeUtility is recomputed from the point on the observed judge cohort when the point is readable."
+    }
+  },
+  "remaining_length": {
+    "tables": "scripts/cloud/remaining-length-tables-20260917",
+    "files": {
+      "manifest.json": "2eac8a79de5650982d998c7ded87f8cf48e19f3a53d1005afb734d7c4c491fbb",
+      "qwen3-0.6b.json": "50a14ca76681895a622cbf2d69ba362e37792b32b76c5967b7b9b67f3f6ed87d",
+      "qwen3-32b.json": "74e3a4ef30c8be24e01983b2609c4d76c8641422f26def2a899ec47ec88cf599",
+      "qwen3-8b.json": "2392950a25c04003e945124554fd33654da1c552ccdecf7e59d20770f9c04ce6"
+    },
+    "rules": {
+      "qwen3-0.6b": "running_all:0.5:prompt_bin"
+    },
+    "off_models": [
+      "qwen3-8b",
+      "qwen3-32b",
+      "ministral3-3b",
+      "ministral3-8b",
+      "ministral3-14b"
+    ],
+    "note": "The rule is per engine: only the qwen3-0.6b server receives --remaining-length-mode running_all --remaining-length-table qwen3-0.6b.json --remaining-length-quantile 0.5 --remaining-length-conditioning prompt_bin, and the router attaches that table for its missing-prediction fill on that instance only. qwen3-8b and qwen3-32b stay off: reserve-tail-20260916 README sections 4.2/4.3 (8B target component within noise, hindsight replay worse under every candidate; 32B sub-second either way). Ministral stays off: no Ministral paired evidence (reserve-tail-ministral-20260917 is analysis only), the rule is only plumbed for the Qwen family and scripts.cloud.pool refuses it for a Ministral server. Tables were built from the calibration outputs only (zero overlap with the 16,000 evaluation ids); manifest.json records the build paths on the controller. The rule applies to every Qwen SFS/SCORE run from now on and, because the engine flag is per pool, it is simply on for the 0.6B engine in every Qwen pool of this overlay: latency_agnostic reads no snapshots and its routing is unaffected by the engine-side targets, but its cells run on the same rule-ON pool and record remaining_length_rule = qwen3-0.6b=running_all_prompt_bin_q50 like the hard and score cells. The Bridges latency_agnostic comparator ran under the current rule on Bridges hardware (user-accepted difference).",
+    "evidence": {
+      "paired_run": "scripts/cloud/reports/reserve-tail-20260916/paired-qps8p6-on/result_summary.json (Vast /workspace/sfs/state/diagnostics/reserve-tail-20260916/paired-qps8p6-on; canonical 8.6 QPS hard control, 16,000 requests, source bedeec4 + reserve diff)",
+      "readiness_note": "scripts/cloud/reserve-paired-run-20260916.md",
+      "on": {
+        "rule": "qwen3-0.6b=running_all_prompt_bin_q50",
+        "ttft_slo_attainment_pct": 90.89375,
+        "pro_ontimeutility": 0.47315245581222454,
+        "flash_ontimeutility": 0.5106716853900976,
+        "realized_qps": 8.590666810927857,
+        "raw_sha256": "01fb35c7ad67db820ccec798c064a8dcabd851b5bdb772263d5cb5acbf7ebc9b"
+      },
+      "off_controls": {
+        "qps8p6": {
+          "remote_output": "/workspace/sfs/state/controls/qps8p6",
+          "ttft_slo_attainment_pct": 49.9625,
+          "pro_ontimeutility": 0.27815865541318135,
+          "raw_sha256": "d6e6d043c305b107fb4f7d8f54ad41cd461a20df77a279d77724fc2e298da726"
+        },
+        "qps8p6-repeat1": {
+          "remote_output": "/workspace/sfs/state/controls/qps8p6-repeat1",
+          "ttft_slo_attainment_pct": 63.7125,
+          "pro_ontimeutility": 0.35614945124710856,
+          "raw_sha256": "1f6099fff5b066736da2d8ffc2df285494902210d6584916fe02a84dc924224a"
+        }
+      },
+      "reading": "ON exceeds the better OFF control on both acceptance metrics (attainment 90.89 vs 63.71 percent; Pro OnTimeUtility 0.4732 vs 0.3561), outside the 13.8-point OFF spread; the pre-registered reading rule in the readiness note therefore admits the 0.6B rule for the campaign."
+    }
+  },
+  "accepted_prior_source_digests": {}
+}

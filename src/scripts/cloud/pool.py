@@ -35,12 +35,67 @@ def config(family, definition, metrics, ports, tag):
             "serving_profile": definition["profile"]}
 
 
-def server_argv(family, model_path, row, index, output, length_predictor):
+def parse_remaining_length_rules(specs):
+    """'MODEL=MODE[:QUANTILE[:CONDITIONING]]' entries -> {model: {mode, quantile, conditioning}}."""
+    from vllm.v1.core.sched.remaining_length import CONDITIONINGS, MODES
+    rules = {}
+    for spec in specs or ():
+        model, _, rest = spec.partition("=")
+        parts = rest.split(":") if rest else []
+        rule = {"mode": parts[0] if parts else "off", "quantile": float(parts[1]) if len(parts) > 1 else 0.5,
+                "conditioning": parts[2] if len(parts) > 2 else "prompt_bin"}
+        if not model or rule["mode"] not in MODES or rule["conditioning"] not in CONDITIONINGS or not 0 < rule["quantile"] <= 1:
+            raise ValueError(f"Invalid remaining-length rule {spec!r}; expected MODEL=MODE[:QUANTILE[:CONDITIONING]]")
+        rules[model] = rule
+    return rules
+
+
+def remaining_length_provenance(definition, remaining_length):
+    """instances.json block labelling each engine's remaining-decode target rule.
+
+    remaining_length is None (current rule everywhere) or {"tables": DIR, "rules": {model: {mode,
+    quantile, conditioning}}}; DIR holds one <model_id>.json survival table per model built by
+    scripts.prep.remaining_length_tables. Models without a rule, or with mode "off", keep the current rule.
+    """
+    from vllm.v1.core.sched.remaining_length import RemainingLengthTable, rule_name
+    rules = dict((remaining_length or {}).get("rules") or {})
+    if set(rules) - set(definition["models"]):
+        raise ValueError(f"Remaining-length rules name unknown models: {sorted(set(rules) - set(definition['models']))}")
+    models, labels = {}, []
+    for model in definition["models"]:
+        rule = dict(rules.get(model) or {"mode": "off", "quantile": 0.5, "conditioning": "prompt_bin"})
+        rule["rule"] = rule_name(rule["mode"], rule["quantile"], rule["conditioning"])
+        if rule["mode"] != "off":
+            path = Path(remaining_length["tables"]).resolve() / f"{model}.json"
+            table = RemainingLengthTable.load(path)
+            if table.model != model:
+                raise ValueError(f"Remaining-length table {path} is for {table.model}, not {model}")
+            rule["table"] = {"path": str(path), "sha256": table.sha256, "support": {k: table.support(k) for k in
+                             (*map(str, range(len(table.prompt_bin_edges) - 1)), "all")}}
+            labels.append(f"{model}={rule['rule']}")
+        models[model] = rule
+    return {"rule": ";".join(labels) if labels else "current", "models": models,
+            "semantics": "running requests with complete prefill: running_all = Q_q(total length | conditioning, total > "
+                         "generated) - generated for every request, exhausted_only = the same only once prediction + reserve "
+                         "leaves <= 1 token, both floored at generated + 1 and capped at max_tokens / decode budget; waiting "
+                         "requests and probes keep prediction + reserve; the router pending-dispatch overlay of an engine with a "
+                         "rule uses the table's unconditional median when the prediction is missing (1.0 default)"}
+
+
+def server_argv(family, model_path, row, index, output, length_predictor, remaining_length=None):
+    rule = ((remaining_length or {}).get("models") or {}).get(row["model_id"]) or {"mode": "off"}
     if family == "qwen":
         from scripts.runs.qwen_baselines import server_argv as canonical_argv
         argv = canonical_argv(ROOT, model_path, row, index, output)
         argv = set_option(argv, "--output-length-model-path", length_predictor)
+        if rule["mode"] != "off":
+            argv = set_option(argv, "--remaining-length-mode", rule["mode"])
+            argv = set_option(argv, "--remaining-length-table", rule["table"]["path"])
+            argv = set_option(argv, "--remaining-length-quantile", rule["quantile"])
+            argv = set_option(argv, "--remaining-length-conditioning", rule["conditioning"])
     else:
+        if rule["mode"] != "off":
+            raise ValueError("The remaining-length rule is only plumbed for the Qwen family")
         argv = [sys.executable, "-m", "vllm.entrypoints.openai.api_server", "--model", str(model_path),
             "--served-model-name", row["default_model"], "--tokenizer-mode", "mistral",
             "--config-format", "mistral", "--load-format", "mistral", "--dtype", "auto",
@@ -64,11 +119,12 @@ def instance_config(family, definition, bundle, ports, tag, profile="canonical",
     return config(family, definition, read(Path(bundle)/family/'bridges_metrics.json'), ports, tag)
 
 
-def instance_argv(family, model_path, row, index, output, length_predictor, bundle, profile="canonical"):
+def instance_argv(family, model_path, row, index, output, length_predictor, bundle, profile="canonical", remaining_length=None):
+    """remaining_length is the instances.json provenance block (remaining_length_provenance) or None."""
     if profile == "fcfs":
         from scripts.cloud.fcfs.config import server_argv as fcfs_argv
-        return fcfs_argv(Path(bundle), model_path, row, index, Path(output))
-    return server_argv(family, model_path, row, index, Path(output), length_predictor)
+        return fcfs_argv(Path(bundle), model_path, row, index, Path(output), remaining_length)
+    return server_argv(family, model_path, row, index, Path(output), length_predictor, remaining_length)
 
 
 def hardware(gpus):
@@ -88,7 +144,8 @@ def hardware(gpus):
 
 
 @contextlib.contextmanager
-def pool(family, definition, model_paths, bundle, output, gpus, state, length_predictor, profile="canonical", coefficients=None):
+def pool(family, definition, model_paths, bundle, output, gpus, state, length_predictor, profile="canonical", coefficients=None,
+         remaining_length=None):
     if len(gpus) not in ((4,) if family == 'qwen' else (3, 4)):
         raise ValueError("Qwen requires four GPUs; Ministral requires three (legacy four-GPU lanes also accepted)")
     fingerprint = hardware(gpus)
@@ -106,10 +163,12 @@ def pool(family, definition, model_paths, bundle, output, gpus, state, length_pr
                 sock = socket.socket(); sock.bind(("127.0.0.1", 0)); reserved.append(sock)
             ports = [s.getsockname()[1] for s in reserved]
             cfg = instance_config(family, definition, bundle, ports, tag, profile, coefficients)
+            cfg["remaining_length"] = remaining_length_provenance(definition, remaining_length)
             path = Path(output) / "instances.json"
             write(path, cfg); write(Path(output)/"hardware.json", fingerprint)
             for i, row in enumerate(cfg["instances"]):
-                argv = instance_argv(family, model_paths[row["model_id"]], row, i, output, length_predictor, bundle, profile)
+                argv = instance_argv(family, model_paths[row["model_id"]], row, i, output, length_predictor, bundle, profile,
+                                     cfg["remaining_length"])
                 visible = gpus[i] if family == "ministral" or i < 2 else ",".join(gpus[2:])
                 server_env = dict(env, CUDA_VISIBLE_DEVICES=visible, VLLM_USE_V1="1",
                     VLLM_ATTENTION_BACKEND="FLASH_ATTN", VLLM_USE_FLASHINFER_SAMPLER="0",
