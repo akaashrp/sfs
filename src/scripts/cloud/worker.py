@@ -74,6 +74,32 @@ def policies_for(manifest, family, variant, definition):
     return [p for p in definition['policies'] if p in found] + sorted(found - set(definition['policies']))
 
 
+def staleness_levels(manifest):
+    """Sorted distinct router snapshot delays (ms) of the manifest cells; [0.0] for overlays without injection."""
+    return sorted({cell_staleness(c) for c in manifest['cells']}) or [0.0]
+
+
+def cell_staleness(cell):
+    return float(cell.get('snapshot_staleness_ms', 0) or 0)
+
+
+def smoke_staleness(manifest):
+    """Delays every new pool smokes: none under other overlays, D = 0 and the largest D under the sweep."""
+    if manifest.get('kind') != 'staleness_sweep':
+        return [None]
+    return sorted({0.0, max(staleness_levels(manifest))})
+
+
+def staleness_argv(argv, manifest, staleness):
+    """Router argv for one run: the staleness flag reaches the router only under a staleness_sweep overlay."""
+    delay = float(staleness or 0)
+    if manifest.get('kind') != 'staleness_sweep':
+        if delay:
+            raise ValueError('Snapshot staleness is only authorized under a staleness_sweep overlay')
+        return list(argv)
+    return set_option(argv, '--snapshot-staleness-ms', f'{delay:g}')
+
+
 def family_remaining_length(manifest, definition):
     """Pool-ready {'tables', 'rules'} for this family's models, or None (current rule everywhere)."""
     block = manifest.get('remaining_length')
@@ -168,12 +194,31 @@ async def run_point(family, args, requests, clients, costs, metadata, folder, mo
     return payload
 
 
+LOADED_MAX_COMPLETION_TOKENS = 8192
+
+
+def capped_output_summary(responses, model):
+    """Count loaded-phase calibration outputs of one model that hit the token cap."""
+    loaded = [r['usage'].get('completion_tokens') or 0 for r in responses
+              if r['model'] == model and r['probe_id'].startswith(f'loaded-{model}-')]
+    return {'loaded_outputs': len(loaded), 'loaded_max_completion_tokens': LOADED_MAX_COMPLETION_TOKENS,
+            'capped_loaded_outputs': sum(tokens >= LOADED_MAX_COMPLETION_TOKENS for tokens in loaded)}
+
+
+def calibration_capped_outputs(metrics):
+    """Reviewer summary of token-capped calibration outputs and the SCORE decode window."""
+    keys = ('loaded_outputs', 'capped_loaded_outputs', 'loaded_max_completion_tokens',
+            'decode_window_rule', 'decode_rows_excluded_by_window', 'decode_batch_stats_rows_used')
+    return {model: {key: row['score_proxy'].get(key) for key in keys} for model, row in metrics.items()}
+
+
 async def calibrate(family, definition, requests, clients, base_args, output):
     """Warm shapes first, measure singleton prefill and loaded service/decode next."""
     from scripts.runs.ministral3_methodology_stage import length_stratified_requests, smoke_requests, wait_drained
     from scripts.prep.fit_methodology_calibration import fit_manifest, load_trace_rows
     from sfs_core.shared.shared_experiment_helpers import build_messages
-    from sfs_core.shared.trace_theta import estimate_score_proxy_metrics_from_batch_stats
+    from sfs_core.shared.trace_theta import (SCORE_PROXY_MULTI_SEQUENCE_PURE_DECODE,
+        estimate_score_proxy_metrics_from_batch_stats)
     probes, sample = length_stratified_requests(requests), smoke_requests(requests, per_bucket=128)
     recorded, services = [], {}
 
@@ -199,7 +244,7 @@ async def calibrate(family, definition, requests, clients, base_args, output):
         semaphore = asyncio.Semaphore(128)
         async def loaded(i, req):
             async with semaphore:
-                await submit(req, f'loaded-{client.model_id}-{i}', 8192)
+                await submit(req, f'loaded-{client.model_id}-{i}', LOADED_MAX_COMPLETION_TOKENS)
         start = time.monotonic()
         await asyncio.gather(*(loaded(i, r) for i, r in enumerate(sample)))
         elapsed = time.monotonic()-start
@@ -213,8 +258,12 @@ async def calibrate(family, definition, requests, clients, base_args, output):
             shutil.copyfileobj(source, dest)
         rows, _ = load_trace_rows([frozen])
         positive = [r for r in rows if r['prefill'] > 0]
-        proxy = estimate_score_proxy_metrics_from_batch_stats(batch_stats_csv_path=frozen, batch_stats_offset=0)
+        # A single token-capped output draining alone is not loaded decode; exclude
+        # single-sequence iterations (scripts/cloud/reports/score-proxy-window-20260917).
+        proxy = estimate_score_proxy_metrics_from_batch_stats(batch_stats_csv_path=frozen, batch_stats_offset=0,
+            decode_window=SCORE_PROXY_MULTI_SEQUENCE_PURE_DECODE)
         proxy['prefill_tps'] = sum(r['prefill'] for r in positive)/sum(r['exec'] for r in positive)
+        proxy.update(capped_output_summary(recorded, client.model_id))
         services[client.model_id] = {'service_rate_qps': len(sample)/elapsed, 'num_queries': len(sample),
             'succeeded': len(sample), 'failed': 0, 'elapsed_s': elapsed, 'score_proxy': proxy,
             'service_rate_definition': '512 calibration requests at concurrency 128 / whole-run elapsed; not router capacity',
@@ -300,11 +349,12 @@ async def execute(options, manifest, definition, model_paths, output):
                 # Trace collection only: fit configuration coefficients on CPU, then qualify.
                 write(output/'calibration.json', {'status': 'TRACES_COLLECTED_COEFFICIENT_FIT_REQUIRED', 'configuration_id': configuration(options),
                     'serving_profile': definition['profile'], 'hardware': machine, 'source_sha256': source, 'evaluation_started': False,
+                    'calibration_capped_outputs': calibration_capped_outputs(read(output/'model_metrics.json')),
                     'traces': {m: digest(output/f'calibration_trace_{m}.csv') for m in definition['models']}})
                 return
             argv = arguments(definition, options.bundle, options.variant, manifest, qualification)
-            def args_for(policy, rate, count):
-                args = parse(argv)
+            def args_for(policy, rate, count, staleness=None):
+                args = parse(staleness_argv(argv, manifest, staleness))
                 args.utilities, args.num_requests, args.request_rate_qps = [policy], count, rate
                 args.per_request_wait_log = [str(output/f'wait_{m}.log') for m in definition['models']]
                 return args
@@ -313,11 +363,13 @@ async def execute(options, manifest, definition, model_paths, output):
             smoke = smoke_requests(calibration)
             for policy in policies:
                 smoke_rate = definition['qps'][-1] if options.family == 'ministral' else 2.
-                payload = await run_point(options.family, args_for(policy, smoke_rate, 192), smoke, clients, costs, metadata,
-                                          output/'smoke'/policy, data_role='calibration')
-                audit_run(payload['router']['runs'][0], 192)
-                from scripts.runs.measured_audit import require_complete_ttft
-                require_complete_ttft(payload['router']['runs'][0])
+                for level in smoke_staleness(manifest):
+                    folder = output/'smoke'/(policy if level is None else f'{policy}-stale{level:g}')
+                    payload = await run_point(options.family, args_for(policy, smoke_rate, 192, level), smoke, clients, costs,
+                                              metadata, folder, data_role='calibration')
+                    audit_run(payload['router']['runs'][0], 192)
+                    from scripts.runs.measured_audit import require_complete_ttft
+                    require_complete_ttft(payload['router']['runs'][0])
             if options.family == 'ministral' and options.variant == 'canonical':
                 # The former 192-request/2-QPS smoke missed long busy iterations.
                 # Exercise both snapshot baselines with 512 balanced calibration
@@ -352,6 +404,8 @@ async def execute(options, manifest, definition, model_paths, output):
                     'source_sha256': source, 'bundle_sha256': digest(Path(options.bundle)/'bundle.json'),
                     'load_probes': load_probes, 'files': evidence, **provenance(options, manifest, active_rule),
                     'policy_smoke': policies, 'serving_profile': definition['profile'],
+                    'snapshot_staleness_levels_ms': staleness_levels(manifest),
+                    'calibration_capped_outputs': calibration_capped_outputs(read(output/'model_metrics.json')),
                     'serving_coefficients': ('Fitted for this configuration from destination traces; independent residuals require review' if coefficients
                         else 'Canonical SFS batch coefficients retained by configuration policy (per-token step costs unchanged); destination residuals require review'
                         if serving else 'Canonical SFS batch coefficients retained; destination residuals require review'),
@@ -384,7 +438,8 @@ async def execute(options, manifest, definition, model_paths, output):
                             raise ValueError('Completed point checksum changed')
                         continue
                     validate_release(qualification, options, source_hashes(), active_rule['rule'])
-                    args = args_for(cell['policy'], cell['qps'], cell['requests'])
+                    staleness = cell_staleness(cell)
+                    args = args_for(cell['policy'], cell['qps'], cell['requests'], staleness)
                     requests, _, _ = exp._build_request_set(args)
                     if len(requests) != cell['requests']:
                         raise ValueError('Evaluation ingestion budget changed')
@@ -394,13 +449,16 @@ async def execute(options, manifest, definition, model_paths, output):
                     audit = audit_cell(payload, cell)
                     if payload['router']['runs'][0].get('remaining_length_rule', 'current') != active_rule['rule']:
                         raise ValueError('Router did not record the pool remaining-length rule')
+                    if float(payload['router']['runs'][0].get('snapshot_staleness_ms', 0) or 0) != staleness:
+                        raise ValueError('Router did not record the cell snapshot staleness')
                     if source_hashes() != source:
                         raise ValueError('Runtime source changed during evaluation')
                     point = folder/'point.json'
                     entry = {**audit, 'cell': cell, 'point': str(point), 'point_sha256': digest(point),
                         **provenance(options, manifest, active_rule),
                         'source_sha256': source, 'bundle_sha256': digest(Path(options.bundle)/'bundle.json'),
-                        'qualification_sha256': digest(qualification/'qualification.json'), 'hardware': machine}
+                        'qualification_sha256': digest(qualification/'qualification.json'), 'hardware': machine,
+                        'snapshot_staleness_ms': staleness, 'snapshot_staleness_levels_ms': staleness_levels(manifest)}
                     write(folder/'audit.json', entry)
                     write(done, entry)
                     write(output/'phase.json', {'state': 'CELL_COMPLETE', 'cell': cell['id'], 'time': time.time(),
@@ -445,8 +503,8 @@ def main():
     p.add_argument('--variant', choices=['canonical', 'mlp_quality', 'mlp_length', 'flash_quality'], default='canonical')
     p.add_argument('--gpus', required=True); p.add_argument('--cpus'); p.add_argument('--qualification'); p.add_argument('--cells')
     from scripts.cloud.serving.profiles import NAMES
-    p.add_argument('--campaign', help='Explicit overlay on the frozen artifact bundle (baseline, sfs_score or predictor_variants kind; '
-                                      'a serving-configuration overlay under its --profile)')
+    p.add_argument('--campaign', help='Explicit overlay on the frozen artifact bundle (baseline, sfs_score, predictor_variants or '
+                                      'staleness_sweep kind; a serving-configuration overlay under its --profile)')
     p.add_argument('--profile', choices=list(NAMES), default='canonical',
                    help='Serving configuration (scripts.cloud.serving.profiles): fcfs is the Qwen unchunked overlay, chunk8192 the 8192-token '
                         'step budget, prefix_cache the prefix-caching ablation; each is qualified separately')

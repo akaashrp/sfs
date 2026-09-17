@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import math
 import threading
 import time
+from collections import deque
 from dataclasses import dataclass
 from multiprocessing import shared_memory
 from typing import TYPE_CHECKING, Any, Dict, Optional
@@ -27,14 +29,88 @@ class SnapshotEstimate:
     observed_pending_request_ids: tuple[str, ...] = ()
 
 
+@dataclass(slots=True)
+class DeliveredSnapshot:
+    """A publication the router acts on, as a delayed network would have delivered it."""
+
+    header: SnapshotShmHeader
+    payload: bytes
+    delivered_at: float
+    fallback: bool
+
+    @property
+    def age_ms(self) -> float:
+        return max(0.0, (self.delivered_at - self.header.created_at) * 1000.0)
+
+
+class SnapshotDelayBuffer:
+    """Router-side ring of recent publications; serves the one a fixed one-way delay would deliver.
+
+    ``observe`` records each new publication (monotone versions). ``deliver(now)`` returns the
+    newest entry whose publication timestamp is at least ``delay_ms`` older than ``now``; until
+    one exists (startup) it serves the oldest available and flags the fallback. Entries older than
+    the delivered one are dropped, so later deliveries never move backwards.
+    """
+
+    def __init__(self, delay_ms: float, *, capacity: int = 4096) -> None:
+        delay = float(delay_ms)
+        if not math.isfinite(delay) or delay <= 0.0:
+            raise ValueError("snapshot staleness delay must be a positive finite number of ms")
+        if int(capacity) < 1:
+            raise ValueError("delay buffer capacity must be positive")
+        self.delay_ms = delay
+        self._capacity = int(capacity)
+        self._entries: deque[tuple[SnapshotShmHeader, bytes]] = deque()
+        self._lock = threading.Lock()
+        self.fallback_deliveries = 0
+
+    def __len__(self) -> int:
+        return len(self._entries)
+
+    def observe(self, header: SnapshotShmHeader, payload: bytes) -> bool:
+        with self._lock:
+            if self._entries and int(header.snapshot_version) <= int(self._entries[-1][0].snapshot_version):
+                return False
+            self._entries.append((header, bytes(payload)))
+            while len(self._entries) > self._capacity:
+                self._entries.popleft()
+            return True
+
+    def deliver(self, now: float) -> Optional[DeliveredSnapshot]:
+        with self._lock:
+            if not self._entries:
+                return None
+            cutoff = float(now) - self.delay_ms / 1000.0
+            chosen = None
+            for entry in self._entries:
+                if float(entry[0].created_at) <= cutoff:
+                    chosen = entry
+                else:
+                    break
+            fallback = chosen is None
+            if fallback:
+                chosen = self._entries[0]
+                self.fallback_deliveries += 1
+            while self._entries[0] is not chosen:
+                self._entries.popleft()
+            return DeliveredSnapshot(chosen[0], chosen[1], float(now), fallback)
+
+
 class SnapshotShmClient:
-    """Reads lightweight SHM metadata in Python and parses snapshots natively."""
+    """Reads lightweight SHM metadata in Python and parses snapshots natively.
+
+    With ``staleness_ms`` > 0 the native SHM watcher is not started; a router-side feeder polls
+    the SHM into a :class:`SnapshotDelayBuffer` and hands the native simulator the publication a
+    network with that one-way delay would have delivered. Engine, simulator and policy code are
+    unchanged; ``staleness_ms`` = 0 keeps the direct watcher path exactly as before.
+    """
 
     def __init__(
         self,
         *,
         shm_name: str,
         shm_size_bytes: Optional[int] = None,
+        staleness_ms: float = 0.0,
     ) -> None:
         self._shm_name = str(shm_name)
         self._shm_size_bytes = (
@@ -45,9 +121,38 @@ class SnapshotShmClient:
         self._worker = None
         self._worker_coefficients: Optional[tuple[float, ...]] = None
         self._baseline_cache: Optional[BaselineSnapshot] = None
+        self._staleness_ms = 0.0
+        self._delay: Optional[SnapshotDelayBuffer] = None
+        self._delivered: Optional[DeliveredSnapshot] = None
+        self._fed_version = -1
+        self._feed_lock = threading.Lock()
+        self._feeder: Optional[threading.Thread] = None
+        self._feeder_stop = threading.Event()
+        self._configure_staleness(staleness_ms)
+
+    @property
+    def staleness_ms(self) -> float:
+        return self._staleness_ms
+
+    def set_staleness_ms(self, staleness_ms: float) -> None:
+        """Reconfigure the injected delay; an unchanged value is a no-op, otherwise restart on ``start``."""
+        if float(staleness_ms) == self._staleness_ms:
+            return
+        self.close()
+        self._configure_staleness(staleness_ms)
+
+    def _configure_staleness(self, staleness_ms: float) -> None:
+        delay = float(staleness_ms)
+        if not math.isfinite(delay) or delay < 0.0:
+            raise ValueError("snapshot staleness must be a finite, nonnegative number of ms")
+        self._staleness_ms = delay
+        self._delay = SnapshotDelayBuffer(delay) if delay > 0.0 else None
+        self._delivered = None
+        self._fed_version = -1
 
     def close(self) -> None:
         self._baseline_cache = None
+        self._stop_feeder()
         if self._worker is not None:
             self._worker.stop()
             self._worker = None
@@ -60,6 +165,9 @@ class SnapshotShmClient:
         with self._lock:
             header = self._read_latest_header()
             self._ensure_worker(header)
+            if self._delay is not None:
+                self._feed_once()
+                self._start_feeder()
 
     def baseline_state(self, *, now: Optional[float] = None) -> BaselineSnapshot:
         """Read observed baseline telemetry without native simulation/overlays.
@@ -71,10 +179,16 @@ class SnapshotShmClient:
         import msgspec
 
         with self._lock:
-            result = read_snapshot_shm_once(self._ensure_shm())
-            if result is None:
-                raise RuntimeError("Failed to read consistent baseline scheduler snapshot")
-            header, payload = result
+            if self._delay is not None:
+                delivered = self._delivered or self._feed_once()
+                if delivered is None:
+                    raise RuntimeError("Baseline scheduler snapshot is not published yet")
+                header, payload = delivered.header, delivered.payload
+            else:
+                result = read_snapshot_shm_once(self._ensure_shm())
+                if result is None:
+                    raise RuntimeError("Failed to read consistent baseline scheduler snapshot")
+                header, payload = result
             if not payload:
                 raise RuntimeError("Baseline scheduler snapshot is not published yet")
             observed_at = time.monotonic() if now is None else float(now)
@@ -104,7 +218,14 @@ class SnapshotShmClient:
         catchup_timeout_s: float = 2.0,
     ) -> SnapshotEstimate:
         with self._lock:
-            header = self._read_latest_header()
+            delivered: Optional[DeliveredSnapshot] = None
+            if self._delay is not None:
+                delivered = self._delivered or self._feed_once()
+                if delivered is None:
+                    raise RuntimeError("Baseline scheduler snapshot is not published yet")
+                header = delivered.header
+            else:
+                header = self._read_latest_header()
             self._ensure_worker(header)
             minimum_snapshot_version = int(header.snapshot_version)
             timeout_ms = max(1, int(float(catchup_timeout_s) * 1000.0))
@@ -185,6 +306,14 @@ class SnapshotShmClient:
             build_latency_ms = float(_parsed_build_latency_ms)
 
             metadata["simulation_mode"] = simulation_mode
+            if delivered is not None:
+                # Staleness injection diagnostics: what the simulator acted on.
+                metadata["snapshot_staleness_ms"] = float(self._staleness_ms)
+                metadata["snapshot_delivered_version"] = int(snapshot_version)
+                metadata["snapshot_delivered_age_ms"] = max(
+                    0.0, (time.monotonic() - float(snapshot_timestamp)) * 1000.0
+                )
+                metadata["snapshot_delivery_fallback"] = bool(delivered.fallback)
             report = {
                 "enabled": True,
                 "ready": True,
@@ -249,9 +378,60 @@ class SnapshotShmClient:
             prefill_sq_coeff=coefficients[2],
             sum_sq_coeff=coefficients[5],
         )
-        self._worker.start_snapshot_shm_watcher(
-            str(self._shm_name),
-            int(self._shm_size_bytes or 0),
-            1,
-        )
+        if self._delay is None:
+            self._worker.start_snapshot_shm_watcher(
+                str(self._shm_name),
+                int(self._shm_size_bytes or 0),
+                1,
+            )
+        else:
+            # The delay feeder replaces the watcher: it hands the worker the
+            # delayed publication itself, so a replaced worker is refilled.
+            self._fed_version = -1
         self._worker_coefficients = coefficients
+
+    def _feed_once(self) -> Optional[DeliveredSnapshot]:
+        """Observe the newest publication and hand the delayed one to the native worker."""
+        assert self._delay is not None
+        with self._feed_lock:
+            result = read_snapshot_shm_once(self._ensure_shm())
+            if result is not None and result[1]:
+                self._delay.observe(result[0], result[1])
+            delivered = self._delay.deliver(time.monotonic())
+            if delivered is None:
+                return None
+            worker = self._worker
+            version = int(delivered.header.snapshot_version)
+            if worker is not None and version != self._fed_version:
+                worker.update_snapshot(delivered.payload)
+                self._fed_version = version
+            self._delivered = delivered
+            return delivered
+
+    def _start_feeder(self, poll_interval_s: float = 0.001) -> None:
+        if self._feeder is not None:
+            return
+        self._feeder_stop.clear()
+
+        def run() -> None:
+            while not self._feeder_stop.wait(poll_interval_s):
+                try:
+                    self._feed_once()
+                except Exception:  # keep feeding; the reader reports errors
+                    continue
+
+        self._feeder = threading.Thread(
+            target=run, name=f"snapshot-delay-feeder-{self._shm_name}", daemon=True
+        )
+        self._feeder.start()
+
+    def _stop_feeder(self) -> None:
+        feeder = self._feeder
+        if feeder is not None:
+            self._feeder_stop.set()
+            feeder.join(timeout=5.0)
+            self._feeder = None
+        self._delivered = None
+        self._fed_version = -1
+        if self._delay is not None:
+            self._delay = SnapshotDelayBuffer(self._staleness_ms)

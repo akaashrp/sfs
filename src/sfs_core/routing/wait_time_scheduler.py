@@ -107,6 +107,7 @@ class InstanceClient:
         snapshot_shm_name: Optional[str] = None,
         snapshot_shm_size_bytes: Optional[int] = None,
         wait_time_http_fallback_enabled: bool = False,
+        snapshot_staleness_ms: float = 0.0,
     ) -> None:
         self.instance_id = instance_id
         self.address = address.rstrip("/")
@@ -125,11 +126,31 @@ class InstanceClient:
             SnapshotShmClient(
                 shm_name=str(snapshot_shm_name),
                 shm_size_bytes=snapshot_shm_size_bytes,
+                staleness_ms=snapshot_staleness_ms,
             )
             if snapshot_shm_name
             else None
         )
         self._wait_time_http_fallback_enabled = bool(wait_time_http_fallback_enabled)
+        if self._snapshot_client is None and float(snapshot_staleness_ms) > 0.0:
+            raise ValueError(
+                f"Snapshot staleness injection for {instance_id} requires local SHM telemetry"
+            )
+
+    @property
+    def snapshot_staleness_ms(self) -> float:
+        client = self._snapshot_client
+        return float(client.staleness_ms) if client is not None else 0.0
+
+    def set_snapshot_staleness_ms(self, staleness_ms: float) -> None:
+        """Inject a fixed publication delay (ms) into this instance's snapshot reads; 0 disables it."""
+        if self._snapshot_client is None:
+            if float(staleness_ms) > 0.0:
+                raise ValueError(
+                    f"Snapshot staleness injection for {self.instance_id} requires local SHM telemetry"
+                )
+            return
+        self._snapshot_client.set_staleness_ms(staleness_ms)
 
     async def refresh_wait_time(
         self,

@@ -177,7 +177,10 @@ def test_fresh_calibration_orchestration_writes_measured_inputs(tmp_path,monkeyp
     req=SimpleNamespace(prompt='Explain queues',request_id='cal-1',prompt_tokens=10)
     monkeypatch.setattr(stage,'length_stratified_requests',lambda requests:[req])
     monkeypatch.setattr(stage,'smoke_requests',lambda requests,**kw:[req]*2)
-    monkeypatch.setattr(trace_theta,'estimate_score_proxy_metrics_from_batch_stats',lambda **kw:{'decode_tps':1.})
+    windows=[]
+    monkeypatch.setattr(trace_theta,'estimate_score_proxy_metrics_from_batch_stats',
+        lambda **kw:windows.append(kw['decode_window']) or {'decode_tps':1.,'decode_window_rule':kw['decode_window'],
+                                                          'decode_rows_excluded_by_window':3,'decode_batch_stats_rows_used':9})
     captured=[]
     def fit(path,out):captured.append(read(path));out.mkdir();write(out/'methodology_calibration.json',{})
     monkeypatch.setattr(fitting,'fit_manifest',fit)
@@ -188,9 +191,19 @@ def test_fresh_calibration_orchestration_writes_measured_inputs(tmp_path,monkeyp
         async def submit_request(self,**kwargs):
             assert kwargs['extra_body']['chat_template_kwargs']=={}
             with trace.open('a') as stream:stream.write('10,100,0,1,10,0,0.01\n')
-            return SimpleNamespace(id=kwargs['extra_body']['request_id'],usage=SimpleNamespace(model_dump=lambda:{'completion_tokens':1}))
+            # One of the two loaded outputs runs to the calibration token cap.
+            tokens=kwargs['max_completion_tokens'] if kwargs['extra_body']['request_id']=='loaded-ministral3-3b-1' else 1
+            return SimpleNamespace(id=kwargs['extra_body']['request_id'],usage=SimpleNamespace(model_dump=lambda:{'completion_tokens':tokens}))
     asyncio.run(calibrate('ministral',{'profile':{'max_num_batched_tokens':32768}},[req],{'m':Client()},
         SimpleNamespace(system_prompt='You are helpful.',chat_template_kwargs={}),tmp_path))
     assert captured[0]['data_role']=='calibration'
     assert captured[0]['models']['ministral3-3b']['num_queries']==2
     assert len((tmp_path/'calibration_trace_ministral3-3b.csv').read_text().splitlines())==4
+    assert windows==['multi_sequence_pure_decode']
+    proxy=read(tmp_path/'model_metrics.json')['ministral3-3b']['score_proxy']
+    assert (proxy['loaded_outputs'],proxy['capped_loaded_outputs'],proxy['loaded_max_completion_tokens'])==(2,1,8192)
+    from scripts.cloud.worker import calibration_capped_outputs
+    assert calibration_capped_outputs(read(tmp_path/'model_metrics.json'))=={'ministral3-3b':{
+        'loaded_outputs':2,'capped_loaded_outputs':1,'loaded_max_completion_tokens':8192,
+        'decode_window_rule':'multi_sequence_pure_decode','decode_rows_excluded_by_window':3,
+        'decode_batch_stats_rows_used':9}}

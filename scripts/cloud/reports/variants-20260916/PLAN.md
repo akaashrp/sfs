@@ -126,3 +126,10 @@ Suggested order:
 - SCORE has no result at these rates anywhere; canonical SCORE at 6/7/8/8.3 is required for the main grid and as the ablation comparator.
 - Resulting fresh work: 3 variants x {SFS, SCORE} x 4 rates = 24 ablation cells; canonical SFS 6/7/8.3 = 3 cells; canonical SCORE 6/7/8/8.3 = 4 cells. `hard_prefill_tps` stays at the back of the queue.
 - The overlay module must therefore also express canonical SFS/SCORE cells on the 6/7/8/8.3 grid (the frozen bundle has SCORE only at 7/8/8.6/8.75 and no canonical Qwen `hard` cells).
+
+## Decision update, 17 September 2026 (user)
+
+- Latency-agnostic IS ablated (flash_quality, mlp_quality, mlp_length at 6/7/8/8.3); its comparator is the April Bridges canonical latency-agnostic reference, accepted by the user as comparable (no Vast canonical rerun). Label host/source provenance in the matrix.
+- Ablation tranche therefore = 3 variants x {SFS, SCORE, latency-agnostic} x 4 rates = 36 cells, plus canonical SFS 6/7/8.3 and SCORE 6/7/8/8.3 on Vast (7 cells).
+- Prefill-TPS estimator (hard_prefill_tps) deferred.
+- SFS and SCORE are also required under the FCFS unchunked configuration (8 cells, currently BLOCKED in the FCFS overlay) and for Ministral (6 cells); all SFS/SCORE work waits for the reserve-change decision.
