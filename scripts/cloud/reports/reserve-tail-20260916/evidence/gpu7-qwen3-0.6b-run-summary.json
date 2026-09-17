@@ -1,0 +1,63 @@
+{
+ "model": "qwen3-0.6b",
+ "status": "COMPLETE",
+ "requests": 1500,
+ "qps_configured": 1.25,
+ "elapsed_s": 1456.801147699356,
+ "realized_arrival_qps": 1.2645518617587668,
+ "subset_source": "gpu7_subsets.json (requests the qps8p6-repeat1 control routed to this model, in arrival order)",
+ "engine": "one canonical instance, GPU 7, CPUs 84-95, canonical serving args (see server_argv_*.json); router = canonical hard policy with one instance, so routing is fixed and the wait estimate cannot influence the measured TTFT",
+ "snapshots": 1456,
+ "snapshot_interval_s": 1.0010526329278946,
+ "measured_ttft_ms": {
+  "p10": 38.94919157028198,
+  "p50": 49050.23110611364,
+  "p90": 125841.46883627404,
+  "p99": 154441.73217935488,
+  "mean": 55070.49987569761,
+  "max": 163878.41138336807
+ },
+ "ttft_slo_attainment_pct": 26.93333333333333,
+ "load_profile": {
+  "num_waiting": {
+   "p50": 51.0,
+   "p90": 151.0,
+   "max": 204.0,
+   "pct_snapshots_with_waiting_ge_10": 64.6978021978022
+  },
+  "num_running_decode": {
+   "p50": 31.0,
+   "p90": 39.0,
+   "max": 89.0
+  },
+  "kv_cache_usage": {
+   "p50": 0.9862787027137112,
+   "p90": 0.9976834173412759,
+   "pct_snapshots_ge_0_95": 71.49725274725274
+  },
+  "decode_reserve_tokens": {
+   "min": 32.0,
+   "p50": 558.0,
+   "max": 662.0
+  },
+  "first_snapshot_with_waiting_ge_10_s": 241.2073806654662
+ },
+ "request_mix": {
+  "prompt_tokens_p50": 7774.5,
+  "prompt_ge_8192_pct": 47.06666666666667,
+  "final_length_p50": 430.0,
+  "final_length_capped_8192_pct": 6.133333333333333,
+  "pred_le_1_pct": 5.666666666666666,
+  "buckets": {
+   "alpaca": 106,
+   "govreport-summarization": 1118,
+   "hotpot_qa": 182,
+   "writingprompts": 94
+  },
+  "requests_matched_to_repeat1_rows_pct": 100.0
+ },
+ "phases": {
+  "ttft_p50_first_300s_ms": 73.10499250888824,
+  "ttft_p50_after_300s_ms": 63144.75198369473
+ }
+}

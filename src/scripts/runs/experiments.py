@@ -4384,6 +4384,30 @@ def run_batch_fit_experiment(
     }
 
 
+def _load_remaining_length_tables(
+    remaining_length: Optional[Dict[str, Any]],
+    instances: dict[str, InstanceClient],
+) -> Optional[Dict[str, Any]]:
+    """Attach the engines' remaining-length tables (instances.json block) per instance."""
+    if not remaining_length or remaining_length.get("rule", "current") == "current":
+        return None
+    from vllm.v1.core.sched.remaining_length import RemainingLengthTable
+
+    tables: Dict[str, Any] = {}
+    for instance_id, client in instances.items():
+        rule = remaining_length.get("models", {}).get(client.model_id) or {"mode": "off"}
+        if rule["mode"] == "off":
+            continue
+        entry = rule.get("table")
+        if entry is None:
+            raise ValueError(f"remaining_length table missing for model {client.model_id}")
+        table = RemainingLengthTable.load(entry["path"])
+        if table.sha256 != entry.get("sha256"):
+            raise ValueError(f"remaining_length table changed for model {client.model_id}")
+        tables[instance_id] = table
+    return tables or None
+
+
 async def run_policy(
     *,
     utility_name: str,
@@ -4446,9 +4470,13 @@ async def run_policy(
     methodology_snapshot_max_age_ms: float = 1000.0,
     trial_monitor: Any = None,
     latency_warmup_requests: Optional[str] = None,
+    remaining_length: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     resolved_chat_template_kwargs = resolve_chat_template_kwargs(
         chat_template_kwargs
+    )
+    remaining_length_tables = _load_remaining_length_tables(
+        remaining_length, instances
     )
     resolved_feasible_slo_mode = feasible_slo_mode.strip().lower()
     if resolved_feasible_slo_mode not in FEASIBLE_SLO_MODES:
@@ -4556,6 +4584,7 @@ async def run_policy(
             readiness_predictor_path=readiness_predictor_path,
             enable_wait_time_polling=enable_wait_time_polling,
             critical_wait_time_timeout_s=critical_wait_time_timeout_s,
+            remaining_length_tables=remaining_length_tables,
         )
 
     loop = asyncio.get_running_loop()
@@ -6626,6 +6655,10 @@ async def run_router_experiment(
             methodology_snapshot_max_age_ms=getattr(args, "methodology_snapshot_max_age_ms", 1000.0),
             trial_monitor=trial_monitor,
             close_instances_on_stop=False,
+            remaining_length=instance_metadata.get("remaining_length"),
+        )
+        run["remaining_length_rule"] = str(
+            (instance_metadata.get("remaining_length") or {}).get("rule", "current")
         )
         run["baseline_config"] = {
             "lambda_weight": run_lambda,

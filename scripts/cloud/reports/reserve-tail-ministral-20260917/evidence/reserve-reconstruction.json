@@ -1,0 +1,700 @@
+{
+ "rule": "reserve = max(floor, quantile of positive residuals max(0, L - ceil(p)) over the last 4096 finished requests with p > 0); floor 32/64/128 at kv usage <=0.8/<=0.9/>0.9; quantile 0.50 until 200 samples, then 0.65 (kv<=0.8), 0.75 (kv<=0.9), 0.85 (kv>0.9). Replayed per (run, model) over the run's finished requests.",
+ "by_run_model": {
+  "ministral3-3b::bridges:latency_agnostic:6.0125": {
+   "finished": 2293,
+   "window": 2293,
+   "positive_residual_pct": 88.35586567815089,
+   "reserve_q50": 630.0,
+   "reserve_q65": 757.0,
+   "reserve_q75": 859.0,
+   "reserve_q85": 986.0
+  },
+  "ministral3-3b::bridges:latency_agnostic:7.8625": {
+   "finished": 2293,
+   "window": 2293,
+   "positive_residual_pct": 88.44308765808984,
+   "reserve_q50": 628.0,
+   "reserve_q65": 753.0,
+   "reserve_q75": 853.0,
+   "reserve_q85": 982.0
+  },
+  "ministral3-3b::bridges:latency_agnostic:8.7875": {
+   "finished": 2293,
+   "window": 2293,
+   "positive_residual_pct": 88.48669864805932,
+   "reserve_q50": 621.0,
+   "reserve_q65": 750.0,
+   "reserve_q75": 844.0,
+   "reserve_q85": 975.0
+  },
+  "ministral3-3b::bridges:latency_agnostic:9.7125": {
+   "finished": 2293,
+   "window": 2293,
+   "positive_residual_pct": 88.26864369821195,
+   "reserve_q50": 631.0,
+   "reserve_q65": 749.0,
+   "reserve_q75": 850.0,
+   "reserve_q85": 977.0
+  },
+  "ministral3-3b::bridges:lmdeploy_proxy:6.0125": {
+   "finished": 3812,
+   "window": 3812,
+   "positive_residual_pct": 57.817418677859386,
+   "reserve_q50": 93.0,
+   "reserve_q65": 381.0,
+   "reserve_q75": 564.0,
+   "reserve_q85": 753.0
+  },
+  "ministral3-3b::bridges:lmdeploy_proxy:7.8625": {
+   "finished": 3575,
+   "window": 3575,
+   "positive_residual_pct": 60.08391608391609,
+   "reserve_q50": 128.0,
+   "reserve_q65": 410.0,
+   "reserve_q75": 575.0,
+   "reserve_q85": 760.0
+  },
+  "ministral3-3b::bridges:lmdeploy_proxy:8.7875": {
+   "finished": 3628,
+   "window": 3628,
+   "positive_residual_pct": 58.46196251378169,
+   "reserve_q50": 91.0,
+   "reserve_q65": 371.0,
+   "reserve_q75": 551.0,
+   "reserve_q85": 732.0
+  },
+  "ministral3-3b::bridges:lmdeploy_proxy:9.7125": {
+   "finished": 3526,
+   "window": 3526,
+   "positive_residual_pct": 59.13216108905275,
+   "reserve_q50": 98.0,
+   "reserve_q65": 372.0,
+   "reserve_q75": 556.0,
+   "reserve_q85": 749.0
+  },
+  "ministral3-3b::bridges:round_robin:6.0125": {
+   "finished": 2667,
+   "window": 2667,
+   "positive_residual_pct": 57.2928383952006,
+   "reserve_q50": 80.0,
+   "reserve_q65": 340.0,
+   "reserve_q75": 541.0,
+   "reserve_q85": 737.0
+  },
+  "ministral3-3b::bridges:round_robin:7.8625": {
+   "finished": 2667,
+   "window": 2667,
+   "positive_residual_pct": 57.55530558680165,
+   "reserve_q50": 76.0,
+   "reserve_q65": 347.0,
+   "reserve_q75": 543.0,
+   "reserve_q85": 741.0
+  },
+  "ministral3-3b::bridges:round_robin:8.7875": {
+   "finished": 2667,
+   "window": 2667,
+   "positive_residual_pct": 57.89276340457443,
+   "reserve_q50": 81.0,
+   "reserve_q65": 351.0,
+   "reserve_q75": 525.0,
+   "reserve_q85": 733.0
+  },
+  "ministral3-3b::bridges:round_robin:9.7125": {
+   "finished": 2667,
+   "window": 2667,
+   "positive_residual_pct": 57.93025871766029,
+   "reserve_q50": 79.0,
+   "reserve_q65": 353.0,
+   "reserve_q75": 523.0,
+   "reserve_q85": 725.0
+  },
+  "ministral3-3b::vast:mooncake_prefill:6.0125": {
+   "finished": 4102,
+   "window": 4096,
+   "positive_residual_pct": 61.8896484375,
+   "reserve_q50": 170.0,
+   "reserve_q65": 483.0,
+   "reserve_q75": 631.0,
+   "reserve_q85": 820.0
+  },
+  "ministral3-3b::vast:mooncake_prefill:7.8625": {
+   "finished": 2609,
+   "window": 2609,
+   "positive_residual_pct": 64.46914526638558,
+   "reserve_q50": 249.0,
+   "reserve_q65": 540.0,
+   "reserve_q75": 676.0,
+   "reserve_q85": 842.0
+  },
+  "ministral3-3b::vast:mooncake_prefill:8.7875": {
+   "finished": 2163,
+   "window": 2163,
+   "positive_residual_pct": 68.42348589921406,
+   "reserve_q50": 349.0,
+   "reserve_q65": 564.0,
+   "reserve_q75": 704.0,
+   "reserve_q85": 854.0
+  },
+  "ministral3-3b::vast:routebalance:6.0125": {
+   "finished": 4220,
+   "window": 4096,
+   "positive_residual_pct": 61.3037109375,
+   "reserve_q50": 173.0,
+   "reserve_q65": 445.0,
+   "reserve_q75": 609.0,
+   "reserve_q85": 793.0
+  },
+  "ministral3-3b::vast:routebalance:7.8625": {
+   "finished": 3704,
+   "window": 3704,
+   "positive_residual_pct": 61.01511879049676,
+   "reserve_q50": 151.0,
+   "reserve_q65": 443.0,
+   "reserve_q75": 612.0,
+   "reserve_q85": 781.0
+  },
+  "ministral3-3b::vast:routebalance:8.7875": {
+   "finished": 3318,
+   "window": 3318,
+   "positive_residual_pct": 60.8499095840868,
+   "reserve_q50": 182.0,
+   "reserve_q65": 451.0,
+   "reserve_q75": 613.0,
+   "reserve_q85": 789.0
+  },
+  "ministral3-3b::vast:shortest_queue:6.0125": {
+   "finished": 3728,
+   "window": 3728,
+   "positive_residual_pct": 58.127682403433475,
+   "reserve_q50": 107.0,
+   "reserve_q65": 387.0,
+   "reserve_q75": 558.0,
+   "reserve_q85": 765.0
+  },
+  "ministral3-3b::vast:shortest_queue:7.8625": {
+   "finished": 3755,
+   "window": 3755,
+   "positive_residual_pct": 57.762982689747,
+   "reserve_q50": 80.0,
+   "reserve_q65": 351.0,
+   "reserve_q75": 535.0,
+   "reserve_q85": 732.0
+  },
+  "ministral3-3b::vast:shortest_queue:8.7875": {
+   "finished": 3782,
+   "window": 3782,
+   "positive_residual_pct": 58.51401374933898,
+   "reserve_q50": 93.0,
+   "reserve_q65": 367.0,
+   "reserve_q75": 552.0,
+   "reserve_q85": 730.0
+  },
+  "ministral3-3b::vast:vllm_sr_latency:6.0125": {
+   "finished": 3348,
+   "window": 3348,
+   "positive_residual_pct": 58.24372759856631,
+   "reserve_q50": 93.0,
+   "reserve_q65": 373.0,
+   "reserve_q75": 559.0,
+   "reserve_q85": 758.0
+  },
+  "ministral3-3b::vast:vllm_sr_latency:7.8625": {
+   "finished": 4031,
+   "window": 4031,
+   "positive_residual_pct": 58.96799801538079,
+   "reserve_q50": 118.0,
+   "reserve_q65": 410.0,
+   "reserve_q75": 578.0,
+   "reserve_q85": 767.0
+  },
+  "ministral3-8b::bridges:latency_agnostic:6.0125": {
+   "finished": 2037,
+   "window": 2037,
+   "positive_residual_pct": 40.991654393716246,
+   "reserve_q50": 32,
+   "reserve_q65": 37.0,
+   "reserve_q75": 191.0,
+   "reserve_q85": 443.0
+  },
+  "ministral3-8b::bridges:latency_agnostic:7.8625": {
+   "finished": 2037,
+   "window": 2037,
+   "positive_residual_pct": 40.84437898870888,
+   "reserve_q50": 32,
+   "reserve_q65": 39.0,
+   "reserve_q75": 187.0,
+   "reserve_q85": 462.0
+  },
+  "ministral3-8b::bridges:latency_agnostic:8.7875": {
+   "finished": 2037,
+   "window": 2037,
+   "positive_residual_pct": 40.893470790378004,
+   "reserve_q50": 32,
+   "reserve_q65": 41.0,
+   "reserve_q75": 197.0,
+   "reserve_q85": 453.0
+  },
+  "ministral3-8b::bridges:latency_agnostic:9.7125": {
+   "finished": 2037,
+   "window": 2037,
+   "positive_residual_pct": 41.384388807069215,
+   "reserve_q50": 32,
+   "reserve_q65": 44.0,
+   "reserve_q75": 202.0,
+   "reserve_q85": 446.0
+  },
+  "ministral3-8b::bridges:lmdeploy_proxy:6.0125": {
+   "finished": 2092,
+   "window": 2092,
+   "positive_residual_pct": 59.75143403441683,
+   "reserve_q50": 133.0,
+   "reserve_q65": 424.0,
+   "reserve_q75": 599.0,
+   "reserve_q85": 774.0
+  },
+  "ministral3-8b::bridges:lmdeploy_proxy:7.8625": {
+   "finished": 2197,
+   "window": 2197,
+   "positive_residual_pct": 55.439235320892124,
+   "reserve_q50": 63.0,
+   "reserve_q65": 358.0,
+   "reserve_q75": 547.0,
+   "reserve_q85": 713.0
+  },
+  "ministral3-8b::bridges:lmdeploy_proxy:8.7875": {
+   "finished": 2097,
+   "window": 2097,
+   "positive_residual_pct": 57.987601335240825,
+   "reserve_q50": 86.0,
+   "reserve_q65": 414.0,
+   "reserve_q75": 601.0,
+   "reserve_q85": 768.0
+  },
+  "ministral3-8b::bridges:lmdeploy_proxy:9.7125": {
+   "finished": 2149,
+   "window": 2149,
+   "positive_residual_pct": 58.02698929734761,
+   "reserve_q50": 96.0,
+   "reserve_q65": 411.0,
+   "reserve_q75": 582.0,
+   "reserve_q85": 738.0
+  },
+  "ministral3-8b::bridges:round_robin:6.0125": {
+   "finished": 2667,
+   "window": 2667,
+   "positive_residual_pct": 59.392575928008995,
+   "reserve_q50": 130.0,
+   "reserve_q65": 436.0,
+   "reserve_q75": 589.0,
+   "reserve_q85": 780.0
+  },
+  "ministral3-8b::bridges:round_robin:7.8625": {
+   "finished": 2667,
+   "window": 2667,
+   "positive_residual_pct": 58.30521184851894,
+   "reserve_q50": 123.0,
+   "reserve_q65": 444.0,
+   "reserve_q75": 602.0,
+   "reserve_q85": 779.0
+  },
+  "ministral3-8b::bridges:round_robin:8.7875": {
+   "finished": 2667,
+   "window": 2667,
+   "positive_residual_pct": 58.68016497937758,
+   "reserve_q50": 131.0,
+   "reserve_q65": 440.0,
+   "reserve_q75": 605.0,
+   "reserve_q85": 782.0
+  },
+  "ministral3-8b::bridges:round_robin:9.7125": {
+   "finished": 2667,
+   "window": 2667,
+   "positive_residual_pct": 58.68016497937758,
+   "reserve_q50": 118.0,
+   "reserve_q65": 427.0,
+   "reserve_q75": 598.0,
+   "reserve_q85": 759.0
+  },
+  "ministral3-8b::vast:mooncake_prefill:6.0125": {
+   "finished": 2359,
+   "window": 2359,
+   "positive_residual_pct": 54.93853327681221,
+   "reserve_q50": 53.0,
+   "reserve_q65": 343.0,
+   "reserve_q75": 526.0,
+   "reserve_q85": 705.0
+  },
+  "ministral3-8b::vast:mooncake_prefill:7.8625": {
+   "finished": 2695,
+   "window": 2695,
+   "positive_residual_pct": 56.4378478664193,
+   "reserve_q50": 68.0,
+   "reserve_q65": 366.0,
+   "reserve_q75": 551.0,
+   "reserve_q85": 741.0
+  },
+  "ministral3-8b::vast:mooncake_prefill:8.7875": {
+   "finished": 2398,
+   "window": 2398,
+   "positive_residual_pct": 56.46371976647207,
+   "reserve_q50": 72.0,
+   "reserve_q65": 373.0,
+   "reserve_q75": 552.0,
+   "reserve_q85": 731.0
+  },
+  "ministral3-8b::vast:routebalance:6.0125": {
+   "finished": 2249,
+   "window": 2249,
+   "positive_residual_pct": 56.20275678079146,
+   "reserve_q50": 51.0,
+   "reserve_q65": 334.0,
+   "reserve_q75": 522.0,
+   "reserve_q85": 698.0
+  },
+  "ministral3-8b::vast:routebalance:7.8625": {
+   "finished": 2230,
+   "window": 2230,
+   "positive_residual_pct": 57.04035874439462,
+   "reserve_q50": 68.0,
+   "reserve_q65": 374.0,
+   "reserve_q75": 546.0,
+   "reserve_q85": 722.0
+  },
+  "ministral3-8b::vast:routebalance:8.7875": {
+   "finished": 1990,
+   "window": 1990,
+   "positive_residual_pct": 57.73869346733669,
+   "reserve_q50": 90.0,
+   "reserve_q65": 403.0,
+   "reserve_q75": 585.0,
+   "reserve_q85": 757.0
+  },
+  "ministral3-8b::vast:shortest_queue:6.0125": {
+   "finished": 2479,
+   "window": 2479,
+   "positive_residual_pct": 57.966922146026626,
+   "reserve_q50": 95.0,
+   "reserve_q65": 399.0,
+   "reserve_q75": 565.0,
+   "reserve_q85": 747.0
+  },
+  "ministral3-8b::vast:shortest_queue:7.8625": {
+   "finished": 2486,
+   "window": 2486,
+   "positive_residual_pct": 58.7288817377313,
+   "reserve_q50": 121.0,
+   "reserve_q65": 407.0,
+   "reserve_q75": 579.0,
+   "reserve_q85": 762.0
+  },
+  "ministral3-8b::vast:shortest_queue:8.7875": {
+   "finished": 2669,
+   "window": 2669,
+   "positive_residual_pct": 58.78606219557887,
+   "reserve_q50": 112.0,
+   "reserve_q65": 420.0,
+   "reserve_q75": 578.0,
+   "reserve_q85": 749.0
+  },
+  "ministral3-8b::vast:vllm_sr_latency:6.0125": {
+   "finished": 2231,
+   "window": 2231,
+   "positive_residual_pct": 57.23890632003585,
+   "reserve_q50": 106.0,
+   "reserve_q65": 403.0,
+   "reserve_q75": 581.0,
+   "reserve_q85": 747.0
+  },
+  "ministral3-8b::vast:vllm_sr_latency:7.8625": {
+   "finished": 2325,
+   "window": 2325,
+   "positive_residual_pct": 57.892473118279575,
+   "reserve_q50": 83.0,
+   "reserve_q65": 386.0,
+   "reserve_q75": 567.0,
+   "reserve_q85": 763.0
+  },
+  "ministral3-14b::bridges:latency_agnostic:6.0125": {
+   "finished": 3670,
+   "window": 3670,
+   "positive_residual_pct": 53.29700272479564,
+   "reserve_q50": 32,
+   "reserve_q65": 220.0,
+   "reserve_q75": 386.0,
+   "reserve_q85": 562.0
+  },
+  "ministral3-14b::bridges:latency_agnostic:7.8625": {
+   "finished": 3670,
+   "window": 3670,
+   "positive_residual_pct": 54.08719346049047,
+   "reserve_q50": 32,
+   "reserve_q65": 204.0,
+   "reserve_q75": 359.0,
+   "reserve_q85": 568.0
+  },
+  "ministral3-14b::bridges:latency_agnostic:8.7875": {
+   "finished": 3670,
+   "window": 3670,
+   "positive_residual_pct": 53.76021798365122,
+   "reserve_q50": 34.0,
+   "reserve_q65": 223.0,
+   "reserve_q75": 383.0,
+   "reserve_q85": 565.0
+  },
+  "ministral3-14b::bridges:latency_agnostic:9.7125": {
+   "finished": 3670,
+   "window": 3670,
+   "positive_residual_pct": 53.46049046321526,
+   "reserve_q50": 32,
+   "reserve_q65": 220.0,
+   "reserve_q75": 375.0,
+   "reserve_q85": 576.0
+  },
+  "ministral3-14b::bridges:lmdeploy_proxy:6.0125": {
+   "finished": 1209,
+   "window": 1209,
+   "positive_residual_pct": 57.07196029776674,
+   "reserve_q50": 75.0,
+   "reserve_q65": 390.0,
+   "reserve_q75": 593.0,
+   "reserve_q85": 769.0
+  },
+  "ministral3-14b::bridges:lmdeploy_proxy:7.8625": {
+   "finished": 1297,
+   "window": 1297,
+   "positive_residual_pct": 59.29067077872012,
+   "reserve_q50": 120.0,
+   "reserve_q65": 422.0,
+   "reserve_q75": 590.0,
+   "reserve_q85": 761.0
+  },
+  "ministral3-14b::bridges:lmdeploy_proxy:8.7875": {
+   "finished": 1296,
+   "window": 1296,
+   "positive_residual_pct": 60.339506172839506,
+   "reserve_q50": 147.0,
+   "reserve_q65": 448.0,
+   "reserve_q75": 618.0,
+   "reserve_q85": 771.0
+  },
+  "ministral3-14b::bridges:lmdeploy_proxy:9.7125": {
+   "finished": 1373,
+   "window": 1373,
+   "positive_residual_pct": 59.50473415877641,
+   "reserve_q50": 124.0,
+   "reserve_q65": 424.0,
+   "reserve_q75": 610.0,
+   "reserve_q85": 786.0
+  },
+  "ministral3-14b::bridges:round_robin:6.0125": {
+   "finished": 2666,
+   "window": 2666,
+   "positive_residual_pct": 60.87771942985747,
+   "reserve_q50": 141.0,
+   "reserve_q65": 474.0,
+   "reserve_q75": 633.0,
+   "reserve_q85": 803.0
+  },
+  "ministral3-14b::bridges:round_robin:7.8625": {
+   "finished": 2666,
+   "window": 2666,
+   "positive_residual_pct": 60.61515378844711,
+   "reserve_q50": 137.0,
+   "reserve_q65": 468.0,
+   "reserve_q75": 643.0,
+   "reserve_q85": 797.0
+  },
+  "ministral3-14b::bridges:round_robin:8.7875": {
+   "finished": 2666,
+   "window": 2666,
+   "positive_residual_pct": 60.72768192048012,
+   "reserve_q50": 145.0,
+   "reserve_q65": 476.0,
+   "reserve_q75": 643.0,
+   "reserve_q85": 835.0
+  },
+  "ministral3-14b::bridges:round_robin:9.7125": {
+   "finished": 2666,
+   "window": 2666,
+   "positive_residual_pct": 61.177794448612154,
+   "reserve_q50": 146.0,
+   "reserve_q65": 468.0,
+   "reserve_q75": 634.0,
+   "reserve_q85": 815.0
+  },
+  "ministral3-14b::vast:mooncake_prefill:6.0125": {
+   "finished": 749,
+   "window": 749,
+   "positive_residual_pct": 58.344459279038716,
+   "reserve_q50": 83.0,
+   "reserve_q65": 334.0,
+   "reserve_q75": 487.0,
+   "reserve_q85": 643.0
+  },
+  "ministral3-14b::vast:mooncake_prefill:7.8625": {
+   "finished": 1798,
+   "window": 1798,
+   "positive_residual_pct": 55.11679644048944,
+   "reserve_q50": 49.0,
+   "reserve_q65": 290.0,
+   "reserve_q75": 483.0,
+   "reserve_q85": 690.0
+  },
+  "ministral3-14b::vast:mooncake_prefill:8.7875": {
+   "finished": 2430,
+   "window": 2430,
+   "positive_residual_pct": 55.96707818930041,
+   "reserve_q50": 55.0,
+   "reserve_q65": 289.0,
+   "reserve_q75": 493.0,
+   "reserve_q85": 702.0
+  },
+  "ministral3-14b::vast:routebalance:6.0125": {
+   "finished": 670,
+   "window": 670,
+   "positive_residual_pct": 54.77611940298508,
+   "reserve_q50": 42.0,
+   "reserve_q65": 242.0,
+   "reserve_q75": 393.0,
+   "reserve_q85": 624.0
+  },
+  "ministral3-14b::vast:routebalance:7.8625": {
+   "finished": 1181,
+   "window": 1181,
+   "positive_residual_pct": 57.66299745977985,
+   "reserve_q50": 61.0,
+   "reserve_q65": 340.0,
+   "reserve_q75": 514.0,
+   "reserve_q85": 678.0
+  },
+  "ministral3-14b::vast:routebalance:8.7875": {
+   "finished": 1688,
+   "window": 1688,
+   "positive_residual_pct": 55.687203791469194,
+   "reserve_q50": 56.0,
+   "reserve_q65": 315.0,
+   "reserve_q75": 507.0,
+   "reserve_q85": 697.0
+  },
+  "ministral3-14b::vast:shortest_queue:6.0125": {
+   "finished": 1793,
+   "window": 1793,
+   "positive_residual_pct": 61.40546569994423,
+   "reserve_q50": 161.0,
+   "reserve_q65": 470.0,
+   "reserve_q75": 648.0,
+   "reserve_q85": 786.0
+  },
+  "ministral3-14b::vast:shortest_queue:7.8625": {
+   "finished": 1759,
+   "window": 1759,
+   "positive_residual_pct": 60.31836270608301,
+   "reserve_q50": 132.0,
+   "reserve_q65": 481.0,
+   "reserve_q75": 655.0,
+   "reserve_q85": 818.0
+  },
+  "ministral3-14b::vast:shortest_queue:8.7875": {
+   "finished": 1549,
+   "window": 1549,
+   "positive_residual_pct": 61.65267914783732,
+   "reserve_q50": 159.0,
+   "reserve_q65": 504.0,
+   "reserve_q75": 669.0,
+   "reserve_q85": 821.0
+  },
+  "ministral3-14b::vast:vllm_sr_latency:6.0125": {
+   "finished": 1437,
+   "window": 1437,
+   "positive_residual_pct": 61.16910229645094,
+   "reserve_q50": 137.0,
+   "reserve_q65": 432.0,
+   "reserve_q75": 612.0,
+   "reserve_q85": 788.0
+  },
+  "ministral3-14b::vast:vllm_sr_latency:7.8625": {
+   "finished": 686,
+   "window": 686,
+   "positive_residual_pct": 57.7259475218659,
+   "reserve_q50": 102.0,
+   "reserve_q65": 388.0,
+   "reserve_q75": 569.0,
+   "reserve_q85": 742.0
+  }
+ },
+ "by_model": {
+  "ministral3-3b": {
+   "reserve_q50_median_over_runs": 118.0,
+   "reserve_q65_median_over_runs": 410.0,
+   "reserve_q75_median_over_runs": 575.0,
+   "reserve_q85_median_over_runs": 765.0,
+   "reserve_q50_range": [
+    76.0,
+    631.0
+   ],
+   "reserve_q65_range": [
+    340.0,
+    757.0
+   ],
+   "reserve_q75_range": [
+    523.0,
+    859.0
+   ],
+   "reserve_q85_range": [
+    725.0,
+    986.0
+   ]
+  },
+  "ministral3-8b": {
+   "reserve_q50_median_over_runs": 86.0,
+   "reserve_q65_median_over_runs": 399.0,
+   "reserve_q75_median_over_runs": 567.0,
+   "reserve_q85_median_over_runs": 747.0,
+   "reserve_q50_range": [
+    32.0,
+    133.0
+   ],
+   "reserve_q65_range": [
+    37.0,
+    444.0
+   ],
+   "reserve_q75_range": [
+    187.0,
+    605.0
+   ],
+   "reserve_q85_range": [
+    443.0,
+    782.0
+   ]
+  },
+  "ministral3-14b": {
+   "reserve_q50_median_over_runs": 102.0,
+   "reserve_q65_median_over_runs": 390.0,
+   "reserve_q75_median_over_runs": 590.0,
+   "reserve_q85_median_over_runs": 761.0,
+   "reserve_q50_range": [
+    32.0,
+    161.0
+   ],
+   "reserve_q65_range": [
+    204.0,
+    504.0
+   ],
+   "reserve_q75_range": [
+    359.0,
+    669.0
+   ],
+   "reserve_q85_range": [
+    562.0,
+    835.0
+   ]
+  }
+ },
+ "reserve_used": {
+  "ministral3-3b": 410,
+  "ministral3-8b": 399,
+  "ministral3-14b": 390
+ },
+ "note": "reserve_used is the warm, low-congestion (q65) value; the Qwen analysis used the median snapshot reserve (0.6B 308, 8B 614, 32B 565). Sensitivity to the q50 and q85 reserves is reported in candidate-evaluation.json."
+}
