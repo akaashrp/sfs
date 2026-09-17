@@ -251,6 +251,24 @@
       "enable_prefix_caching": false
     },
     "second_configuration": null,
-    "sfs_score_restrictions": "Unchanged; no unvalidated token prediction change"
+    "sfs_score_restrictions": "Unchanged; no unvalidated token prediction change",
+    "preparation": {
+      "overlay": "scripts/cloud/fcfs/campaign-20260916.json",
+      "runbook": "scripts/cloud/fcfs/RUNBOOK.md",
+      "worker": "scripts.cloud.worker --profile fcfs (calibrate, qualify; run/campaign refuse until full_matrix_authorized)",
+      "coefficients": "scripts.cloud.fcfs.coefficients fit/validate from destination FCFS calibration traces",
+      "evidence_recorded": [
+        "/workspace/sfs/state/fcfs/inputs-20260916/audit.json PASS_ACTUAL_CHAT_INPUTS",
+        "/workspace/sfs/state/fcfs/gpu7-model-0-20260916-attempt2 PASS_BOUNDED_GPU_FCFS_SMOKE (0.6B)",
+        "/workspace/sfs/state/fcfs/gpu7-model-1-20260916-attempt2 PASS_BOUNDED_GPU_FCFS_SMOKE (8B)"
+      ],
+      "remaining_gpu_steps": [
+        "32B TP=2 bounded smoke on GPUs 0,1",
+        "worker calibrate pass A on GPUs 0-3",
+        "worker qualify pass B with fitted coefficients on GPUs 0-3",
+        "reviewed control release"
+      ],
+      "state_root": "/workspace/sfs/fcfs (separate gates and completion ledger); source /workspace/sfs/fcfs-repo"
+    }
   }
 }

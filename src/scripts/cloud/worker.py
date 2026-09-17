@@ -41,6 +41,14 @@ def parse(argv):
     return _parse_experiment_args(argv)
 
 
+def configuration(options):
+    """Serving configuration identity carried through qualification, release and the ledger."""
+    if getattr(options, 'profile', 'canonical') == 'fcfs':
+        from scripts.cloud.fcfs.config import CONFIG_ID
+        return CONFIG_ID
+    return 'canonical'
+
+
 def audit_cell(payload, cell):
     from scripts.runs.ministral3_methodology_stage import audit_run
     from scripts.runs.measured_audit import require_complete_ttft
@@ -195,10 +203,20 @@ async def execute(options, manifest, definition, model_paths, output):
             frozen = Path(options.bundle)/'tokenizers'/model/name
             if frozen.exists() and digest(path/name) != digest(frozen):
                 raise ValueError(f'Model/tokenizer configuration differs from the frozen checkpoint: {model}/{name}')
+    coefficients, profile = None, getattr(options, 'profile', 'canonical')
+    if profile == 'fcfs':
+        from scripts.cloud.fcfs.config import SETTINGS
+        from scripts.cloud.fcfs.coefficients import load
+        inputs = read(Path(options.state).parent/'setup/fcfs-inputs.json')
+        if (inputs.get('status') != 'PASS_ACTUAL_CHAT_INPUTS' or inputs.get('profile') != SETTINGS
+                or inputs.get('bundle_sha256') != digest(Path(options.bundle)/'bundle.json')):
+            raise ValueError('Missing/stale FCFS actual chat admission audit; rerun scripts.cloud.fcfs.inputs')
+        coefficients = load(options.coefficients) if options.coefficients else None
     qualification = Path(options.qualification).resolve() if options.qualification else output
     if options.mode == 'run':
         validate_release(qualification, options, source)
-    with pool(options.family, definition, model_paths, options.bundle, output, gpus, options.state, length) as (instances_path, machine, processes):
+    with pool(options.family, definition, model_paths, options.bundle, output, gpus, options.state, length,
+              profile, coefficients) as (instances_path, machine, processes):
         clients, costs, metadata = exp.load_instances(instances_path)
         async def heartbeat():
             while True:
@@ -211,8 +229,14 @@ async def execute(options, manifest, definition, model_paths, output):
         async def workload():
             await warm_up_instances(list(clients.values()))
             await wait_drained(clients, timeout_s=120)
-            if options.mode in ('qualify', 'campaign'):
+            if options.mode in ('calibrate', 'qualify', 'campaign'):
                 await calibrate(options.family, definition, calibration, clients, base_args, output)
+            if options.mode == 'calibrate':
+                # Trace collection only: fit configuration coefficients on CPU, then qualify.
+                write(output/'calibration.json', {'status': 'TRACES_COLLECTED_COEFFICIENT_FIT_REQUIRED', 'configuration_id': configuration(options),
+                    'serving_profile': definition['profile'], 'hardware': machine, 'source_sha256': source, 'evaluation_started': False,
+                    'traces': {m: digest(output/f'calibration_trace_{m}.csv') for m in definition['models']}})
+                return
             argv = arguments(definition, options.bundle, options.variant, manifest, qualification)
             def args_for(policy, rate, count):
                 args = parse(argv)
@@ -263,8 +287,10 @@ async def execute(options, manifest, definition, model_paths, output):
                     'source_sha256': source, 'bundle_sha256': digest(Path(options.bundle)/'bundle.json'),
                     'load_probes': load_probes, 'files': evidence,
                     'campaign_sha256': digest(options.campaign) if getattr(options, 'campaign', None) else None,
-                    'policy_smoke': policies,
-                    'serving_coefficients': 'Canonical SFS batch coefficients retained; destination residuals require review',
+                    'policy_smoke': policies, 'configuration_id': configuration(options), 'serving_profile': definition['profile'],
+                    'coefficients_sha256': digest(options.coefficients) if getattr(options, 'coefficients', None) else None,
+                    'serving_coefficients': ('Fitted for this configuration from destination FCFS traces; independent residuals require review' if coefficients
+                        else 'Canonical SFS batch coefficients retained; destination residuals require review'),
                     'evaluation_started': False})
                 if options.mode == 'qualify':
                     return
@@ -306,7 +332,7 @@ async def execute(options, manifest, definition, model_paths, output):
                         raise ValueError('Runtime source changed during evaluation')
                     point = folder/'point.json'
                     entry = {**audit, 'cell': cell, 'point': str(point), 'point_sha256': digest(point),
-                        'source_sha256': source, 'bundle_sha256': digest(Path(options.bundle)/'bundle.json'),
+                        'configuration_id': configuration(options), 'source_sha256': source, 'bundle_sha256': digest(Path(options.bundle)/'bundle.json'),
                         'qualification_sha256': digest(qualification/'qualification.json'), 'hardware': machine}
                     write(folder/'audit.json', entry)
                     write(done, entry)
@@ -329,6 +355,8 @@ def validate_release(qualification, options, source):
             or not release.get('timing_review') or not release.get('load_review')
             or report['source_sha256'] != source or report['family'] != options.family or report['variant'] != options.variant
             or report['bundle_sha256'] != digest(Path(options.bundle)/'bundle.json')
+            or report.get('configuration_id', 'canonical') != configuration(options)
+            or report.get('coefficients_sha256') != (digest(options.coefficients) if getattr(options, 'coefficients', None) else None)
             or report['hardware'] != hardware(options.gpus.split(','))):
         raise ValueError('Missing/stale destination qualification and reviewed release')
     if getattr(options, 'campaign', None) and report.get('campaign_sha256') != digest(options.campaign):
@@ -340,23 +368,34 @@ def validate_release(qualification, options, source):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('mode', choices=['qualify', 'run', 'campaign'])
+    p.add_argument('mode', choices=['calibrate', 'qualify', 'run', 'campaign'])
     p.add_argument('--bundle', required=True); p.add_argument('--models', required=True)
     p.add_argument('--state', required=True); p.add_argument('--output', required=True)
     p.add_argument('--family', choices=['qwen', 'ministral'], required=True)
     p.add_argument('--variant', choices=['canonical', 'mlp_quality', 'mlp_length', 'flash_quality'], default='canonical')
     p.add_argument('--gpus', required=True); p.add_argument('--cpus'); p.add_argument('--qualification'); p.add_argument('--cells')
     p.add_argument('--campaign', help='Explicit baseline-only overlay on the frozen artifact bundle')
+    p.add_argument('--profile', choices=['canonical', 'fcfs'], default='canonical', help='Serving configuration; fcfs is the separately qualified Qwen unchunked overlay')
+    p.add_argument('--coefficients', help='Fitted FCFS SFS batch coefficients from scripts.cloud.fcfs.coefficients')
     options = p.parse_args()
     if options.family == 'ministral' and options.variant != 'canonical':
         p.error('Predictor ablations are Qwen only')
     if options.mode == 'run' and not options.qualification: p.error('Run requires destination qualification')
+    if options.profile == 'fcfs':
+        if options.family != 'qwen' or options.variant != 'canonical' or not options.campaign:
+            p.error('The FCFS profile is canonical Qwen only and requires its explicit overlay')
+        if options.mode != 'calibrate' and not options.coefficients: p.error('FCFS qualify/run require fitted configuration coefficients')
+    elif options.coefficients or options.mode == 'calibrate':
+        p.error('Coefficient refits and calibrate mode belong to the FCFS profile')
     if options.cpus:
         os.sched_setaffinity(0, {int(c) for c in options.cpus.split(',')})
     manifest = validate_bundle(options.bundle)
     if options.mode == 'campaign' and not options.campaign:
         p.error('Campaign mode requires its explicit manifest')
-    if options.campaign:
+    if options.profile == 'fcfs':
+        from scripts.cloud.fcfs.campaign import apply_campaign
+        manifest = apply_campaign(manifest, read(options.campaign), options.mode)
+    elif options.campaign:
         from scripts.cloud.baseline_campaign import apply_campaign
         manifest = apply_campaign(manifest, read(options.campaign))
     if options.mode == 'campaign':
@@ -371,7 +410,7 @@ def main():
         write(output/'status.json', {'state': 'FAILED', 'error': f'{type(error).__name__}: {error}', 'ended': time.time()})
         raise
     else:
-        write(output/'status.json', {'state': 'QUALIFIED_AWAITING_REVIEW' if options.mode == 'qualify' else 'COMPLETE', 'ended': time.time()})
+        write(output/'status.json', {'state': {'qualify': 'QUALIFIED_AWAITING_REVIEW', 'calibrate': 'CALIBRATION_TRACES_COLLECTED'}.get(options.mode, 'COMPLETE'), 'ended': time.time()})
 
 
 if __name__ == '__main__': main()

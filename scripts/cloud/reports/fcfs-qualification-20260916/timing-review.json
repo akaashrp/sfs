@@ -1,0 +1,147 @@
+{
+  "calibration_sha256": "5f5d1c84ff7ed62e4bcb8b764adff31f135e68c9c62f5771884bb4c9d63397dd",
+  "scope": "Final fitted TPOT heads on independently generated post-calibration smoke batches; no refitting on smoke",
+  "models": {
+    "qwen3-0.6b": {
+      "calibration_last_epoch": 1789599797.485416,
+      "final_head_sha256": "1810a1edb32a7ff7b7df6fd74e10e5ab17e19166460539309a211a9bfbc48c14",
+      "independent_smoke_rows": 242394,
+      "groups": {
+        "all": {
+          "rows": 242394,
+          "mae_ms": 1.044447337048893,
+          "median_absolute_error_ms": 0.7911019439697262,
+          "p95_absolute_error_ms": 2.9010380008697463,
+          "mean_bias_ms": 0.8294670462180709,
+          "mean_observed_ms": 5.612764730150086
+        },
+        "pure_decode": {
+          "rows": 239450,
+          "mae_ms": 0.980716552639091,
+          "median_absolute_error_ms": 0.7841019439697265,
+          "p95_absolute_error_ms": 2.7974500007629395,
+          "mean_bias_ms": 0.8817461971641088,
+          "mean_observed_ms": 5.362279716015869
+        },
+        "mixed_prefill_decode": {
+          "rows": 2944,
+          "mae_ms": 6.227985491575754,
+          "median_absolute_error_ms": 3.3666709175109863,
+          "p95_absolute_error_ms": 28.636042846679672,
+          "mean_bias_ms": -3.4226534340906407,
+          "mean_observed_ms": 25.98594293478261
+        },
+        "decode_at_most_8": {
+          "rows": 173951,
+          "mae_ms": 0.7516156462157155,
+          "median_absolute_error_ms": 0.6421019439697266,
+          "p95_absolute_error_ms": 1.9316030387878413,
+          "mean_bias_ms": 0.6814692794824081,
+          "mean_observed_ms": 3.464957292570896
+        },
+        "decode_above_8": {
+          "rows": 68443,
+          "mae_ms": 1.788692408891479,
+          "median_absolute_error_ms": 1.3378281326293946,
+          "p95_absolute_error_ms": 4.537189598083496,
+          "mean_bias_ms": 1.2056101071802623,
+          "mean_observed_ms": 11.071515100156333
+        }
+      }
+    },
+    "qwen3-8b": {
+      "calibration_last_epoch": 1789599828.509419,
+      "final_head_sha256": "b5adea1e14c0488871e6fcf3979f745b5bf35710125baee847ec61842b6254ad",
+      "independent_smoke_rows": 138377,
+      "groups": {
+        "all": {
+          "rows": 138377,
+          "mae_ms": 1.2454586737061066,
+          "median_absolute_error_ms": 0.8464474296569824,
+          "p95_absolute_error_ms": 3.4136679534912115,
+          "mean_bias_ms": 0.38110016996254004,
+          "mean_observed_ms": 11.141496325256366
+        },
+        "pure_decode": {
+          "rows": 136225,
+          "mae_ms": 1.1410042422269728,
+          "median_absolute_error_ms": 0.8424643936157228,
+          "p95_absolute_error_ms": 3.0846377502441387,
+          "mean_bias_ms": 0.4731562688477548,
+          "mean_observed_ms": 9.664632182051754
+        },
+        "mixed_prefill_decode": {
+          "rows": 2152,
+          "mae_ms": 7.857589216570871,
+          "median_absolute_error_ms": 3.634768203735349,
+          "p95_absolute_error_ms": 20.240651167678816,
+          "mean_bias_ms": -5.446196331263475,
+          "mean_observed_ms": 104.62932992565054
+        },
+        "decode_at_most_8": {
+          "rows": 91470,
+          "mae_ms": 1.0078213829588105,
+          "median_absolute_error_ms": 0.8174474296569825,
+          "p95_absolute_error_ms": 2.0612179534912127,
+          "mean_bias_ms": 0.4397382836735652,
+          "mean_observed_ms": 8.86012559309063
+        },
+        "decode_above_8": {
+          "rows": 46907,
+          "mae_ms": 1.7088582299483552,
+          "median_absolute_error_ms": 1.1515169372558596,
+          "p95_absolute_error_ms": 4.861825889587402,
+          "mean_bias_ms": 0.26675416060045193,
+          "mean_observed_ms": 15.590234911633658
+        }
+      }
+    },
+    "qwen3-32b": {
+      "calibration_last_epoch": 1789600025.680459,
+      "final_head_sha256": "c41fd588b75ec045bcd2ffb37320603a3e9e81ddc2c6ed3f3edb67eefe02514d",
+      "independent_smoke_rows": 95877,
+      "groups": {
+        "all": {
+          "rows": 95877,
+          "mae_ms": 2.112166206591187,
+          "median_absolute_error_ms": 2.072995208740233,
+          "p95_absolute_error_ms": 3.7338725433349627,
+          "mean_bias_ms": 1.7974733787975954,
+          "mean_observed_ms": 18.844038632831648
+        },
+        "pure_decode": {
+          "rows": 94598,
+          "mae_ms": 1.9676655014534252,
+          "median_absolute_error_ms": 2.071995208740235,
+          "p95_absolute_error_ms": 3.7038725433349615,
+          "mean_bias_ms": 1.9184742131602293,
+          "mean_observed_ms": 16.663044641535762
+        },
+        "mixed_prefill_decode": {
+          "rows": 1279,
+          "mae_ms": 12.799795373613895,
+          "median_absolute_error_ms": 2.624453552246095,
+          "p95_absolute_error_ms": 52.85375509033193,
+          "mean_bias_ms": -7.1520472850307435,
+          "mean_observed_ms": 180.15574276778733
+        },
+        "decode_at_most_8": {
+          "rows": 55941,
+          "mae_ms": 2.0593645104508695,
+          "median_absolute_error_ms": 2.110995208740235,
+          "p95_absolute_error_ms": 2.562906997680665,
+          "mean_bias_ms": 1.9968772496230114,
+          "mean_observed_ms": 15.266344648826445
+        },
+        "decode_above_8": {
+          "rows": 39936,
+          "mae_ms": 2.1861290392180286,
+          "median_absolute_error_ms": 1.680425315856933,
+          "p95_absolute_error_ms": 4.178528747558591,
+          "mean_bias_ms": 1.5181551712193548,
+          "mean_observed_ms": 23.855551532451926
+        }
+      }
+    }
+  }
+}

@@ -57,6 +57,20 @@ def server_argv(family, model_path, row, index, output, length_predictor):
     return [*argv, "--host", "127.0.0.1"]
 
 
+def instance_config(family, definition, bundle, ports, tag, profile="canonical", coefficients=None):
+    if profile == "fcfs":
+        from scripts.cloud.fcfs.config import instances
+        return instances(Path(bundle), ports, tag, coefficients)
+    return config(family, definition, read(Path(bundle)/family/'bridges_metrics.json'), ports, tag)
+
+
+def instance_argv(family, model_path, row, index, output, length_predictor, bundle, profile="canonical"):
+    if profile == "fcfs":
+        from scripts.cloud.fcfs.config import server_argv as fcfs_argv
+        return fcfs_argv(Path(bundle), model_path, row, index, Path(output))
+    return server_argv(family, model_path, row, index, Path(output), length_predictor)
+
+
 def hardware(gpus):
     query = subprocess.check_output(["nvidia-smi", "--query-gpu=index,uuid,name,memory.total,driver_version",
                                     "--format=csv,noheader,nounits"], text=True)
@@ -74,7 +88,7 @@ def hardware(gpus):
 
 
 @contextlib.contextmanager
-def pool(family, definition, model_paths, bundle, output, gpus, state, length_predictor):
+def pool(family, definition, model_paths, bundle, output, gpus, state, length_predictor, profile="canonical", coefficients=None):
     if len(gpus) not in ((4,) if family == 'qwen' else (3, 4)):
         raise ValueError("Qwen requires four GPUs; Ministral requires three (legacy four-GPU lanes also accepted)")
     fingerprint = hardware(gpus)
@@ -91,11 +105,11 @@ def pool(family, definition, model_paths, bundle, output, gpus, state, length_pr
             for _ in range(3):
                 sock = socket.socket(); sock.bind(("127.0.0.1", 0)); reserved.append(sock)
             ports = [s.getsockname()[1] for s in reserved]
-            cfg = config(family, definition, read(Path(bundle)/family/'bridges_metrics.json'), ports, tag)
+            cfg = instance_config(family, definition, bundle, ports, tag, profile, coefficients)
             path = Path(output) / "instances.json"
             write(path, cfg); write(Path(output)/"hardware.json", fingerprint)
             for i, row in enumerate(cfg["instances"]):
-                argv = server_argv(family, model_paths[row["model_id"]], row, i, Path(output), length_predictor)
+                argv = instance_argv(family, model_paths[row["model_id"]], row, i, output, length_predictor, bundle, profile)
                 visible = gpus[i] if family == "ministral" or i < 2 else ",".join(gpus[2:])
                 server_env = dict(env, CUDA_VISIBLE_DEVICES=visible, VLLM_USE_V1="1",
                     VLLM_ATTENTION_BACKEND="FLASH_ATTN", VLLM_USE_FLASHINFER_SAMPLER="0",

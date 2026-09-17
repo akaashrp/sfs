@@ -1,0 +1,208 @@
+{
+  "coefficients_sha256": "8d4ded024e2f4bd13a789c20d8cf332f1c0fa37c10af0256174b96065247c8a2",
+  "qualification": "/workspace/sfs/fcfs/state/qualify-20260916",
+  "scope": "Fitted FCFS SFS coefficients on independently generated post-calibration smoke and load-probe batches; no refitting",
+  "models": {
+    "qwen3-0.6b": {
+      "calibration_last_epoch": 1789599797.485416,
+      "independent": {
+        "rows": 242720,
+        "r2_all_rows": 0.9937261176237221,
+        "mae_s_all_rows": 0.00029817931590990927,
+        "negative_nonempty_rows": 0,
+        "groups": {
+          "all": {
+            "rows": 242720,
+            "mae_ms": 0.29817931590990926,
+            "mean_bias_ms": 0.04406032896733799,
+            "mean_observed_ms": 5.619699868160843
+          },
+          "pure_decode": {
+            "rows": 239450,
+            "mae_ms": 0.27098406525047475,
+            "mean_bias_ms": 0.0694628180082359,
+            "mean_observed_ms": 5.362279716015869
+          },
+          "prefill": {
+            "rows": 3107,
+            "mae_ms": 2.297309181504517,
+            "mean_bias_ms": -2.023739372903853,
+            "mean_observed_ms": 25.746654328934664
+          },
+          "mixed_prefill_decode": {
+            "rows": 2944,
+            "mae_ms": 2.2892208270268726,
+            "mean_bias_ms": -2.0088361951246445,
+            "mean_observed_ms": 25.985942934782603
+          }
+        }
+      },
+      "calibration": {
+        "rows": 9665,
+        "r2_all_rows": 0.9961073158936757,
+        "mae_s_all_rows": 0.0006142017719753084,
+        "negative_nonempty_rows": 0,
+        "groups": {
+          "all": {
+            "rows": 9665,
+            "mae_ms": 0.6142017719753085,
+            "mean_bias_ms": -0.19050972008361017,
+            "mean_observed_ms": 14.258489808587687
+          },
+          "pure_decode": {
+            "rows": 9340,
+            "mae_ms": 0.5662982410889537,
+            "mean_bias_ms": -0.1862791674447328,
+            "mean_observed_ms": 13.286863276231262
+          },
+          "prefill": {
+            "rows": 260,
+            "mae_ms": 1.9482199018495965,
+            "mean_bias_ms": -0.9304861560150819,
+            "mean_observed_ms": 52.69977307692308
+          },
+          "mixed_prefill_decode": {
+            "rows": 195,
+            "mae_ms": 2.13526545623061,
+            "mean_bias_ms": -0.8069975575043645,
+            "mean_observed_ms": 64.40570769230769
+          }
+        }
+      }
+    },
+    "qwen3-32b": {
+      "calibration_last_epoch": 1789600025.680459,
+      "independent": {
+        "rows": 95999,
+        "r2_all_rows": 0.9996585940232214,
+        "mae_s_all_rows": 0.0004207720493482244,
+        "negative_nonempty_rows": 0,
+        "groups": {
+          "all": {
+            "rows": 95999,
+            "mae_ms": 0.4207720493482244,
+            "mean_bias_ms": -0.3161138637672699,
+            "mean_observed_ms": 18.954942301482312
+          },
+          "pure_decode": {
+            "rows": 94598,
+            "mae_ms": 0.372450921923757,
+            "mean_bias_ms": -0.331601442205486,
+            "mean_observed_ms": 16.663044641535762
+          },
+          "prefill": {
+            "rows": 1340,
+            "mae_ms": 3.2335461063812927,
+            "mean_bias_ms": 0.14521384423487174,
+            "mean_observed_ms": 181.60282388059701
+          },
+          "mixed_prefill_decode": {
+            "rows": 1279,
+            "mae_ms": 3.2002739450118467,
+            "mean_bias_ms": 0.04189126799797529,
+            "mean_observed_ms": 180.15574276778733
+          }
+        }
+      },
+      "calibration": {
+        "rows": 7683,
+        "r2_all_rows": 0.9998803765896025,
+        "mae_s_all_rows": 0.0007337169245406044,
+        "negative_nonempty_rows": 0,
+        "groups": {
+          "all": {
+            "rows": 7683,
+            "mae_ms": 0.7337169245406043,
+            "mean_bias_ms": 0.19047239763882745,
+            "mean_observed_ms": 44.92078250683327
+          },
+          "pure_decode": {
+            "rows": 7419,
+            "mae_ms": 0.47501576903953135,
+            "mean_bias_ms": 0.08013766269806288,
+            "mean_observed_ms": 27.265910365278344
+          },
+          "prefill": {
+            "rows": 199,
+            "mae_ms": 6.195688111923716,
+            "mean_bias_ms": -0.05630700988028531,
+            "mean_observed_ms": 717.6914673366834
+          },
+          "mixed_prefill_decode": {
+            "rows": 134,
+            "mae_ms": 7.692545443443586,
+            "mean_bias_ms": -1.3437859047374705,
+            "mean_observed_ms": 965.7374253731343
+          }
+        }
+      }
+    },
+    "qwen3-8b": {
+      "calibration_last_epoch": 1789599828.509419,
+      "independent": {
+        "rows": 138523,
+        "r2_all_rows": 0.9983562534519796,
+        "mae_s_all_rows": 0.000902416869465681,
+        "negative_nonempty_rows": 0,
+        "groups": {
+          "all": {
+            "rows": 138523,
+            "mae_ms": 0.902416869465681,
+            "mean_bias_ms": -0.8639547167747027,
+            "mean_observed_ms": 11.175117626675716
+          },
+          "pure_decode": {
+            "rows": 136225,
+            "mae_ms": 0.8765697705830191,
+            "mean_bias_ms": -0.8757760926404813,
+            "mean_observed_ms": 9.664632182051754
+          },
+          "prefill": {
+            "rows": 2225,
+            "mae_ms": 2.3151849347411946,
+            "mean_bias_ms": -0.36786046892411334,
+            "mean_observed_ms": 104.01667280898876
+          },
+          "mixed_prefill_decode": {
+            "rows": 2152,
+            "mae_ms": 2.3111813432565578,
+            "mean_bias_ms": -0.40937811969770743,
+            "mean_observed_ms": 104.62932992565057
+          }
+        }
+      },
+      "calibration": {
+        "rows": 4744,
+        "r2_all_rows": 0.9995670246794474,
+        "mae_s_all_rows": 0.00074793515185666,
+        "negative_nonempty_rows": 0,
+        "groups": {
+          "all": {
+            "rows": 4744,
+            "mae_ms": 0.7479351518566599,
+            "mean_bias_ms": -0.2039757922702607,
+            "mean_observed_ms": 34.2254629005059
+          },
+          "pure_decode": {
+            "rows": 4465,
+            "mae_ms": 0.4947298149855919,
+            "mean_bias_ms": -0.21475445035136861,
+            "mean_observed_ms": 22.670978051511756
+          },
+          "prefill": {
+            "rows": 214,
+            "mae_ms": 4.4134683917086095,
+            "mean_bias_ms": -1.8856824223501911,
+            "mean_observed_ms": 285.66051869158883
+          },
+          "mixed_prefill_decode": {
+            "rows": 149,
+            "mae_ms": 5.424511756220274,
+            "mean_bias_ms": -3.177763202408617,
+            "mean_observed_ms": 370.5803020134228
+          }
+        }
+      }
+    }
+  }
+}

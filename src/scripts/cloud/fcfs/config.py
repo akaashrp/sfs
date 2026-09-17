@@ -12,11 +12,14 @@ SETTINGS={'scheduling_policy':'fcfs','chunked_prefill':False,'max_num_batched_to
           'gpu_memory_utilization':.90,'prefix_caching':False}
 
 
-def definition(bundle):
-    d=deepcopy(read(bundle/'bundle.json')['families']['qwen'])
+def family(manifest):
+    d=deepcopy(manifest['families']['qwen'])
     d['profile'].update(SETTINGS)
-    d['qps']=list(RATES);d['policies']=list(METHODS)
+    d['qps']=list(RATES);d['policies']=list(METHODS);d['configuration_id']=CONFIG_ID
     return d
+
+
+def definition(bundle):return family(read(bundle/'bundle.json'))
 
 
 def instances(bundle, ports, tag, coefficients=None):

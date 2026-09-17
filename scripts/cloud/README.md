@@ -350,3 +350,12 @@ python -m scripts.cloud.schedule --bundle "$SFS_BUNDLE" \
 
 This updates only Qwen rates and cell IDs, preserving every artifact checksum and
 all Ministral settings. It retains the original bundle manifest as a backup.
+
+## Second Qwen serving configuration (FCFS, unchunked): preparation only
+
+`qwen-fcfs-unchunked-65536` is prepared but not launchable: overlay
+`scripts/cloud/fcfs/campaign-20260916.json` (36 cells, `full_matrix_authorized: false`),
+worker profile `--profile fcfs` (`calibrate`/`qualify` only until authorization),
+coefficient refit `scripts.cloud.fcfs.coefficients`, and the step-by-step
+qualification runbook `scripts/cloud/fcfs/RUNBOOK.md`. The canonical chunked
+configuration, its gates and completed cells are unchanged.
