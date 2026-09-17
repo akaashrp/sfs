@@ -163,12 +163,31 @@ async def run_point(family, args, requests, clients, costs, metadata, folder, mo
     return payload
 
 
+LOADED_MAX_COMPLETION_TOKENS = 8192
+
+
+def capped_output_summary(responses, model):
+    """Count loaded-phase calibration outputs of one model that hit the token cap."""
+    loaded = [r['usage'].get('completion_tokens') or 0 for r in responses
+              if r['model'] == model and r['probe_id'].startswith(f'loaded-{model}-')]
+    return {'loaded_outputs': len(loaded), 'loaded_max_completion_tokens': LOADED_MAX_COMPLETION_TOKENS,
+            'capped_loaded_outputs': sum(tokens >= LOADED_MAX_COMPLETION_TOKENS for tokens in loaded)}
+
+
+def calibration_capped_outputs(metrics):
+    """Reviewer summary of token-capped calibration outputs and the SCORE decode window."""
+    keys = ('loaded_outputs', 'capped_loaded_outputs', 'loaded_max_completion_tokens',
+            'decode_window_rule', 'decode_rows_excluded_by_window', 'decode_batch_stats_rows_used')
+    return {model: {key: row['score_proxy'].get(key) for key in keys} for model, row in metrics.items()}
+
+
 async def calibrate(family, definition, requests, clients, base_args, output):
     """Warm shapes first, measure singleton prefill and loaded service/decode next."""
     from scripts.runs.ministral3_methodology_stage import length_stratified_requests, smoke_requests, wait_drained
     from scripts.prep.fit_methodology_calibration import fit_manifest, load_trace_rows
     from sfs_core.shared.shared_experiment_helpers import build_messages
-    from sfs_core.shared.trace_theta import estimate_score_proxy_metrics_from_batch_stats
+    from sfs_core.shared.trace_theta import (SCORE_PROXY_MULTI_SEQUENCE_PURE_DECODE,
+        estimate_score_proxy_metrics_from_batch_stats)
     probes, sample = length_stratified_requests(requests), smoke_requests(requests, per_bucket=128)
     recorded, services = [], {}
 
@@ -194,7 +213,7 @@ async def calibrate(family, definition, requests, clients, base_args, output):
         semaphore = asyncio.Semaphore(128)
         async def loaded(i, req):
             async with semaphore:
-                await submit(req, f'loaded-{client.model_id}-{i}', 8192)
+                await submit(req, f'loaded-{client.model_id}-{i}', LOADED_MAX_COMPLETION_TOKENS)
         start = time.monotonic()
         await asyncio.gather(*(loaded(i, r) for i, r in enumerate(sample)))
         elapsed = time.monotonic()-start
@@ -208,8 +227,12 @@ async def calibrate(family, definition, requests, clients, base_args, output):
             shutil.copyfileobj(source, dest)
         rows, _ = load_trace_rows([frozen])
         positive = [r for r in rows if r['prefill'] > 0]
-        proxy = estimate_score_proxy_metrics_from_batch_stats(batch_stats_csv_path=frozen, batch_stats_offset=0)
+        # A single token-capped output draining alone is not loaded decode; exclude
+        # single-sequence iterations (scripts/cloud/reports/score-proxy-window-20260917).
+        proxy = estimate_score_proxy_metrics_from_batch_stats(batch_stats_csv_path=frozen, batch_stats_offset=0,
+            decode_window=SCORE_PROXY_MULTI_SEQUENCE_PURE_DECODE)
         proxy['prefill_tps'] = sum(r['prefill'] for r in positive)/sum(r['exec'] for r in positive)
+        proxy.update(capped_output_summary(recorded, client.model_id))
         services[client.model_id] = {'service_rate_qps': len(sample)/elapsed, 'num_queries': len(sample),
             'succeeded': len(sample), 'failed': 0, 'elapsed_s': elapsed, 'score_proxy': proxy,
             'service_rate_definition': '512 calibration requests at concurrency 128 / whole-run elapsed; not router capacity',
@@ -335,6 +358,7 @@ async def execute(options, manifest, definition, model_paths, output):
                     'campaign_kind': manifest.get('kind'), 'policy_smoke': policies,
                     'remaining_length_rule': active_rule['rule'], 'remaining_length': remaining_length_record(active_rule),
                     'snapshot_staleness_levels_ms': staleness_levels(manifest),
+                    'calibration_capped_outputs': calibration_capped_outputs(read(output/'model_metrics.json')),
                     'serving_coefficients': 'Canonical SFS batch coefficients retained; destination residuals require review',
                     'evaluation_started': False})
                 if options.mode == 'qualify':
