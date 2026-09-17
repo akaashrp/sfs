@@ -76,7 +76,7 @@ def campaign_manifest(bundle, campaign=None):
     m = validate_bundle(bundle)
     if campaign:
         from scripts.cloud.campaigns import apply_any_campaign
-        m = apply_any_campaign(m, read(campaign))
+        m = apply_any_campaign(m, read(campaign), inspect=True)
     return m
 
 

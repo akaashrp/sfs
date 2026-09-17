@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "kind": "fcfs_sfs_score",
+  "configuration_id": "qwen-fcfs-unchunked-65536",
+  "status": "AUTHORIZED_PENDING_LANE_QUALIFICATION",
+  "full_matrix_authorized": true,
+  "authorization": "User authorized on 17 September 2026: unchunked SFS and SCORE cells run before the predictor ablations, with the 0.6B remaining-length rule",
+  "decision": "User decision 2026-09-17: the FCFS unchunked SFS (hard) and SCORE cells at 6/7/8/8.3 QPS x 16,000 requests run before the predictor ablations, after the canonical SFS/SCORE cells, with the flag-gated remaining-length rule ON for qwen3-0.6b only (running_all, q0.5, prompt_bin; the rule adopted from the canonical paired run) and qwen3-8b/qwen3-32b on the current rule. Each lane is qualified separately under --profile fcfs with the fitted FCFS coefficients; the configuration id, coefficient file hash, this overlay hash, the rule and the table sha256 are bound to every qualification and completed-ledger entry.",
+  "profile": {
+    "scheduling_policy": "fcfs",
+    "chunked_prefill": false,
+    "max_num_batched_tokens": 65536,
+    "max_model_len": 65536,
+    "max_num_seqs": 512,
+    "long_prefill_token_threshold": 0,
+    "gpu_memory_utilization": 0.9,
+    "prefix_caching": false
+  },
+  "policies": [
+    "hard",
+    "score"
+  ],
+  "cells": [
+    {
+      "id": "qwen-fcfs-unchunked-65536-hard-6",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 6.0,
+      "requests": 16000,
+      "status": "runnable"
+    },
+    {
+      "id": "qwen-fcfs-unchunked-65536-hard-7",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 7.0,
+      "requests": 16000,
+      "status": "runnable"
+    },
+    {
+      "id": "qwen-fcfs-unchunked-65536-hard-8",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 8.0,
+      "requests": 16000,
+      "status": "runnable"
+    },
+    {
+      "id": "qwen-fcfs-unchunked-65536-hard-8.3",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 8.3,
+      "requests": 16000,
+      "status": "runnable"
+    },
+    {
+      "id": "qwen-fcfs-unchunked-65536-score-6",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 6.0,
+      "requests": 16000,
+      "status": "runnable"
+    },
+    {
+      "id": "qwen-fcfs-unchunked-65536-score-7",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 7.0,
+      "requests": 16000,
+      "status": "runnable"
+    },
+    {
+      "id": "qwen-fcfs-unchunked-65536-score-8",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 8.0,
+      "requests": 16000,
+      "status": "runnable"
+    },
+    {
+      "id": "qwen-fcfs-unchunked-65536-score-8.3",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 8.3,
+      "requests": 16000,
+      "status": "runnable"
+    }
+  ],
+  "requests_total": 128000,
+  "models": {
+    "qwen3-0.6b": {
+      "repo": "Qwen/Qwen3-0.6B",
+      "revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+      "family": "qwen"
+    },
+    "qwen3-8b": {
+      "repo": "Qwen/Qwen3-8B",
+      "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+      "family": "qwen"
+    },
+    "qwen3-32b": {
+      "repo": "Qwen/Qwen3-32B",
+      "revision": "9216db5781bf21249d130ec9da846c4624c16137",
+      "family": "qwen"
+    }
+  },
+  "evaluation": {
+    "arrival_process": "poisson",
+    "seed": 69,
+    "slo_rule": "Frozen canonical Qwen SLOs without refitting",
+    "primary_judge": "pro",
+    "quality_scores": "Frozen canonical scores; common 15996 observed queries for Pro/Flash comparisons",
+    "max_completion_tokens": 8192,
+    "temperature": 0,
+    "top_p": 1,
+    "enable_thinking": false
+  },
+  "restrictions": [
+    "No full-matrix launch without subsequent user authorization",
+    "Do not deploy an unvalidated output-length change",
+    "Preserve canonical kernels, precision, chat template, YaRN/RoPE and TP1/1/2"
+  ],
+  "gpu_allocation": {
+    "lane_a": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "lane_b": [
+      4,
+      5,
+      6,
+      7
+    ]
+  },
+  "lanes": {
+    "a": [
+      "qwen-fcfs-unchunked-65536-hard-6",
+      "qwen-fcfs-unchunked-65536-hard-7",
+      "qwen-fcfs-unchunked-65536-hard-8",
+      "qwen-fcfs-unchunked-65536-hard-8.3"
+    ],
+    "b": [
+      "qwen-fcfs-unchunked-65536-score-6",
+      "qwen-fcfs-unchunked-65536-score-7",
+      "qwen-fcfs-unchunked-65536-score-8",
+      "qwen-fcfs-unchunked-65536-score-8.3"
+    ]
+  },
+  "ledger": "Same FCFS completion ledger and cell IDs as the matrix overlay, whose hard/score cells stay BLOCKED; nothing collides with canonical cells",
+  "qualification": [
+    "Gates of the FCFS state root re-established under the merged source (test.sh, prepare cpu/serving, fcfs-inputs.json)",
+    "worker qualify --profile fcfs --coefficients <fitted FCFS coefficients> --campaign <this overlay> per lane: calibration, timing heads, hard and score smokes, load probes",
+    "qualification.json records configuration_id, coefficients_sha256, campaign_sha256, remaining_length_rule and the 0.6B table sha256",
+    "server_argv_qwen3-0.6b.json carries the --remaining-length-* flags; the 8B and 32B argv do not",
+    "control release with timing and load reviews per lane; worker run binds the qualification to the lane hardware"
+  ],
+  "launch_rule": "worker run/campaign refuse this overlay until full_matrix_authorized is true; flipping it requires explicit user authorization",
+  "remaining_length": {
+    "tables": "scripts/cloud/remaining-length-tables-20260917",
+    "files": {
+      "manifest.json": "2eac8a79de5650982d998c7ded87f8cf48e19f3a53d1005afb734d7c4c491fbb",
+      "qwen3-0.6b.json": "50a14ca76681895a622cbf2d69ba362e37792b32b76c5967b7b9b67f3f6ed87d",
+      "qwen3-32b.json": "74e3a4ef30c8be24e01983b2609c4d76c8641422f26def2a899ec47ec88cf599",
+      "qwen3-8b.json": "2392950a25c04003e945124554fd33654da1c552ccdecf7e59d20770f9c04ce6"
+    },
+    "rules": {
+      "qwen3-0.6b": "running_all:0.5:prompt_bin"
+    },
+    "off_models": [
+      "qwen3-8b",
+      "qwen3-32b"
+    ],
+    "note": "Same rule and tables as the canonical SFS/SCORE overlay: only the qwen3-0.6b server receives --remaining-length-mode running_all --remaining-length-table qwen3-0.6b.json --remaining-length-quantile 0.5 --remaining-length-conditioning prompt_bin, and the router attaches that table for its missing-prediction fill on that instance only; qwen3-8b and qwen3-32b stay on the current rule. The tables were built from canonical (chunked) calibration outputs; the evidence is the canonical paired run, adopted by the user for every Qwen SFS/SCORE cell including this unchunked configuration. No unchunked paired run exists.",
+    "evidence": {
+      "paired_run": "scripts/cloud/reports/reserve-tail-20260916/paired-qps8p6-on/result_summary.json (Vast /workspace/sfs/state/diagnostics/reserve-tail-20260916/paired-qps8p6-on; canonical 8.6 QPS hard control, 16,000 requests, source bedeec4 + reserve diff)",
+      "readiness_note": "scripts/cloud/reserve-paired-run-20260916.md",
+      "on": {
+        "rule": "qwen3-0.6b=running_all_prompt_bin_q50",
+        "ttft_slo_attainment_pct": 90.89375,
+        "pro_ontimeutility": 0.47315245581222454,
+        "flash_ontimeutility": 0.5106716853900976,
+        "realized_qps": 8.590666810927857,
+        "raw_sha256": "01fb35c7ad67db820ccec798c064a8dcabd851b5bdb772263d5cb5acbf7ebc9b"
+      },
+      "off_controls": {
+        "qps8p6": {
+          "remote_output": "/workspace/sfs/state/controls/qps8p6",
+          "ttft_slo_attainment_pct": 49.9625,
+          "pro_ontimeutility": 0.27815865541318135,
+          "raw_sha256": "d6e6d043c305b107fb4f7d8f54ad41cd461a20df77a279d77724fc2e298da726"
+        },
+        "qps8p6-repeat1": {
+          "remote_output": "/workspace/sfs/state/controls/qps8p6-repeat1",
+          "ttft_slo_attainment_pct": 63.7125,
+          "pro_ontimeutility": 0.35614945124710856,
+          "raw_sha256": "1f6099fff5b066736da2d8ffc2df285494902210d6584916fe02a84dc924224a"
+        }
+      },
+      "reading": "ON exceeds the better OFF control on both acceptance metrics (attainment 90.89 vs 63.71 percent; Pro OnTimeUtility 0.4732 vs 0.3561), outside the 13.8-point OFF spread; the pre-registered reading rule in the readiness note therefore admits the 0.6B rule for the campaign."
+    }
+  },
+  "accepted_prior_source_digests": {}
+}

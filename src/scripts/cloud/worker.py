@@ -76,6 +76,16 @@ def remaining_length_record(block):
                                               for model, rule in block['models'].items()}}
 
 
+def provenance(options, manifest, active_rule):
+    """Identity every qualification.json and completed-ledger entry carries, and validate_release binds:
+    serving configuration, fitted coefficient file, campaign overlay and the pool's remaining-length rule/tables."""
+    return {'configuration_id': configuration(options),
+            'coefficients_sha256': digest(options.coefficients) if getattr(options, 'coefficients', None) else None,
+            'campaign_sha256': digest(options.campaign) if getattr(options, 'campaign', None) else None,
+            'campaign_kind': manifest.get('kind'),
+            'remaining_length_rule': active_rule['rule'], 'remaining_length': remaining_length_record(active_rule)}
+
+
 def completed_source_accepted(previous, source, manifest):
     """A completed cell is reusable under the current source or an explicitly accepted prior pin."""
     prior = previous['source_sha256']
@@ -325,12 +335,8 @@ async def execute(options, manifest, definition, model_paths, output):
                 write(output/'qualification.json', {'status': 'GPU_MEASURED_REVIEW_REQUIRED',
                     'family': options.family, 'variant': options.variant, 'hardware': machine,
                     'source_sha256': source, 'bundle_sha256': digest(Path(options.bundle)/'bundle.json'),
-                    'load_probes': load_probes, 'files': evidence,
-                    'campaign_sha256': digest(options.campaign) if getattr(options, 'campaign', None) else None,
-                    'campaign_kind': manifest.get('kind'), 'policy_smoke': policies,
-                    'configuration_id': configuration(options), 'serving_profile': definition['profile'],
-                    'coefficients_sha256': digest(options.coefficients) if getattr(options, 'coefficients', None) else None,
-                    'remaining_length_rule': active_rule['rule'], 'remaining_length': remaining_length_record(active_rule),
+                    'load_probes': load_probes, 'files': evidence, **provenance(options, manifest, active_rule),
+                    'policy_smoke': policies, 'serving_profile': definition['profile'],
                     'serving_coefficients': ('Fitted for this configuration from destination FCFS traces; independent residuals require review' if coefficients
                         else 'Canonical SFS batch coefficients retained; destination residuals require review'),
                     'evaluation_started': False})
@@ -376,13 +382,9 @@ async def execute(options, manifest, definition, model_paths, output):
                         raise ValueError('Runtime source changed during evaluation')
                     point = folder/'point.json'
                     entry = {**audit, 'cell': cell, 'point': str(point), 'point_sha256': digest(point),
-                        'configuration_id': configuration(options),
-                        'coefficients_sha256': digest(options.coefficients) if getattr(options, 'coefficients', None) else None,
+                        **provenance(options, manifest, active_rule),
                         'source_sha256': source, 'bundle_sha256': digest(Path(options.bundle)/'bundle.json'),
-                        'qualification_sha256': digest(qualification/'qualification.json'), 'hardware': machine,
-                        'campaign_sha256': digest(options.campaign) if getattr(options, 'campaign', None) else None,
-                        'campaign_kind': manifest.get('kind'), 'remaining_length_rule': active_rule['rule'],
-                        'remaining_length': remaining_length_record(active_rule)}
+                        'qualification_sha256': digest(qualification/'qualification.json'), 'hardware': machine}
                     write(folder/'audit.json', entry)
                     write(done, entry)
                     write(output/'phase.json', {'state': 'CELL_COMPLETE', 'cell': cell['id'], 'time': time.time(),

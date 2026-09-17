@@ -29,7 +29,7 @@ def status(state, bundle, campaign=None):
     manifest = read(Path(bundle)/'bundle.json')
     if campaign:
         from scripts.cloud.campaigns import apply_any_campaign
-        manifest = apply_any_campaign(manifest, read(campaign))
+        manifest = apply_any_campaign(manifest, read(campaign), inspect=True)
     cells = manifest['cells']
     completed, invalid = [], []
     for path in (state/'completed').glob('*.json'):
