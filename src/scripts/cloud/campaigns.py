@@ -1,4 +1,4 @@
-"""Kind-dispatched campaign overlays on the frozen bundle (baseline, SFS/SCORE, predictor variants)."""
+"""Kind-dispatched campaign overlays on the frozen bundle (baseline, SFS/SCORE, predictor variants, staleness sweep)."""
 from scripts.cloud.common import read
 
 
@@ -14,6 +14,9 @@ def apply_any_campaign(bundle, campaign):
     if kind == 'predictor_variants':
         from scripts.cloud.variant_campaign import apply_variant_campaign
         return apply_variant_campaign(bundle, campaign)
+    if kind == 'staleness_sweep':
+        from scripts.cloud.staleness_campaign import apply_staleness_campaign
+        return apply_staleness_campaign(bundle, campaign)
     raise ValueError(f'Unknown campaign kind: {kind!r}')
 
 

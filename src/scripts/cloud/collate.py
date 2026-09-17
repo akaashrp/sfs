@@ -94,6 +94,8 @@ def check_record(record, expected, campaign_sha=None, kind=None, rules=None):
         if record.get('campaign_sha256') != campaign_sha: raise ValueError(f'Cell completed under a different campaign overlay: {cid}')
         if record.get('remaining_length_rule') != rules[record['cell']['family']]:
             raise ValueError(f'Cell ran under a different remaining-length rule: {cid}')
+        if kind == 'staleness_sweep' and record.get('snapshot_staleness_ms') != record['cell']['snapshot_staleness_ms']:
+            raise ValueError(f'Cell ran under a different snapshot staleness: {cid}')
     return cid
 
 

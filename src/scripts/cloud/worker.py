@@ -53,6 +53,32 @@ def policies_for(manifest, family, variant, definition):
     return [p for p in definition['policies'] if p in found] + sorted(found - set(definition['policies']))
 
 
+def staleness_levels(manifest):
+    """Sorted distinct router snapshot delays (ms) of the manifest cells; [0.0] for overlays without injection."""
+    return sorted({cell_staleness(c) for c in manifest['cells']}) or [0.0]
+
+
+def cell_staleness(cell):
+    return float(cell.get('snapshot_staleness_ms', 0) or 0)
+
+
+def smoke_staleness(manifest):
+    """Delays every new pool smokes: none under other overlays, D = 0 and the largest D under the sweep."""
+    if manifest.get('kind') != 'staleness_sweep':
+        return [None]
+    return sorted({0.0, max(staleness_levels(manifest))})
+
+
+def staleness_argv(argv, manifest, staleness):
+    """Router argv for one run: the staleness flag reaches the router only under a staleness_sweep overlay."""
+    delay = float(staleness or 0)
+    if manifest.get('kind') != 'staleness_sweep':
+        if delay:
+            raise ValueError('Snapshot staleness is only authorized under a staleness_sweep overlay')
+        return list(argv)
+    return set_option(argv, '--snapshot-staleness-ms', f'{delay:g}')
+
+
 def family_remaining_length(manifest, definition):
     """Pool-ready {'tables', 'rules'} for this family's models, or None (current rule everywhere)."""
     block = manifest.get('remaining_length')
@@ -255,8 +281,8 @@ async def execute(options, manifest, definition, model_paths, output):
             if options.mode in ('qualify', 'campaign'):
                 await calibrate(options.family, definition, calibration, clients, base_args, output)
             argv = arguments(definition, options.bundle, options.variant, manifest, qualification)
-            def args_for(policy, rate, count):
-                args = parse(argv)
+            def args_for(policy, rate, count, staleness=None):
+                args = parse(staleness_argv(argv, manifest, staleness))
                 args.utilities, args.num_requests, args.request_rate_qps = [policy], count, rate
                 args.per_request_wait_log = [str(output/f'wait_{m}.log') for m in definition['models']]
                 return args
@@ -265,11 +291,13 @@ async def execute(options, manifest, definition, model_paths, output):
             smoke = smoke_requests(calibration)
             for policy in policies:
                 smoke_rate = definition['qps'][-1] if options.family == 'ministral' else 2.
-                payload = await run_point(options.family, args_for(policy, smoke_rate, 192), smoke, clients, costs, metadata,
-                                          output/'smoke'/policy, data_role='calibration')
-                audit_run(payload['router']['runs'][0], 192)
-                from scripts.runs.measured_audit import require_complete_ttft
-                require_complete_ttft(payload['router']['runs'][0])
+                for level in smoke_staleness(manifest):
+                    folder = output/'smoke'/(policy if level is None else f'{policy}-stale{level:g}')
+                    payload = await run_point(options.family, args_for(policy, smoke_rate, 192, level), smoke, clients, costs,
+                                              metadata, folder, data_role='calibration')
+                    audit_run(payload['router']['runs'][0], 192)
+                    from scripts.runs.measured_audit import require_complete_ttft
+                    require_complete_ttft(payload['router']['runs'][0])
             if options.family == 'ministral' and options.variant == 'canonical':
                 # The former 192-request/2-QPS smoke missed long busy iterations.
                 # Exercise both snapshot baselines with 512 balanced calibration
@@ -306,6 +334,7 @@ async def execute(options, manifest, definition, model_paths, output):
                     'campaign_sha256': digest(options.campaign) if getattr(options, 'campaign', None) else None,
                     'campaign_kind': manifest.get('kind'), 'policy_smoke': policies,
                     'remaining_length_rule': active_rule['rule'], 'remaining_length': remaining_length_record(active_rule),
+                    'snapshot_staleness_levels_ms': staleness_levels(manifest),
                     'serving_coefficients': 'Canonical SFS batch coefficients retained; destination residuals require review',
                     'evaluation_started': False})
                 if options.mode == 'qualify':
@@ -336,7 +365,8 @@ async def execute(options, manifest, definition, model_paths, output):
                             raise ValueError('Completed point checksum changed')
                         continue
                     validate_release(qualification, options, source_hashes(), active_rule['rule'])
-                    args = args_for(cell['policy'], cell['qps'], cell['requests'])
+                    staleness = cell_staleness(cell)
+                    args = args_for(cell['policy'], cell['qps'], cell['requests'], staleness)
                     requests, _, _ = exp._build_request_set(args)
                     if len(requests) != cell['requests']:
                         raise ValueError('Evaluation ingestion budget changed')
@@ -346,6 +376,8 @@ async def execute(options, manifest, definition, model_paths, output):
                     audit = audit_cell(payload, cell)
                     if payload['router']['runs'][0].get('remaining_length_rule', 'current') != active_rule['rule']:
                         raise ValueError('Router did not record the pool remaining-length rule')
+                    if float(payload['router']['runs'][0].get('snapshot_staleness_ms', 0) or 0) != staleness:
+                        raise ValueError('Router did not record the cell snapshot staleness')
                     if source_hashes() != source:
                         raise ValueError('Runtime source changed during evaluation')
                     point = folder/'point.json'
@@ -354,7 +386,8 @@ async def execute(options, manifest, definition, model_paths, output):
                         'qualification_sha256': digest(qualification/'qualification.json'), 'hardware': machine,
                         'campaign_sha256': digest(options.campaign) if getattr(options, 'campaign', None) else None,
                         'campaign_kind': manifest.get('kind'), 'remaining_length_rule': active_rule['rule'],
-                        'remaining_length': remaining_length_record(active_rule)}
+                        'remaining_length': remaining_length_record(active_rule),
+                        'snapshot_staleness_ms': staleness, 'snapshot_staleness_levels_ms': staleness_levels(manifest)}
                     write(folder/'audit.json', entry)
                     write(done, entry)
                     write(output/'phase.json', {'state': 'CELL_COMPLETE', 'cell': cell['id'], 'time': time.time(),
@@ -396,7 +429,7 @@ def main():
     p.add_argument('--family', choices=['qwen', 'ministral'], required=True)
     p.add_argument('--variant', choices=['canonical', 'mlp_quality', 'mlp_length', 'flash_quality'], default='canonical')
     p.add_argument('--gpus', required=True); p.add_argument('--cpus'); p.add_argument('--qualification'); p.add_argument('--cells')
-    p.add_argument('--campaign', help='Explicit overlay on the frozen artifact bundle (baseline, sfs_score or predictor_variants kind)')
+    p.add_argument('--campaign', help='Explicit overlay on the frozen artifact bundle (baseline, sfs_score, predictor_variants or staleness_sweep kind)')
     options = p.parse_args()
     if options.family == 'ministral' and options.variant != 'canonical':
         p.error('Predictor ablations are Qwen only')

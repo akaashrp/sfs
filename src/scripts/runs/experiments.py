@@ -4425,6 +4425,19 @@ def _load_remaining_length_tables(
     return tables or None
 
 
+def _apply_snapshot_staleness(instances: Dict[str, Any], snapshot_staleness_ms: float) -> None:
+    """Set the router-side snapshot delay on every (possibly reused) instance client before a run."""
+    delay = float(snapshot_staleness_ms)
+    if not math.isfinite(delay) or delay < 0.0:
+        raise ValueError("snapshot_staleness_ms must be finite and nonnegative")
+    for instance_id, client in instances.items():
+        setter = getattr(client, "set_snapshot_staleness_ms", None)
+        if setter is not None:
+            setter(delay)
+        elif delay > 0.0:
+            raise ValueError(f"Instance {instance_id} cannot inject snapshot staleness")
+
+
 async def run_policy(
     *,
     utility_name: str,
@@ -4488,10 +4501,12 @@ async def run_policy(
     trial_monitor: Any = None,
     latency_warmup_requests: Optional[str] = None,
     remaining_length: Optional[Dict[str, Any]] = None,
+    snapshot_staleness_ms: float = 0.0,
 ) -> Dict[str, Any]:
     resolved_chat_template_kwargs = resolve_chat_template_kwargs(
         chat_template_kwargs
     )
+    _apply_snapshot_staleness(instances, snapshot_staleness_ms)
     remaining_length_tables = _load_remaining_length_tables(
         remaining_length, instances
     )
@@ -5623,6 +5638,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--routebalance-batch-max-size", type=int, default=16)
     parser.add_argument("--routebalance-batch-wait-ms", type=float, default=25.0)
     parser.add_argument("--methodology-snapshot-max-age-ms", type=float, default=1000.0)
+    parser.add_argument("--snapshot-staleness-ms", type=float, default=0.0,
+                        help="Router-side snapshot delay: act on the newest engine snapshot published at least "
+                             "this many ms ago (0 = live snapshots, unchanged behavior).")
     parser.add_argument("--lambda-weight", type=float, default=0.3)
     parser.add_argument("--delta-weight", type=float, default=0.5)
     parser.add_argument(
@@ -5751,7 +5769,7 @@ def parse_args() -> argparse.Namespace:
         parser.error(str(exc))
     if args.routebalance_batch_max_size < 1:
         parser.error("--routebalance-batch-max-size must be >= 1.")
-    for name in ("routebalance_batch_wait_ms", "methodology_snapshot_max_age_ms"):
+    for name in ("routebalance_batch_wait_ms", "methodology_snapshot_max_age_ms", "snapshot_staleness_ms"):
         value = getattr(args, name)
         if not math.isfinite(value) or value < 0:
             parser.error(f"--{name.replace('_', '-')} must be finite and nonnegative.")
@@ -6692,10 +6710,12 @@ async def run_router_experiment(
             trial_monitor=trial_monitor,
             close_instances_on_stop=False,
             remaining_length=instance_metadata.get("remaining_length"),
+            snapshot_staleness_ms=float(getattr(args, "snapshot_staleness_ms", 0.0)),
         )
         run["remaining_length_rule"] = str(
             (instance_metadata.get("remaining_length") or {}).get("rule", "current")
         )
+        run["snapshot_staleness_ms"] = float(getattr(args, "snapshot_staleness_ms", 0.0))
         run["baseline_config"] = {
             "lambda_weight": run_lambda,
             "delta_weight": run_delta,
@@ -7256,6 +7276,7 @@ async def async_main(args: argparse.Namespace) -> None:
             "routebalance_batch_max_size": args.routebalance_batch_max_size,
             "routebalance_batch_wait_ms": args.routebalance_batch_wait_ms,
             "methodology_snapshot_max_age_ms": args.methodology_snapshot_max_age_ms,
+            "snapshot_staleness_ms": args.snapshot_staleness_ms,
             "lambda_weight": args.lambda_weight,
             "delta_weight": args.delta_weight,
             "score_cost_weight": args.score_cost_weight,
