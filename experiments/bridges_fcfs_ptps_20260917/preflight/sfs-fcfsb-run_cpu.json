@@ -2,7 +2,7 @@
   "status": "PASS_CPU_PREFLIGHT",
   "stage": "run",
   "gpu_executed": false,
-  "time": 1789620971.1203766,
+  "time": 1789654523.786511,
   "bundle_sha256": "4e36359aaa8dce4c833b854a553b5f6afc9aafaa8f57e6ef2b58a49864bbf60d",
   "campaign": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/scripts/cloud/fcfs/campaign-ptps-bridges-20260917.json",
   "campaign_sha256": "cedac71c76d8934511e1d6122a0f1c911ce150444935b1a3ee029952db30191f",
@@ -30,8 +30,8 @@
   },
   "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
   "vllm_origin": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/vllm/vllm/__init__.py",
-  "sfs_commit": "2a8c061be46898007597da002afe4e9c29109453",
-  "source_digest": "dde9c13449ec339527d40a306463cbaaf56c71e8d45ea92489ddcc9b29f3c9f4",
+  "sfs_commit": "60f375de21aed34af69f0279e5aaef01b7170d9e",
+  "source_digest": "169ebd6cdc27bf26054f279c52089ece68cc7375d74fb189531d72beb419a629",
   "go_version": "go version go1.23.12 linux/amd64",
   "ipc": {
     "worker_pool": {
@@ -50,7 +50,10 @@
         "torch_symmetric_memory": 88
       }
     },
-    "existing_cpu-serving.json": "PASS_CPU_SERVING"
+    "existing_tests/gate.json": "PASS_CPU_REGRESSION",
+    "existing_cpu-inputs.json": "PASS_CPU_INPUTS",
+    "existing_cpu-serving.json": "PASS_CPU_SERVING",
+    "existing_fcfs-inputs.json": "PASS_ACTUAL_CHAT_INPUTS"
   },
   "pointer": null,
   "slurm_job_id": null,

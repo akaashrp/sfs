@@ -15,10 +15,10 @@
     "preflight": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/experiments/bridges_fcfs_ptps_20260917/preflight/sfs-fcfsb-qualify_cpu.json",
     "sbatch_test_only": {
       "exit_code": 0,
-      "stderr": "sbatch: Job 46212147 to start at 2026-09-17T17:00:54 using 32 processors on nodes w006 in partition GPU-shared",
+      "stderr": "sbatch: Job 46249442 to start at 2026-09-17T21:15:19 using 32 processors on nodes w009 in partition GPU-shared",
       "stdout": ""
     },
-    "at_utc": "2026-09-17T04:56:02.618054+00:00"
+    "at_utc": "2026-09-17T14:14:53.729391+00:00"
   },
   "sfs-fcfsb-run": {
     "exit_code": 0,
@@ -36,9 +36,9 @@
     "preflight": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/experiments/bridges_fcfs_ptps_20260917/preflight/sfs-fcfsb-run_cpu.json",
     "sbatch_test_only": {
       "exit_code": 0,
-      "stderr": "sbatch: Job 46212149 to start at 2026-09-17T16:55:11 using 32 processors on nodes w006 in partition GPU-shared",
+      "stderr": "sbatch: Job 46249468 to start at 2026-09-17T18:39:19 using 32 processors on nodes w009 in partition GPU-shared",
       "stdout": ""
     },
-    "at_utc": "2026-09-17T04:56:11.227617+00:00"
+    "at_utc": "2026-09-17T14:15:24.085788+00:00"
   }
 }
