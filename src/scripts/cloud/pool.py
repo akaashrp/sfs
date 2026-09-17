@@ -113,17 +113,20 @@ def server_argv(family, model_path, row, index, output, length_predictor, remain
 
 
 def instance_config(family, definition, bundle, ports, tag, profile="canonical", coefficients=None):
-    if profile == "fcfs":
-        from scripts.cloud.fcfs.config import instances
-        return instances(Path(bundle), ports, tag, coefficients)
+    """profile names a scripts.cloud.serving.profiles row (Qwen only) or the canonical configuration."""
+    if profile != "canonical":
+        from scripts.cloud.serving.profiles import instances, profile as serving_profile
+        return instances(serving_profile(profile), Path(bundle), ports, tag, coefficients)
     return config(family, definition, read(Path(bundle)/family/'bridges_metrics.json'), ports, tag)
 
 
 def instance_argv(family, model_path, row, index, output, length_predictor, bundle, profile="canonical", remaining_length=None):
-    """remaining_length is the instances.json provenance block (remaining_length_provenance) or None."""
-    if profile == "fcfs":
-        from scripts.cloud.fcfs.config import server_argv as fcfs_argv
-        return fcfs_argv(Path(bundle), model_path, row, index, Path(output), remaining_length)
+    """remaining_length is the instances.json provenance block (remaining_length_provenance) or None.
+
+    Under a serving profile every Qwen server receives the canonical argv plus the profile's delta."""
+    if profile != "canonical":
+        from scripts.cloud.serving.profiles import server_argv as profile_argv, profile as serving_profile
+        return profile_argv(serving_profile(profile), Path(bundle), model_path, row, index, Path(output), remaining_length)
     return server_argv(family, model_path, row, index, Path(output), length_predictor, remaining_length)
 
 

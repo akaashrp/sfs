@@ -359,3 +359,18 @@ worker profile `--profile fcfs` (`calibrate`/`qualify` only until authorization)
 coefficient refit `scripts.cloud.fcfs.coefficients`, and the step-by-step
 qualification runbook `scripts/cloud/fcfs/RUNBOOK.md`. The canonical chunked
 configuration, its gates and completed cells are unchanged.
+
+## Further Qwen serving configurations (reduced grids)
+
+`src/scripts/cloud/serving/profiles.py` is the table of serving configurations behind
+worker `--profile` (`fcfs`, `chunk8192`, `prefix_cache`): configuration id, scheduler settings,
+server argv delta over the canonical Qwen argv, instances.json row overrides, coefficient policy
+(`refit` = SFS batch coefficients fitted from destination traces of that configuration and bound
+with `--coefficients`; `canonical` = canonical coefficients retained, `--coefficients` refused)
+and the bounded GPU smoke rule. `scripts.cloud.serving.campaign --profile <name>` writes the
+reduced-grid overlays `scripts/cloud/fcfs/campaign-chunk8192-20260917.json` and
+`campaign-prefix-cache-20260917.json` (kind `serving_config`: SFS plus the two strongest external
+baselines at 6/7/8/8.3 QPS; cells derive from the single editable `policies` list, so an edit
+changes the overlay hash and re-qualification follows). Generic tooling:
+`scripts.cloud.serving.coefficients fit|validate --profile`, `scripts.cloud.serving.gpu_smoke
+--profile`; runbooks `scripts/cloud/fcfs/RUNBOOK-chunk8192.md` and `RUNBOOK-prefix-cache.md`.

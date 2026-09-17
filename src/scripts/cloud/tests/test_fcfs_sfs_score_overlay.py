@@ -207,7 +207,7 @@ def test_provenance_and_release_bind_configuration_coefficients_overlay_and_rule
     options = SimpleNamespace(family='qwen', variant='canonical', bundle=str(bundle), gpus='0,1,2,3', profile='fcfs',
                               coefficients=str(tmp_path/'coefficients.json'), campaign=str(overlay))
     record = provenance(options, active, rule)
-    assert record == {'configuration_id': fcfs.CONFIG_ID, 'coefficients_sha256': digest(tmp_path/'coefficients.json'), 'campaign_sha256': digest(overlay),
+    assert record == {'configuration_id': fcfs.CONFIG_ID, 'coefficient_policy': 'refit', 'coefficients_sha256': digest(tmp_path/'coefficients.json'), 'campaign_sha256': digest(overlay),
                       'campaign_kind': SFS_SCORE_KIND, 'remaining_length_rule': RULE, 'remaining_length': remaining_length_record(rule)}
     assert record['remaining_length']['models']['qwen3-0.6b']['table_sha256'] == OVERLAY['remaining_length']['files']['qwen3-0.6b.json']
     qdir = tmp_path/'q'; write(qdir/'evidence.json', {'ok': True})

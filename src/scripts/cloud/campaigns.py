@@ -5,15 +5,18 @@ from scripts.cloud.common import read
 def apply_any_campaign(bundle, campaign, inspect=False):
     """Return the validated in-memory overlay for a campaign document of any supported kind.
 
-    FCFS configuration overlays (matrix or fcfs_sfs_score) are accepted only for read-only inspection
-    (control status, collate); a worker applies them through scripts.cloud.fcfs.campaign under --profile fcfs.
+    Serving-configuration overlays (the FCFS matrix, fcfs_sfs_score and serving_config kinds, all carrying a
+    configuration_id) are accepted only for read-only inspection (control status, collate); a worker applies
+    them through scripts.cloud.serving.campaign under the matching --profile.
     """
     kind = campaign.get('kind')
     if 'configuration_id' in campaign:
+        from scripts.cloud.serving.profiles import for_configuration
+        name = for_configuration(campaign['configuration_id']).name
         if not inspect:
-            raise ValueError('FCFS configuration overlays run only under worker --profile fcfs')
-        from scripts.cloud.fcfs.campaign import apply_campaign
-        return apply_campaign(bundle, campaign, 'inspect')
+            raise ValueError(f'Serving configuration overlays run only under worker --profile {name}')
+        from scripts.cloud.serving.campaign import apply_profile_campaign
+        return apply_profile_campaign(name, bundle, campaign, 'inspect')
     if kind is None:
         from scripts.cloud.baseline_campaign import apply_campaign
         return apply_campaign(bundle, campaign)

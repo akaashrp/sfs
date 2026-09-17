@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "kind": "serving_config",
+  "configuration_id": "qwen-prefix-cache",
+  "status": "AUTHORIZED_PENDING_QUALIFICATION",
+  "full_matrix_authorized": true,
+  "authorization": "User authorized on 17 September 2026: reduced grids (SFS + two strongest baselines) for the prefix-caching and fine-chunk serving configurations",
+  "decision": "User decision 2026-09-17: prefix-caching serving configuration (vLLM automatic prefix caching on, canonical 32768-token step) as a reduced grid of SFS (hard) plus the two strongest external baselines at 6/7/8/8.3 QPS x 16,000 requests, with the 0.6B remaining-length rule. Per-token step costs are unchanged, so the canonical SFS batch coefficients are retained (--coefficients is refused); qualification is a worker qualify pass plus review and release.",
+  "summary": "Canonical scheduler with vLLM automatic prefix caching enabled; per-token step costs unchanged, canonical SFS coefficients retained",
+  "profile": {
+    "scheduling_policy": "fcfs",
+    "chunked_prefill": true,
+    "max_num_batched_tokens": 32768,
+    "max_model_len": 131072,
+    "max_num_seqs": 512,
+    "long_prefill_token_threshold": 0,
+    "gpu_memory_utilization": 0.9,
+    "prefix_caching": true
+  },
+  "changed_from_canonical": {
+    "prefix_caching": true
+  },
+  "server_argv_delta": {
+    "boolean_swaps": [
+      [
+        "--no-enable-prefix-caching",
+        "--enable-prefix-caching"
+      ]
+    ],
+    "options": [],
+    "extra_argv": [
+      "--enable-prompt-tokens-details"
+    ],
+    "instance_rows": {
+      "prefix_caching_enabled": true
+    }
+  },
+  "coefficient_policy": "canonical",
+  "coefficients": "Canonical SFS batch coefficients retained (per-token step costs unchanged); coefficients_sha256 is null",
+  "policies": [
+    "hard",
+    "mooncake_prefill",
+    "lmdeploy_proxy"
+  ],
+  "policy_rule": "SFS plus the two highest-utility external baselines on the canonical Vast grid; revisit when canonical SCORE lands",
+  "policy_edit_note": "Edit `policies` only: cells derive from policies x rates when the overlay is applied (no cells list is stored); any edit changes this overlay hash, so every lane re-qualifies against the edited overlay before running",
+  "rates": [
+    6.0,
+    7.0,
+    8.0,
+    8.3
+  ],
+  "requests_per_cell": 16000,
+  "cell_id_form": "qwen-prefix-cache-<policy>-<qps>",
+  "models": {
+    "qwen3-0.6b": {
+      "repo": "Qwen/Qwen3-0.6B",
+      "revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+      "family": "qwen"
+    },
+    "qwen3-8b": {
+      "repo": "Qwen/Qwen3-8B",
+      "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+      "family": "qwen"
+    },
+    "qwen3-32b": {
+      "repo": "Qwen/Qwen3-32B",
+      "revision": "9216db5781bf21249d130ec9da846c4624c16137",
+      "family": "qwen"
+    }
+  },
+  "evaluation": {
+    "arrival_process": "poisson",
+    "seed": 69,
+    "slo_rule": "Frozen canonical Qwen SLOs without refitting",
+    "primary_judge": "pro",
+    "quality_scores": "Frozen canonical scores; common 15996 observed queries for Pro/Flash comparisons",
+    "max_completion_tokens": 8192,
+    "temperature": 0,
+    "top_p": 1,
+    "enable_thinking": false
+  },
+  "restrictions": [
+    "No full-matrix launch without subsequent user authorization",
+    "Do not deploy an unvalidated output-length change",
+    "Preserve canonical kernels, precision, chat template, YaRN/RoPE and TP1/1/2"
+  ],
+  "gpu_allocation": {
+    "lane": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "note": "One four-GPU lane (any free slot: 0-3 or 4-7); the qualification binds the exact hardware and the run must use it"
+  },
+  "ledger": "Separate completion ledger under the configuration state root; cell IDs carry the qwen-prefix-cache prefix and never collide with canonical or FCFS cells",
+  "qualification": [
+    "Gates of the configuration state root under this source (test.sh, prepare cpu/serving); no FCFS admission audit (canonical context length)",
+    "worker qualify --profile prefix_cache --campaign <this overlay> (no --coefficients: the canonical SFS batch coefficients are retained): calibration, timing heads, one smoke per listed policy, load probes",
+    "Timing-head and destination-residual review on the canonical coefficients, prefix-cache hit evidence from usage.prompt_tokens_details.cached_tokens; control release with reviews",
+    "qualification.json records configuration_id, coefficient_policy canonical, coefficients_sha256 null, campaign_sha256, remaining_length_rule and the 0.6B table sha256"
+  ],
+  "launch_rule": "worker run/campaign refuse this overlay until full_matrix_authorized is true; flipping it requires explicit user authorization",
+  "remaining_length": {
+    "tables": "scripts/cloud/remaining-length-tables-20260917",
+    "files": {
+      "manifest.json": "2eac8a79de5650982d998c7ded87f8cf48e19f3a53d1005afb734d7c4c491fbb",
+      "qwen3-0.6b.json": "50a14ca76681895a622cbf2d69ba362e37792b32b76c5967b7b9b67f3f6ed87d",
+      "qwen3-32b.json": "74e3a4ef30c8be24e01983b2609c4d76c8641422f26def2a899ec47ec88cf599",
+      "qwen3-8b.json": "2392950a25c04003e945124554fd33654da1c552ccdecf7e59d20770f9c04ce6"
+    },
+    "rules": {
+      "qwen3-0.6b": "running_all:0.5:prompt_bin"
+    },
+    "off_models": [
+      "qwen3-8b",
+      "qwen3-32b"
+    ],
+    "note": "Same rule and tables as the canonical SFS/SCORE overlay: only the qwen3-0.6b server receives --remaining-length-mode running_all --remaining-length-table qwen3-0.6b.json --remaining-length-quantile 0.5 --remaining-length-conditioning prompt_bin, and the router attaches that table for its missing-prediction fill on that instance only; qwen3-8b and qwen3-32b stay on the current rule. The tables were built from canonical calibration outputs; the evidence is the canonical paired run, adopted by the user for every Qwen SFS/SCORE cell including this serving configuration. No paired run exists under this configuration.",
+    "evidence": {
+      "paired_run": "scripts/cloud/reports/reserve-tail-20260916/paired-qps8p6-on/result_summary.json (Vast /workspace/sfs/state/diagnostics/reserve-tail-20260916/paired-qps8p6-on; canonical 8.6 QPS hard control, 16,000 requests, source bedeec4 + reserve diff)",
+      "readiness_note": "scripts/cloud/reserve-paired-run-20260916.md",
+      "on": {
+        "rule": "qwen3-0.6b=running_all_prompt_bin_q50",
+        "ttft_slo_attainment_pct": 90.89375,
+        "pro_ontimeutility": 0.47315245581222454,
+        "flash_ontimeutility": 0.5106716853900976,
+        "realized_qps": 8.590666810927857,
+        "raw_sha256": "01fb35c7ad67db820ccec798c064a8dcabd851b5bdb772263d5cb5acbf7ebc9b"
+      },
+      "off_controls": {
+        "qps8p6": {
+          "remote_output": "/workspace/sfs/state/controls/qps8p6",
+          "ttft_slo_attainment_pct": 49.9625,
+          "pro_ontimeutility": 0.27815865541318135,
+          "raw_sha256": "d6e6d043c305b107fb4f7d8f54ad41cd461a20df77a279d77724fc2e298da726"
+        },
+        "qps8p6-repeat1": {
+          "remote_output": "/workspace/sfs/state/controls/qps8p6-repeat1",
+          "ttft_slo_attainment_pct": 63.7125,
+          "pro_ontimeutility": 0.35614945124710856,
+          "raw_sha256": "1f6099fff5b066736da2d8ffc2df285494902210d6584916fe02a84dc924224a"
+        }
+      },
+      "reading": "ON exceeds the better OFF control on both acceptance metrics (attainment 90.89 vs 63.71 percent; Pro OnTimeUtility 0.4732 vs 0.3561), outside the 13.8-point OFF spread; the pre-registered reading rule in the readiness note therefore admits the 0.6B rule for the campaign."
+    }
+  },
+  "accepted_prior_source_digests": {},
+  "estimators": "The SFS batch simulator (vllm.v1.engine.scheduler_simulator: get_computed_blocks returns no cached blocks), the Mooncake prefill estimator and the RouteBalance TPOT head are cache-unaware by design: waiting requests are costed as full prompt prefills even when the engine will serve part of the prompt from the prefix cache; running requests are read from the snapshot after the hit (num_computed_tokens includes cached tokens). Measuring the routers under that estimator/engine mismatch is the point of this ablation; no estimator is changed.",
+  "observability": "--enable-prompt-tokens-details is added so every response usage carries prompt_tokens_details.cached_tokens; it has no scheduling effect."
+}

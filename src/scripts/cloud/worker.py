@@ -41,12 +41,25 @@ def parse(argv):
     return _parse_experiment_args(argv)
 
 
+def serving_profile(options):
+    """The scripts.cloud.serving.profiles row selected with --profile, or None for the canonical configuration."""
+    name = getattr(options, 'profile', 'canonical')
+    if name == 'canonical':
+        return None
+    from scripts.cloud.serving.profiles import profile
+    return profile(name)
+
+
 def configuration(options):
     """Serving configuration identity carried through qualification, release and the ledger."""
-    if getattr(options, 'profile', 'canonical') == 'fcfs':
-        from scripts.cloud.fcfs.config import CONFIG_ID
-        return CONFIG_ID
-    return 'canonical'
+    profile = serving_profile(options)
+    return profile.configuration_id if profile else 'canonical'
+
+
+def coefficient_policy(options):
+    """'refit' when the profile's SFS batch coefficients are fitted for the configuration, else 'canonical'."""
+    profile = serving_profile(options)
+    return profile.coefficient_policy if profile else 'canonical'
 
 
 def policies_for(manifest, family, variant, definition):
@@ -79,7 +92,7 @@ def remaining_length_record(block):
 def provenance(options, manifest, active_rule):
     """Identity every qualification.json and completed-ledger entry carries, and validate_release binds:
     serving configuration, fitted coefficient file, campaign overlay and the pool's remaining-length rule/tables."""
-    return {'configuration_id': configuration(options),
+    return {'configuration_id': configuration(options), 'coefficient_policy': coefficient_policy(options),
             'coefficients_sha256': digest(options.coefficients) if getattr(options, 'coefficients', None) else None,
             'campaign_sha256': digest(options.campaign) if getattr(options, 'campaign', None) else None,
             'campaign_kind': manifest.get('kind'),
@@ -247,14 +260,16 @@ async def execute(options, manifest, definition, model_paths, output):
             if frozen.exists() and digest(path/name) != digest(frozen):
                 raise ValueError(f'Model/tokenizer configuration differs from the frozen checkpoint: {model}/{name}')
     coefficients, profile = None, getattr(options, 'profile', 'canonical')
-    if profile == 'fcfs':
-        from scripts.cloud.fcfs.config import SETTINGS
-        from scripts.cloud.fcfs.coefficients import load
-        inputs = read(Path(options.state).parent/'setup/fcfs-inputs.json')
-        if (inputs.get('status') != 'PASS_ACTUAL_CHAT_INPUTS' or inputs.get('profile') != SETTINGS
-                or inputs.get('bundle_sha256') != digest(Path(options.bundle)/'bundle.json')):
-            raise ValueError('Missing/stale FCFS actual chat admission audit; rerun scripts.cloud.fcfs.inputs')
-        coefficients = load(options.coefficients) if options.coefficients else None
+    serving = serving_profile(options)
+    if serving:
+        if serving.admission_audit:
+            inputs = read(Path(options.state).parent/'setup/fcfs-inputs.json')
+            if (inputs.get('status') != 'PASS_ACTUAL_CHAT_INPUTS' or inputs.get('profile') != serving.settings
+                    or inputs.get('bundle_sha256') != digest(Path(options.bundle)/'bundle.json')):
+                raise ValueError('Missing/stale FCFS actual chat admission audit; rerun scripts.cloud.fcfs.inputs')
+        if options.coefficients:
+            from scripts.cloud.serving.coefficients import load
+            coefficients = load(options.coefficients, serving)
     qualification = Path(options.qualification).resolve() if options.qualification else output
     # Per-engine remaining-length rule (SFS/SCORE and predictor-variant overlays): tables and rules
     # come from the validated campaign; the provenance below is what the pool writes to instances.json.
@@ -337,8 +352,9 @@ async def execute(options, manifest, definition, model_paths, output):
                     'source_sha256': source, 'bundle_sha256': digest(Path(options.bundle)/'bundle.json'),
                     'load_probes': load_probes, 'files': evidence, **provenance(options, manifest, active_rule),
                     'policy_smoke': policies, 'serving_profile': definition['profile'],
-                    'serving_coefficients': ('Fitted for this configuration from destination FCFS traces; independent residuals require review' if coefficients
-                        else 'Canonical SFS batch coefficients retained; destination residuals require review'),
+                    'serving_coefficients': ('Fitted for this configuration from destination traces; independent residuals require review' if coefficients
+                        else 'Canonical SFS batch coefficients retained by configuration policy (per-token step costs unchanged); destination residuals require review'
+                        if serving else 'Canonical SFS batch coefficients retained; destination residuals require review'),
                     'evaluation_started': False})
                 if options.mode == 'qualify':
                     return
@@ -428,28 +444,36 @@ def main():
     p.add_argument('--family', choices=['qwen', 'ministral'], required=True)
     p.add_argument('--variant', choices=['canonical', 'mlp_quality', 'mlp_length', 'flash_quality'], default='canonical')
     p.add_argument('--gpus', required=True); p.add_argument('--cpus'); p.add_argument('--qualification'); p.add_argument('--cells')
+    from scripts.cloud.serving.profiles import NAMES
     p.add_argument('--campaign', help='Explicit overlay on the frozen artifact bundle (baseline, sfs_score or predictor_variants kind; '
-                                      'an FCFS overlay under --profile fcfs)')
-    p.add_argument('--profile', choices=['canonical', 'fcfs'], default='canonical', help='Serving configuration; fcfs is the separately qualified Qwen unchunked overlay')
-    p.add_argument('--coefficients', help='Fitted FCFS SFS batch coefficients from scripts.cloud.fcfs.coefficients')
+                                      'a serving-configuration overlay under its --profile)')
+    p.add_argument('--profile', choices=list(NAMES), default='canonical',
+                   help='Serving configuration (scripts.cloud.serving.profiles): fcfs is the Qwen unchunked overlay, chunk8192 the 8192-token '
+                        'step budget, prefix_cache the prefix-caching ablation; each is qualified separately')
+    p.add_argument('--coefficients', help='Fitted SFS batch coefficients from scripts.cloud.serving.coefficients (refit profiles only)')
     options = p.parse_args()
     if options.family == 'ministral' and options.variant != 'canonical':
         p.error('Predictor ablations are Qwen only')
     if options.mode == 'run' and not options.qualification: p.error('Run requires destination qualification')
-    if options.profile == 'fcfs':
+    serving = serving_profile(options)
+    if serving:
         if options.family != 'qwen' or options.variant != 'canonical' or not options.campaign:
-            p.error('The FCFS profile is canonical Qwen only and requires its explicit overlay')
-        if options.mode != 'calibrate' and not options.coefficients: p.error('FCFS qualify/run require fitted configuration coefficients')
+            p.error(f'The {serving.name} profile is canonical Qwen only and requires its explicit overlay')
+        if serving.coefficient_policy == 'refit':
+            if options.mode != 'calibrate' and not options.coefficients:
+                p.error(f'{serving.name} qualify/run require fitted configuration coefficients')
+        elif options.coefficients or options.mode == 'calibrate':
+            p.error(f'The {serving.name} profile retains the canonical SFS coefficients; --coefficients and calibrate mode belong to refit profiles')
     elif options.coefficients or options.mode == 'calibrate':
-        p.error('Coefficient refits and calibrate mode belong to the FCFS profile')
+        p.error('Coefficient refits and calibrate mode belong to a refit serving profile')
     if options.cpus:
         os.sched_setaffinity(0, {int(c) for c in options.cpus.split(',')})
     manifest = validate_bundle(options.bundle)
     if options.mode == 'campaign' and not options.campaign:
         p.error('Campaign mode requires its explicit manifest')
-    if options.profile == 'fcfs':
-        from scripts.cloud.fcfs.campaign import apply_campaign
-        manifest = apply_campaign(manifest, read(options.campaign), options.mode)
+    if serving:
+        from scripts.cloud.serving.campaign import apply_profile_campaign
+        manifest = apply_profile_campaign(serving.name, manifest, read(options.campaign), options.mode)
     elif options.campaign:
         from scripts.cloud.campaigns import apply_any_campaign
         manifest = apply_any_campaign(manifest, read(options.campaign))
