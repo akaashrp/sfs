@@ -113,6 +113,9 @@ def audit_cell(payload, cell):
     if {r['request_id'] for r in rows} != {f'req-{i}' for i in range(cell['requests'])}:
         raise ValueError('Missing or duplicate evaluation request identities')
     summary = run['summary']
+    # A failed request stops this pool, whatever its cause. The bounded infrastructure-fault
+    # salvage of scripts.cloud.salvage is an explicit, after-the-fact, user-authorised step and is
+    # deliberately not consulted here; salvage_rule/salvage_classification below only expose it.
     if summary.get('failed_requests') != 0 or summary.get('succeeded_requests') != len(rows):
         raise ValueError('Incomplete requests or end-to-end TTFT')
     # Transient snapshot-read faults degrade one candidate; a decision that lost
@@ -129,6 +132,25 @@ def audit_cell(payload, cell):
     if abs(realized/cell['qps'] - 1) > .1:
         raise ValueError('Arrival generator missed the requested rate by more than 10%')
     return {'status': 'PASS_CELL', 'requests': len(rows), 'realized_qps': realized}
+
+
+def salvage_rule():
+    """Read-only view of the infrastructure-fault salvage allowlist, cap and penalty.
+
+    Exposed next to audit_cell so reviewers and tools import one bound rule; audit_cell itself
+    never calls it and the worker's live behaviour is unchanged.
+    """
+    from scripts.cloud import salvage
+    return {'causes': {name: list(needles) for name, needles in salvage.SALVAGEABLE_CAUSES.items()},
+            'max_requests': salvage.MAX_SALVAGEABLE_REQUESTS,
+            'max_fraction_pct': salvage.MAX_SALVAGEABLE_FRACTION * 100,
+            'penalty': salvage.PENALTY, 'authorization': salvage.AUTHORIZATION}
+
+
+def salvage_classification(payload, cell):
+    """Read-only report of a completed point's failed rows under that rule. Never admits a cell."""
+    from scripts.cloud.salvage import classify_failures
+    return classify_failures(payload, cell)
 
 
 async def run_point(family, args, requests, clients, costs, metadata, folder, monitor=None, *, data_role='evaluation'):

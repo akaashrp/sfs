@@ -7,6 +7,7 @@ import sys
 import time
 import uuid
 from scripts.cloud.common import ROOT, read, write, digest, locks
+from scripts.cloud.salvage import salvage_summary
 
 
 def submit(state, argv):
@@ -31,12 +32,13 @@ def status(state, bundle, campaign=None):
         from scripts.cloud.campaigns import apply_any_campaign
         manifest = apply_any_campaign(manifest, read(campaign))
     cells = manifest['cells']
-    completed, invalid = [], []
+    completed, invalid, salvaged = [], [], {}
     for path in (state/'completed').glob('*.json'):
         entry = read(path)
         try:
             if digest(entry['point']) != entry['point_sha256']: raise ValueError()
             completed.append(entry['cell']['id'])
+            if entry.get('salvage'): salvaged[entry['cell']['id']] = salvage_summary(entry)
         except (OSError, ValueError): invalid.append(path.stem)
     jobs = []
     for path in sorted((state/'jobs').glob('*.json')):
@@ -52,6 +54,7 @@ def status(state, bundle, campaign=None):
             'output': str(folder), 'log': record['log']})
     ids = {c['id'] for c in cells}
     result = {'expected':len(cells), 'completed':len(set(completed) & ids), 'invalid':invalid,
+              'salvaged':salvaged, 'penalised_requests':sum(s['penalised_requests'] for s in salvaged.values()),
               'remaining':[c['id'] for c in cells if c['id'] not in completed], 'jobs':jobs,
               'completed_outside_campaign':sorted(set(completed) - ids),
               'campaign':str(campaign) if campaign else None, 'campaign_kind':manifest.get('kind'),

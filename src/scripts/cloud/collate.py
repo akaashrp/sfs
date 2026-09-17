@@ -8,8 +8,9 @@ import shutil
 import statistics
 
 from scripts.cloud.common import read, write, digest, validate_bundle, source_digest
-from scripts.cloud.worker import audit_cell, family_remaining_length
+from scripts.cloud.worker import audit_cell, family_remaining_length, salvage_rule
 from scripts.cloud.pool import remaining_length_provenance
+from scripts.cloud.salvage import audit_completed_cell, salvage_summary
 
 
 def evaluation_judge(cell, requested='auto'):
@@ -44,10 +45,21 @@ def observed_utilities(payload, mapping, quality, common, primary):
     if len(rows) != len({r['request_id'] for r in rows}) or {r['request_id'] for r in rows} != set(mapping):
         raise ValueError('Evaluation request map does not match the routed requests')
     utilities = {'pro': [], 'flash': []}
+    penalised = 0
     for row in rows:
         mapped = mapping[row['request_id']]
         if row['bucket'] != mapped.bucket:
             raise ValueError('Request bucket disagrees with frozen map')
+        if row.get('error'):
+            # A penalised (salvaged) request: an SLO miss with no response and nothing to score. It
+            # scores zero and stays in this denominator whether or not its query is in the observed
+            # cohort, so a salvaged failure can never be dropped out of the utility mean.
+            if row.get('system_entry_e2e_ttft_slo_met'):
+                raise ValueError('Failed request is recorded as meeting its TTFT SLO')
+            for judge in utilities:
+                utilities[judge].append(0.0)
+            penalised += 1
+            continue
         gate = row['system_entry_e2e_ttft_slo_met']
         if gate != (row['system_entry_e2e_ttft_ms'] <= row['ttft_slo_ms']):
             raise ValueError('TTFT attainment flag disagrees with measured latency')
@@ -63,12 +75,17 @@ def observed_utilities(payload, mapping, quality, common, primary):
     if not utilities['pro']:
         raise ValueError('No observed scored queries')
     scores = {judge: statistics.mean(values) for judge, values in utilities.items()}
-    return {'requests': len(rows), 'observed_scored_queries': len(utilities['pro']),
+    penalty_note = ('; penalised (salvaged) requests are scored zero and kept in the denominator'
+                    if penalised else '')
+    return {'requests': len(rows), 'observed_scored_queries': len(utilities['pro'])-penalised,
+            'penalised_requests': penalised, 'salvaged': bool(penalised),
+            'utility_denominator': len(utilities['pro']),
             'excluded_queries': len(rows)-len(utilities['pro']), 'primary_judge': primary,
             'primary_ontimeutility': scores[primary], 'ontimeutility': scores,
             'ttft_slo_attainment_pct': run['summary']['system_entry_e2e_ttft_slo_attainment_pct'],
             'ttft_denominator': len(rows),
-            'quality_definition': 'Saved candidate scores joined to actual routing decisions; common observed query groups for both judges'}
+            'quality_definition': 'Saved candidate scores joined to actual routing decisions; common observed query '
+                                  'groups for both judges' + penalty_note}
 
 
 def campaign_manifest(bundle, campaign=None):
@@ -97,6 +114,23 @@ def check_record(record, expected, campaign_sha=None, kind=None, rules=None):
         if kind == 'staleness_sweep' and record.get('snapshot_staleness_ms') != record['cell']['snapshot_staleness_ms']:
             raise ValueError(f'Cell ran under a different snapshot staleness: {cid}')
     return cid
+
+
+def cell_records(root):
+    """Per-cell record files under one raw root: a pool's own audit.json, or a salvaged cell's salvage.json.
+
+    A pool never writes an audit.json for a cell whose run failed, so a salvaged cell is carried by
+    the salvage record its admission wrote next to the point. A cell directory holding both is a
+    conflict, not a choice.
+    """
+    root = Path(root)
+    found = sorted([*root.rglob('cells/*/audit.json'), *root.rglob('cells/*/salvage.json')])
+    directories = {}
+    for path in found:
+        if path.parent in directories:
+            raise ValueError(f'Cell directory carries both an audit and a salvage record: {path.parent}')
+        directories[path.parent] = path
+    return found
 
 
 def audit_status(expected, missing):
@@ -148,6 +182,8 @@ def _fill(row, observed, record, source, provider, reused_from=None):
                primary_ontimeutility=observed['ontimeutility'][row['primary_judge']],
                ttft_slo_attainment_pct=observed['ttft_slo_attainment_pct'], observed_scored_queries=observed.get('observed_scored_queries'),
                hardware={'host': hardware['host'], 'gpus': [g[2] for g in hardware['gpus']]} if hardware else None,
+               salvaged=bool(record.get('salvage')), penalised_requests=(record.get('salvage') or {}).get('failed_requests', 0),
+               salvage=salvage_summary(record),
                source_digest=source_digest(record['source_sha256']), qualification_sha256=record.get('qualification_sha256'),
                campaign_sha256=record.get('campaign_sha256'), remaining_length_rule=record.get('remaining_length_rule', 'current'),
                point=record['point'], point_sha256=record['point_sha256'], reused_from=reused_from)
@@ -198,15 +234,17 @@ def collate(bundle, roots, output, allow_partial=False, judge='auto', campaign=N
     kind, campaign_sha = m.get('kind'), (digest(campaign) if campaign else None)
     rules = expected_rules(m) if kind else None
     expected = {c['id']:c for c in m['cells']}
-    points = {}
+    points, salvaged = {}, {}
     for root in roots:
-        for audit in Path(root).rglob('cells/*/audit.json'):
+        for audit in cell_records(root):
             record = read(audit); point = audit.parent/'point.json'
             cid = check_record(record, expected, campaign_sha, kind, rules)
             if cid in points: raise ValueError(f'Duplicate completed cell across hosts/attempts: {cid}')
             if digest(point) != record['point_sha256'] or record['bundle_sha256'] != digest(bundle/'bundle.json'):
                 raise ValueError('Result or input bundle checksum mismatch')
-            audit_cell(read(point), expected[cid])
+            # A clean cell is re-audited unchanged; a salvaged one only under its recorded salvage.
+            audit_completed_cell(read(point), expected[cid], record)
+            if record.get('salvage'): salvaged[cid] = salvage_summary(record)
             points[cid] = (point, record)
     missing = sorted(set(expected)-set(points))
     if missing and not allow_partial: raise ValueError(f'Missing {len(missing)} cells: {missing}')
@@ -229,6 +267,9 @@ def collate(bundle, roots, output, allow_partial=False, judge='auto', campaign=N
         stats=augment_file(json_path=dest,req_maps_by_holdout={cell['requests']//4:maps[family]},quality_index=quality[family][selected_judge],dry_run=False)
         if stats.skipped_reason or stats.missing_req_map or stats.missing_example_id or stats.unresolved_model or stats.missing_quality:
             raise ValueError(f'Incomplete quality join: {stats}')
+        # Only the rows a recorded salvage penalises may be scored zero without a response.
+        if stats.failed_scored_zero != len(salvaged.get(cid, {}).get('request_ids', [])):
+            raise ValueError(f'Quality join zero-scored rows disagree with the cell salvage record: {cid}')
         provenance[cid] = record
         if family == 'qwen':
             observed[cid] = observed_utilities(read(point), maps[family], quality[family], common, selected_judge)
@@ -240,6 +281,9 @@ def collate(bundle, roots, output, allow_partial=False, judge='auto', campaign=N
     write(output/'figure5_13_summary.json', summaries)
     write(output/'observed_judge_summary.json', observed)
     write(output/'audit.json', {'status':audit_status(expected, missing), 'cells':len(points), 'missing':missing,
+        'salvaged_cells':sorted(salvaged), 'salvaged':salvaged,
+        'penalised_requests':sum(s['penalised_requests'] for s in salvaged.values()),
+        'salvage_rule':salvage_rule() if salvaged else None,
         'campaign':str(campaign) if campaign else None, 'campaign_kind':kind, 'campaign_sha256':campaign_sha,
         'expected_remaining_length_rules':rules, 'qwen_evaluation_judge':judge, 'evaluation_judge_by_cell':judges,
         'flash_judge_imputation_provenance':read(bundle/'provenance/flash_holdout_comparison.json'),
