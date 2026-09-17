@@ -323,7 +323,12 @@ async def process_bucket(
 
     with output_path.open("w", encoding="utf-8") as writer:
         for idx, record in enumerate(iter_jsonl(bucket_file)):
-            if args.max_prompts_per_bucket is not None and idx >= args.max_prompts_per_bucket:
+            if idx < args.prompt_start_index:
+                continue
+            if (
+                args.max_prompts_per_bucket is not None
+                and idx >= args.prompt_start_index + args.max_prompts_per_bucket
+            ):
                 break
             original_prompt = record.get("prompt", "")
             prompt, prompt_only_tokens = truncate_prompt_tokens(
@@ -555,6 +560,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--stop", type=str, nargs="*", default=None)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--max-prompts-per-bucket", type=int, default=2500)
+    parser.add_argument(
+        "--prompt-start-index",
+        type=int,
+        default=0,
+        help=(
+            "Skip this many leading rows of every bucket file before dispatching. "
+            "prompt_index and request_id keep the raw bucket row index, so an "
+            "extension run over rows [start, start + max_prompts_per_bucket) is "
+            "disjoint from and directly comparable to the original rows."
+        ),
+    )
     parser.add_argument("--log-interval", type=int, default=25)
     parser.add_argument("--worker-count", type=int, default=8)
     parser.add_argument("--max-queue-size", type=int, default=0)
@@ -565,6 +581,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--request-log-path", type=Path, default=None)
     args = parser.parse_args()
+    if args.prompt_start_index < 0:
+        parser.error("--prompt-start-index must be non-negative")
     args.chat_template_kwargs = resolve_chat_template_kwargs(
         args.chat_template_kwargs
     )
@@ -662,6 +680,7 @@ async def async_main(args: argparse.Namespace) -> None:
             "temperature": args.temperature,
             "top_p": args.top_p,
             "max_prompts_per_bucket": args.max_prompts_per_bucket,
+            "prompt_start_index": args.prompt_start_index,
             "system_prompt": args.system_prompt,
             "chat_template_kwargs": args.chat_template_kwargs,
             "bucket_dir": str(job.bucket_dir),

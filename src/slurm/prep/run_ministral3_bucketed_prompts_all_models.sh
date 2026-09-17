@@ -67,6 +67,7 @@ ENFORCE_EAGER="${ENFORCE_EAGER:-0}"
 # use Qwen's enable_thinking template kwarg, so the explicit policy is empty.
 BUCKET_DIR="${BUCKET_DIR:-$SHARED_PROMPT_ROOT/bucketed_prompts_0.6B}"
 MAX_PROMPTS_PER_BUCKET="${MAX_PROMPTS_PER_BUCKET:-2500}"
+PROMPT_START_INDEX="${PROMPT_START_INDEX:-0}"
 SYSTEM_PROMPT="${SYSTEM_PROMPT:-You are a helpful assistant.}"
 CHAT_TEMPLATE_KWARGS_JSON="${CHAT_TEMPLATE_KWARGS_JSON:-}"
 if [[ -z "$CHAT_TEMPLATE_KWARGS_JSON" ]]; then
@@ -105,6 +106,10 @@ for integer_name in TP_3B TP_8B TP_14B MAX_MODEL_LEN CONTEXT_LENGTH MAX_NUM_BATC
     exit 1
   fi
 done
+if ! [[ "$PROMPT_START_INDEX" =~ ^(0|[1-9][0-9]*)$ ]]; then
+  echo "[ERROR] PROMPT_START_INDEX must be a non-negative integer; got ${PROMPT_START_INDEX}." >&2
+  exit 1
+fi
 if [[ "$MINISTRAL_WORKLOAD" != "generation" && "$MINISTRAL_WORKLOAD" != "service_metrics" ]]; then
   echo "[ERROR] MINISTRAL_WORKLOAD must be generation or service_metrics." >&2
   exit 1
@@ -141,6 +146,7 @@ if [[ "$VALIDATE_ONLY" == "1" ]]; then
   echo "profile=$GPU_PROFILE workload=$MINISTRAL_WORKLOAD gpu_count=$REQUIRED_GPU_COUNT dtype=$VLLM_DTYPE tokenizer_mode=$TOKENIZER_MODE"
   echo "max_model_len=$MAX_MODEL_LEN context_length=$CONTEXT_LENGTH prompt_token_limit=$PROMPT_TOKEN_LIMIT max_completion_tokens=$MAX_COMPLETION_TOKENS"
   echo "chunked_prefill=$CHUNKED_PREFILL max_num_batched_tokens=$MAX_NUM_BATCHED_TOKENS max_num_seqs=$MAX_NUM_SEQS"
+  echo "bucket_dir=$BUCKET_DIR prompt_start_index=$PROMPT_START_INDEX max_prompts_per_bucket=$MAX_PROMPTS_PER_BUCKET worker_count=$WORKER_COUNT"
   if [[ -n "$RUN_DIR_OVERRIDE" ]]; then
     echo "run_dir_override=$RUN_DIR_OVERRIDE"
   fi
@@ -427,6 +433,9 @@ nvidia-smi --query-gpu=index,name,uuid,memory.total \
   echo "top_p=$TOP_P"
   echo "seed=$SEED"
   echo "bucket_dir=$BUCKET_DIR"
+  echo "prompt_start_index=$PROMPT_START_INDEX"
+  echo "max_prompts_per_bucket=$MAX_PROMPTS_PER_BUCKET"
+  echo "worker_count=$WORKER_COUNT"
   if [[ "$MINISTRAL_WORKLOAD" == "service_metrics" ]]; then
     echo "calibration_completions_root=$CALIBRATION_COMPLETIONS_ROOT"
     echo "calibration_source_model=$CALIBRATION_SOURCE_MODEL"
@@ -568,6 +577,7 @@ run_model() {
     --max-completion-tokens "$MAX_COMPLETION_TOKENS" \
     --prompt-token-limit "$PROMPT_TOKEN_LIMIT" \
     --max-prompts-per-bucket "$MAX_PROMPTS_PER_BUCKET" \
+    --prompt-start-index "$PROMPT_START_INDEX" \
     --temperature "$TEMPERATURE" \
     --top-p "$TOP_P" \
     --seed "$SEED" \
