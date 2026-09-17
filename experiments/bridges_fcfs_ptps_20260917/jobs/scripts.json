@@ -1,0 +1,29 @@
+{
+  "scripts": {
+    "sfs-fcfsb-qualify": {
+      "path": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/experiments/bridges_fcfs_ptps_20260917/jobs/sfs-fcfsb-qualify.sbatch",
+      "sha256": "4b98700aff8138e5bbc167031dc74387452b834e0e132bf9e1194ea0ccdb7e35"
+    },
+    "sfs-fcfsb-run": {
+      "path": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/experiments/bridges_fcfs_ptps_20260917/jobs/sfs-fcfsb-run.sbatch",
+      "sha256": "0d1fc5d4d5f4f0d03b4cb26a64985b1bf3a4c7a60bddab850146f6db76b0c2b9"
+    }
+  },
+  "cells": [
+    "qwen-fcfs-unchunked-65536-hard_prefill_tps-6",
+    "qwen-fcfs-unchunked-65536-hard_prefill_tps-7",
+    "qwen-fcfs-unchunked-65536-hard_prefill_tps-8",
+    "qwen-fcfs-unchunked-65536-hard_prefill_tps-8.3"
+  ],
+  "campaign": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/scripts/cloud/fcfs/campaign-ptps-bridges-20260917.json",
+  "campaign_sha256": "cedac71c76d8934511e1d6122a0f1c911ce150444935b1a3ee029952db30191f",
+  "frozen": {
+    "scripts/cloud/fcfs/campaign-ptps-bridges-20260917.json": "cedac71c76d8934511e1d6122a0f1c911ce150444935b1a3ee029952db30191f",
+    "src/scripts/cloud/fcfs/campaign.py": "2e52485cee59660143523290e14b41ff2419e6388703c02ee40cafc0f09d3c7a",
+    "src/scripts/cloud/worker.py": "36dd57be6b341c78670a4dd03bab754df721e86f661401db8482169a6632e7e2",
+    "experiments/bridges_fcfs_ptps_20260917/env.sh": "6280eb2e352772cee861e85503e8c7e63db6b2f79b1eb6c1c8707f8ec9768e08",
+    "experiments/bridges_fcfs_ptps_20260917/preflight.py": "6ed50b03451ba0091279f30447ab573b87ed27a76b2918cff3d9ee5f0fb2bf35",
+    "experiments/bridges_fcfs_ptps_20260917/gates.py": "fdf8a1eddabc41d07683833bfd4c43386d9bcb937b7015924d2c1947e6801985"
+  },
+  "storage": "/ocean/projects/cis250162p/aparthas/sfs_fb17"
+}

@@ -339,7 +339,9 @@ async def execute(options, manifest, definition, model_paths, output):
                     point = folder/'point.json'
                     entry = {**audit, 'cell': cell, 'point': str(point), 'point_sha256': digest(point),
                         'configuration_id': configuration(options), 'source_sha256': source, 'bundle_sha256': digest(Path(options.bundle)/'bundle.json'),
-                        'qualification_sha256': digest(qualification/'qualification.json'), 'hardware': machine}
+                        'qualification_sha256': digest(qualification/'qualification.json'), 'hardware': machine,
+                        'hardware_match': getattr(options, 'hardware_match', 'exact'),
+                        'qualification_hardware': read(qualification/'qualification.json')['hardware']}
                     write(folder/'audit.json', entry)
                     write(done, entry)
                     write(output/'phase.json', {'state': 'CELL_COMPLETE', 'cell': cell['id'], 'time': time.time()})
@@ -355,6 +357,18 @@ async def execute(options, manifest, definition, model_paths, output):
             for client in clients.values(): client.close()
 
 
+def hardware_class(machine):
+    """Model-level identity of a GPU allocation: count, product, memory and driver, not host/boot/UUID."""
+    return {'count': len(machine['gpus']), 'gpus': sorted((row[2], row[3], row[4]) for row in machine['gpus'])}
+
+
+def hardware_matches(expected, actual, options):
+    """Exact allocation by default; 'model' accepts the same GPU class on another scheduler allocation."""
+    if getattr(options, 'hardware_match', 'exact') == 'model':
+        return hardware_class(expected) == hardware_class(actual)
+    return expected == actual
+
+
 def validate_release(qualification, options, source):
     report, release = read(qualification/'qualification.json'), read(qualification/'release.json')
     if (release.get('status') != 'RELEASED' or release.get('qualification_sha256') != digest(qualification/'qualification.json')
@@ -363,7 +377,7 @@ def validate_release(qualification, options, source):
             or report['bundle_sha256'] != digest(Path(options.bundle)/'bundle.json')
             or report.get('configuration_id', 'canonical') != configuration(options)
             or report.get('coefficients_sha256') != (digest(options.coefficients) if getattr(options, 'coefficients', None) else None)
-            or report['hardware'] != hardware(options.gpus.split(','))):
+            or not hardware_matches(report['hardware'], hardware(options.gpus.split(',')), options)):
         raise ValueError('Missing/stale destination qualification and reviewed release')
     if getattr(options, 'campaign', None) and report.get('campaign_sha256') != digest(options.campaign):
         raise ValueError('Active campaign changed after qualification')
@@ -383,7 +397,11 @@ def main():
     p.add_argument('--campaign', help='Explicit baseline-only overlay on the frozen artifact bundle')
     p.add_argument('--profile', choices=['canonical', 'fcfs'], default='canonical', help='Serving configuration; fcfs is the separately qualified Qwen unchunked overlay')
     p.add_argument('--coefficients', help='Fitted FCFS SFS batch coefficients from scripts.cloud.fcfs.coefficients')
+    p.add_argument('--hardware-match', choices=['exact', 'model'], default='exact',
+                   help='run only: model accepts a released qualification measured on the same GPU class under another scheduler allocation (host/boot/UUID differ); every cell entry records both fingerprints')
     options = p.parse_args()
+    if options.hardware_match != 'exact' and options.mode != 'run':
+        p.error('Relaxed hardware matching applies only to run mode against an already reviewed qualification')
     if options.family == 'ministral' and options.variant != 'canonical':
         p.error('Predictor ablations are Qwen only')
     if options.mode == 'run' and not options.qualification: p.error('Run requires destination qualification')

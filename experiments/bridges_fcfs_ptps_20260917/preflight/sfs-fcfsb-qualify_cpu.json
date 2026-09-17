@@ -1,0 +1,58 @@
+{
+  "status": "PASS_CPU_PREFLIGHT",
+  "stage": "qualify",
+  "gpu_executed": false,
+  "time": 1789620962.389031,
+  "bundle_sha256": "4e36359aaa8dce4c833b854a553b5f6afc9aafaa8f57e6ef2b58a49864bbf60d",
+  "campaign": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/scripts/cloud/fcfs/campaign-ptps-bridges-20260917.json",
+  "campaign_sha256": "cedac71c76d8934511e1d6122a0f1c911ce150444935b1a3ee029952db30191f",
+  "cells": [
+    "qwen-fcfs-unchunked-65536-hard_prefill_tps-6",
+    "qwen-fcfs-unchunked-65536-hard_prefill_tps-7",
+    "qwen-fcfs-unchunked-65536-hard_prefill_tps-8",
+    "qwen-fcfs-unchunked-65536-hard_prefill_tps-8.3"
+  ],
+  "configuration_id": "qwen-fcfs-unchunked-65536",
+  "profile": {
+    "scheduling_policy": "fcfs",
+    "chunked_prefill": false,
+    "max_num_batched_tokens": 65536,
+    "max_model_len": 65536,
+    "max_num_seqs": 512,
+    "long_prefill_token_threshold": 0,
+    "gpu_memory_utilization": 0.9,
+    "prefix_caching": false
+  },
+  "models": {
+    "qwen3-0.6b": "/ocean/projects/cis250162p/aparthas/sfs_fb17/hf/hub/models--Qwen--Qwen3-0.6B/snapshots/c1899de289a04d12100db370d81485cdf75e47ca",
+    "qwen3-8b": "/ocean/projects/cis250162p/aparthas/sfs_fb17/hf/hub/models--Qwen--Qwen3-8B/snapshots/b968826d9c46dd6066d109eabc6255188de91218",
+    "qwen3-32b": "/ocean/projects/cis250162p/aparthas/sfs_fb17/hf/hub/models--Qwen--Qwen3-32B/snapshots/9216db5781bf21249d130ec9da846c4624c16137"
+  },
+  "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
+  "vllm_origin": "/ocean/projects/cis250162p/aparthas/sfs_fcfsb_20260917/vllm/vllm/__init__.py",
+  "sfs_commit": "2a8c061be46898007597da002afe4e9c29109453",
+  "source_digest": "dde9c13449ec339527d40a306463cbaaf56c71e8d45ea92489ddcc9b29f3c9f4",
+  "go_version": "go version go1.23.12 linux/amd64",
+  "ipc": {
+    "worker_pool": {
+      "status": "PASS",
+      "bound_on_cpu": true,
+      "socket_path_bytes": {
+        "vllm": 106,
+        "torch_symmetric_memory": 89
+      }
+    },
+    "gpu_smoke": {
+      "status": "PASS",
+      "bound_on_cpu": true,
+      "socket_path_bytes": {
+        "vllm": 105,
+        "torch_symmetric_memory": 88
+      }
+    },
+    "existing_cpu-serving.json": "PASS_CPU_SERVING"
+  },
+  "pointer": null,
+  "slurm_job_id": null,
+  "host": "br012.ib.bridges2.psc.edu"
+}

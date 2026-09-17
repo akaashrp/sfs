@@ -47,16 +47,21 @@ def trace(path, c, rows=400, noise=2e-5, seed=1, start=1e9):
 
 def test_overlay_is_separate_and_not_launchable(bundle):
     m=read(bundle/'bundle.json');saved=deepcopy(m)
-    assert len(OVERLAY['cells'])==36 and OVERLAY['requests_total']==576000 and OVERLAY['full_matrix_authorized'] is False
-    assert OVERLAY['configuration_id']==fcfs.CONFIG_ID and OVERLAY['profile']==fcfs.SETTINGS and OVERLAY['status'].startswith('PREPARATION_ONLY')
+    # The committed overlay carries the recorded 16 September user authorization on top of the generated preparation overlay.
+    assert len(OVERLAY['cells'])==36 and OVERLAY['requests_total']==576000 and OVERLAY['full_matrix_authorized'] is True
+    assert OVERLAY['configuration_id']==fcfs.CONFIG_ID and OVERLAY['profile']==fcfs.SETTINGS and OVERLAY['status'].startswith('FULL_MATRIX_AUTHORIZED')
+    assert len(OVERLAY['authorization'])>30 and 'authorized' in OVERLAY['authorization']
     ids={c['id'] for c in OVERLAY['cells']}
     assert all(i.startswith(fcfs.CONFIG_ID+'-') for i in ids)
     assert ids.isdisjoint({c['id'] for c in BASELINE['cells']+BASELINE['fallback_cells']+read(ROOT/'scripts/cloud/campaign.json')['cells']})
-    assert build(bundle)==OVERLAY  # The committed overlay is exactly what the code generates.
+    generated=build(bundle)  # The committed overlay is exactly what the code generates plus the authorization flip.
+    assert generated['full_matrix_authorized'] is False and generated['status'].startswith('PREPARATION_ONLY')
+    assert {**generated,'status':OVERLAY['status'],'full_matrix_authorized':True,'authorization':OVERLAY['authorization']}==OVERLAY
     with pytest.raises(ValueError):apply_baseline(m,OVERLAY)
     with pytest.raises(ValueError):apply_campaign(m,BASELINE,'qualify')
+    unauthorized=deepcopy(OVERLAY);unauthorized['full_matrix_authorized']=False
     for mode in ('run','campaign'):
-        with pytest.raises(ValueError,match='not authorized'):apply_campaign(m,OVERLAY,mode)
+        with pytest.raises(ValueError,match='not authorized'):apply_campaign(m,unauthorized,mode)
     applied=apply_campaign(m,OVERLAY,'qualify')
     assert m==saved and applied['files']==saved['files'] and applied['families']['ministral']==saved['families']['ministral']
     q=applied['families']['qwen']
@@ -64,7 +69,7 @@ def test_overlay_is_separate_and_not_launchable(bundle):
     assert all(q['profile'][k]==v for k,v in fcfs.SETTINGS.items()) and q['profile']['rope_scaling']==qwen.PROFILE['rope_scaling']
     assert len(applied['cells'])==28 and len(applied['blocked_cells'])==8 and applied['requests_total']==28*16000
     assert not any(c['policy'] in fcfs.BLOCKED for c in applied['cells']) and set(applied['cells'][0])==set(BASELINE['cells'][0])
-    authorized=deepcopy(OVERLAY);authorized['full_matrix_authorized']=True
+    authorized=deepcopy(OVERLAY)
     assert len(apply_campaign(m,authorized,'run')['cells'])==28
     for change in (lambda o:o['cells'][0].update(qps=8.6),lambda o:o['cells'][0].update(id='qwen-hard-6'),
                    lambda o:o['cells'][0].update(requests=8000),lambda o:o.update(profile=dict(fcfs.SETTINGS,chunked_prefill=True))):
@@ -141,7 +146,8 @@ def test_release_and_cli_bind_configuration_and_coefficients(bundle,tmp_path,mon
                  'run --profile fcfs --family qwen --campaign x --qualification q','calibrate --family qwen','qualify --family qwen --coefficients c'):
         monkeypatch.setattr(sys,'argv',['worker',*argv.split(),*common])
         with pytest.raises(SystemExit):worker.main()
-    overlay=ROOT/'scripts/cloud/fcfs/campaign-20260916.json'
+    unauthorized=deepcopy(read(ROOT/'scripts/cloud/fcfs/campaign-20260916.json'));unauthorized['full_matrix_authorized']=False
+    overlay=tmp_path/'unauthorized.json';write(overlay,unauthorized)
     monkeypatch.setattr(sys,'argv',['worker','run','--profile','fcfs','--family','qwen','--campaign',str(overlay),'--coefficients','c','--qualification','q',*common])
     with pytest.raises(ValueError,match='not authorized'):worker.main()
     assert not (tmp_path/'out').exists()
