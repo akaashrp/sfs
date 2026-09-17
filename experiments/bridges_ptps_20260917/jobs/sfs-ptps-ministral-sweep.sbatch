@@ -12,7 +12,7 @@
 set -euo pipefail
 # Frozen side source and CPU-prepared side manifest: the job refuses to run if either changed after submission.
 printf '%s\n' 'f7f6c92452141d9f9368a40ca91ce752a3a0a31f7fe08aee3274f50e97e7f306  /ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/src/scripts/runs/ministral3_hard_prefill_tps.py' | sha256sum --status -c
-printf '%s\n' '4cb135b124db9d7de73cd89d8234ef43ec0e4034b7351eb2274b6d0f795e8598  /ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/side/manifest.json' | sha256sum --status -c
+printf '%s\n' '3353dc34a863fb62242c7a969ab5ada912574a2344f8cada6d66019dd1d53e15  /ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/side/manifest.json' | sha256sum --status -c
 export SFS_ROOT=/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917
 export EXP=/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral
 export SIDE_MANIFEST=/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/side/manifest.json
@@ -29,6 +29,7 @@ export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 TOKENIZERS_PAR
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 mkdir -p "$TMPDIR" "$EXP/preflight"
 cd "$SFS_ROOT/src"
+python -c "import vllm.vllm_flash_attn.layers.rotary, vllm.model_executor.layers.rotary_embedding, vllm.v1.engine, vllm.v1.engine._scheduler_sim"
 python -m scripts.runs.ministral3_figure5 validate --manifest /ocean/projects/cis250162p/aparthas/sfs_model_family/experiments/campaign_cold_start_fix_20260912/ministral_figure5_manifest.json \
   --service-run-dir "$SERVICE_RUN_DIR" --predictor-run-dir "$PREDICTOR_RUN_DIR"
 python -m scripts.runs.ministral3_hard_prefill_tps validate --manifest "$SIDE_MANIFEST" \

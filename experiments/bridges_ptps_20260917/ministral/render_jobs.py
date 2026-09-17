@@ -64,6 +64,7 @@ export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 TOKENIZERS_PAR
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 mkdir -p "$TMPDIR" "$EXP/preflight"
 cd "$SFS_ROOT/src"
+python -c "import vllm.vllm_flash_attn.layers.rotary, vllm.model_executor.layers.rotary_embedding, vllm.v1.engine, vllm.v1.engine._scheduler_sim"
 python -m scripts.runs.ministral3_figure5 validate --manifest {LEGACY} \\
   --service-run-dir "$SERVICE_RUN_DIR" --predictor-run-dir "$PREDICTOR_RUN_DIR"
 python -m scripts.runs.ministral3_hard_prefill_tps validate --manifest "$SIDE_MANIFEST" \\
