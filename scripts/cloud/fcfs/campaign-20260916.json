@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "configuration_id": "qwen-fcfs-unchunked-65536",
-  "status": "PREPARATION_ONLY_FULL_MATRIX_NOT_LAUNCHED",
-  "full_matrix_authorized": false,
+  "status": "FULL_MATRIX_AUTHORIZED_PENDING_MERGED_SOURCE_QUALIFICATION",
+  "full_matrix_authorized": true,
   "profile": {
     "scheduling_policy": "fcfs",
     "chunked_prefill": false,
@@ -397,5 +397,6 @@
     "worker qualify with fitted coefficients: timing heads, nine policy smokes, load probes",
     "coefficients validate on independent post-calibration batches; control release with reviews"
   ],
-  "launch_rule": "worker run/campaign refuse this overlay until full_matrix_authorized is true; flipping it requires explicit user authorization"
+  "launch_rule": "worker run/campaign refuse this overlay until full_matrix_authorized is true; flipping it requires explicit user authorization",
+  "authorization": "User authorized the full FCFS unchunked matrix on 16 September 2026 (chat): flip flag, re-qualify under merged source, then launch. SFS and SCORE cells remain BLOCKED_* per the execution plan."
 }
