@@ -7,6 +7,7 @@ import logging
 import math
 import os
 import random
+import threading
 import time
 from functools import partial
 from dataclasses import dataclass, field
@@ -26,7 +27,10 @@ from vllm.v1.engine.scheduler_simulator import SimulationStopMode
 import sys
 
 from .latency_stream import RawChunks
-from .snapshot_shm_client import SnapshotShmClient
+from .snapshot_shm_client import (
+    SnapshotShmClient,
+    classify_snapshot_read_fault,
+)
 from .pending_dispatch_ledger import PendingDispatch, PendingDispatchLedger
 from .readiness_predictor import ReadinessDelayPredictor
 from sfs_core.shared.shared_experiment_helpers import resolve_chat_template_kwargs
@@ -55,6 +59,70 @@ class WaitTimeNotReadyError(RuntimeError):
     """Raised when an instance has not produced wait-time metadata yet."""
 
 
+class SnapshotReadFaultError(RuntimeError):
+    """One candidate lost its estimate to a transient snapshot-read fault.
+
+    Raised by :meth:`InstanceClient.refresh_wait_time` once the whole degradation
+    ladder (retry, cached estimate, HTTP ``/wait_time``) has been exhausted for
+    that instance. :meth:`WaitTimeScheduler._collect_wait_times` turns it into an
+    excluded candidate; the request only fails when no candidate survives.
+    """
+
+    def __init__(self, instance_id: str, fault: Dict[str, Any]) -> None:
+        super().__init__(
+            f"Transient snapshot read fault on {instance_id}: "
+            f"{fault.get('fault_kind')}"
+        )
+        self.instance_id = str(instance_id)
+        self.fault = dict(fault)
+
+
+@dataclass
+class SnapshotFaultCounters:
+    """Per-instance tally of transient snapshot-read faults and their fallbacks.
+
+    Concurrent estimator fetches read one instance from a worker thread while the
+    event loop resolves the remaining ladder steps, so the tally is locked.
+    """
+
+    transient_faults: int = 0
+    retries_succeeded: int = 0
+    cached_fallbacks: int = 0
+    http_fallbacks: int = 0
+    candidates_excluded: int = 0
+    faults_by_kind: Dict[str, int] = field(default_factory=dict)
+    _lock: threading.Lock = field(
+        default_factory=threading.Lock, repr=False, compare=False
+    )
+
+    def record_fault(self, kind: str) -> None:
+        with self._lock:
+            self.transient_faults += 1
+            self.faults_by_kind[kind] = self.faults_by_kind.get(kind, 0) + 1
+
+    def record_fallback(self, name: str) -> None:
+        """Count one resolved degradation: retry, cached, http or excluded."""
+        attribute = {
+            "retry": "retries_succeeded",
+            "cached": "cached_fallbacks",
+            "http": "http_fallbacks",
+            "excluded": "candidates_excluded",
+        }[name]
+        with self._lock:
+            setattr(self, attribute, getattr(self, attribute) + 1)
+
+    def as_dict(self) -> Dict[str, Any]:
+        with self._lock:
+            return {
+                "transient_faults": int(self.transient_faults),
+                "retries_succeeded": int(self.retries_succeeded),
+                "cached_fallbacks": int(self.cached_fallbacks),
+                "http_fallbacks": int(self.http_fallbacks),
+                "candidates_excluded": int(self.candidates_excluded),
+                "faults_by_kind": dict(self.faults_by_kind),
+            }
+
+
 @dataclass(slots=True)
 class WaitTimeResult:
     """Last known wait time for an instance."""
@@ -66,6 +134,35 @@ class WaitTimeResult:
     observed_pending_request_ids: tuple[str, ...] = field(
         default=(),
         repr=False,
+    )
+
+
+def _annotate_wait_result_with_fault(
+    result: WaitTimeResult,
+    fault: Dict[str, Any],
+) -> WaitTimeResult:
+    """Copy ``result`` with the degradation recorded, leaving ``wait_ms`` untouched.
+
+    The record is written both at the payload root and inside the first report's
+    ``metadata``, which is what the harness surfaces as per-request
+    ``wait_time_metadata``. Copies are taken because a cached estimate is shared
+    with :attr:`InstanceClient._last_wait`.
+    """
+    payload: Dict[str, Any] = dict(result.raw_payload or {})
+    payload["snapshot_read_fault"] = dict(fault)
+    reports = payload.get("reports")
+    if isinstance(reports, list) and reports and isinstance(reports[0], dict):
+        report = dict(reports[0])
+        metadata = dict(report.get("metadata") or {})
+        metadata["snapshot_read_fault"] = dict(fault)
+        report["metadata"] = metadata
+        payload["reports"] = [report, *reports[1:]]
+    return WaitTimeResult(
+        instance_id=result.instance_id,
+        wait_ms=result.wait_ms,
+        fetched_at_s=result.fetched_at_s,
+        raw_payload=payload,
+        observed_pending_request_ids=result.observed_pending_request_ids,
     )
 
 
@@ -132,6 +229,7 @@ class InstanceClient:
             else None
         )
         self._wait_time_http_fallback_enabled = bool(wait_time_http_fallback_enabled)
+        self.snapshot_fault_counters = SnapshotFaultCounters()
         if self._snapshot_client is None and float(snapshot_staleness_ms) > 0.0:
             raise ValueError(
                 f"Snapshot staleness injection for {instance_id} requires local SHM telemetry"
@@ -173,14 +271,16 @@ class InstanceClient:
         )
 
         result: Optional[WaitTimeResult] = None
+        fault: Optional[Dict[str, Any]] = None
         if self._snapshot_client is not None:
-            result = await asyncio.to_thread(
-                self._fetch_local_wait,
+            result, fault = await asyncio.to_thread(
+                self._fetch_local_wait_with_fallback,
                 prompt_tokens=prompt_tokens,
                 stop_mode=stop_mode,
                 pending_dispatches=pending_dispatches,
                 probe_ready_delay_ms=probe_ready_delay_ms,
                 catchup_timeout_s=prompt_timeout,
+                cache_key=cache_key,
             )
 
         if result is None and (
@@ -192,12 +292,25 @@ class InstanceClient:
                 timeout_s=prompt_timeout,
                 stop_mode=stop_mode,
             )
+            if result is not None and fault is not None:
+                # Ladder step 3: the documented /wait_time fallback answered.
+                fault["fallback"] = "http"
+                self.snapshot_fault_counters.record_fallback("http")
 
-        if result:
+        # A cached estimate is already in the cache; re-storing it would restamp
+        # a reading the engine never took. Fresh reads still refresh it.
+        if result and (fault is None or fault.get("fallback") != "cached"):
             self._last_wait = result
             self._last_wait_by_mode[cache_key] = result
+        if result is not None and fault is not None:
+            result = _annotate_wait_result_with_fault(result, fault)
         if self._snapshot_client is not None:
             if result is None:
+                if fault is not None:
+                    # Ladder step 4: drop this candidate for this decision only.
+                    fault["fallback"] = "excluded"
+                    self.snapshot_fault_counters.record_fallback("excluded")
+                    raise SnapshotReadFaultError(self.instance_id, fault)
                 raise WaitTimeNotReadyError(
                     f"Local SHM wait estimate is unavailable for "
                     f"{self.instance_id}"
@@ -302,6 +415,97 @@ class InstanceClient:
             estimate.payload,
             observed_pending_request_ids=(estimate.observed_pending_request_ids),
         )
+
+    def _fetch_local_wait_with_fallback(
+        self,
+        *,
+        prompt_tokens: Optional[int],
+        stop_mode: Optional[SimulationStopMode | str],
+        pending_dispatches: tuple[PendingDispatch, ...],
+        probe_ready_delay_ms: float,
+        catchup_timeout_s: float,
+        cache_key: str,
+    ) -> tuple[Optional[WaitTimeResult], Optional[Dict[str, Any]]]:
+        """Read the local snapshot, degrading instead of raising on a transient fault.
+
+        Returns ``(result, fault)``. On the normal path this is exactly one
+        :meth:`_fetch_local_wait` call and ``fault`` is ``None`` - no extra work
+        and no bookkeeping. On a transient fault it retries the read once (the
+        reads are idempotent and bounded by the same ``catchup_timeout_s``
+        budget), then falls back to this instance's last successful estimate for
+        the same fetch mode. ``(None, fault)`` leaves the remaining ladder steps
+        (HTTP, exclusion) to :meth:`refresh_wait_time`.
+        """
+        read = partial(
+            self._fetch_local_wait,
+            prompt_tokens=prompt_tokens,
+            stop_mode=stop_mode,
+            pending_dispatches=pending_dispatches,
+            probe_ready_delay_ms=probe_ready_delay_ms,
+            catchup_timeout_s=catchup_timeout_s,
+        )
+        try:
+            return read(), None
+        except WaitTimeNotReadyError:
+            # Not a read fault: the engine answered, without metadata yet.
+            raise
+        except Exception as exc:
+            kind = classify_snapshot_read_fault(exc)
+            if kind is None:
+                raise
+            message = f"{type(exc).__name__}: {exc}"
+
+        counters = self.snapshot_fault_counters
+        counters.record_fault(kind)
+        fault: Dict[str, Any] = {
+            "instance_id": self.instance_id,
+            "fault_kind": kind,
+            "error": message,
+            "retried": True,
+            "retry_succeeded": False,
+            "fallback": None,
+        }
+        LOGGER.warning(
+            "Transient local snapshot read fault (%s) on %s: %s. Retrying once.",
+            kind,
+            self.instance_id,
+            message,
+        )
+
+        # Ladder step 1: one immediate re-read. The observed faults are a watcher
+        # thread that has not parsed the published snapshot yet and a seqlock
+        # reader that lost a race, so the second read usually wins.
+        try:
+            retried = read()
+        except WaitTimeNotReadyError:
+            raise
+        except Exception as retry_exc:
+            if classify_snapshot_read_fault(retry_exc) is None:
+                raise
+            LOGGER.warning(
+                "Retried local snapshot read still failed for %s: %s",
+                self.instance_id,
+                retry_exc,
+            )
+            retried = None
+        if retried is not None:
+            counters.record_fallback("retry")
+            fault["retry_succeeded"] = True
+            fault["fallback"] = "retry"
+            return retried, fault
+
+        # Ladder step 2: this instance's last successful estimate, under the
+        # same per-mode bookkeeping the HTTP path already reuses.
+        cached = self._last_wait_by_mode.get(cache_key) or self._last_wait
+        if cached is not None:
+            counters.record_fallback("cached")
+            fault["fallback"] = "cached"
+            fault["cached_estimate_age_s"] = max(
+                0.0, time.time() - float(cached.fetched_at_s)
+            )
+            fault["cached_estimate_instance_id"] = cached.instance_id
+            return cached, fault
+        return None, fault
 
     def _fetch_http_wait(
         self,
@@ -491,6 +695,9 @@ class WaitTimeScheduler:
         )
         self._routing_state_lock = asyncio.Lock()
         self._pending_dispatch_ledger = PendingDispatchLedger(tuple(instances.keys()))
+        # Routing decisions in which every candidate faulted; see
+        # ``snapshot_fault_summary``.
+        self._snapshot_requests_without_estimate = 0
 
     async def start(self) -> None:
         """Start background workers if they are not already running."""
@@ -698,6 +905,7 @@ class WaitTimeScheduler:
             Dict[str, tuple[PendingDispatch, ...]]
         ] = None,
         probe_ready_delay_ms_by_instance: Optional[Dict[str, float]] = None,
+        snapshot_fault_records: Optional[list[Dict[str, Any]]] = None,
     ) -> Dict[str, WaitTimeResult]:
         if not self._enable_wait_time_polling:
             now_s = time.time()
@@ -730,11 +938,72 @@ class WaitTimeScheduler:
             for instance_id, instance in self._instances.items()
         }
         results: Dict[str, WaitTimeResult] = {}
+        excluded: list[SnapshotReadFaultError] = []
+        pending_error: Optional[BaseException] = None
         for instance_id, task in tasks.items():
-            result = await task
+            try:
+                result = await task
+            except SnapshotReadFaultError as fault_error:
+                # A transient fault on one engine excludes that candidate only.
+                excluded.append(fault_error)
+                continue
+            except BaseException as exc:  # preserve the first non-transient error
+                if pending_error is None:
+                    pending_error = exc
+                continue
             if result:
                 results[instance_id] = result
+                fault = (
+                    result.raw_payload.get("snapshot_read_fault")
+                    if isinstance(result.raw_payload, dict)
+                    else None
+                )
+                if isinstance(fault, dict) and snapshot_fault_records is not None:
+                    snapshot_fault_records.append(dict(fault))
+        if snapshot_fault_records is not None:
+            snapshot_fault_records.extend(dict(e.fault) for e in excluded)
+        if pending_error is not None:
+            raise pending_error
+        if excluded and not results:
+            self._snapshot_requests_without_estimate += 1
+            kinds = sorted({str(e.fault.get("fault_kind")) for e in excluded})
+            raise RuntimeError(
+                "Every candidate lost its wait estimate to transient snapshot "
+                f"read faults ({', '.join(kinds)}): "
+                + ", ".join(sorted(e.instance_id for e in excluded))
+            )
         return results
+
+    def snapshot_fault_summary(self) -> Dict[str, Any]:
+        """Run-summary counters for transient snapshot-read faults and fallbacks.
+
+        ``requests_without_estimate`` counts routing decisions in which every
+        candidate faulted, i.e. the only case that still fails a request.
+        """
+        per_instance: Dict[str, Dict[str, Any]] = {}
+        for instance_id, instance in self._instances.items():
+            counters = getattr(instance, "snapshot_fault_counters", None)
+            if isinstance(counters, SnapshotFaultCounters):
+                per_instance[str(instance_id)] = counters.as_dict()
+        totals: Dict[str, Any] = {
+            key: sum(int(row[key]) for row in per_instance.values())
+            for key in (
+                "transient_faults",
+                "retries_succeeded",
+                "cached_fallbacks",
+                "http_fallbacks",
+                "candidates_excluded",
+            )
+        }
+        faults_by_kind: Dict[str, int] = {}
+        for row in per_instance.values():
+            for kind, count in row["faults_by_kind"].items():
+                faults_by_kind[kind] = faults_by_kind.get(kind, 0) + int(count)
+        totals["faults_by_kind"] = faults_by_kind
+        totals["requests_without_estimate"] = int(
+            self._snapshot_requests_without_estimate
+        )
+        return {"per_instance": per_instance, "totals": totals}
 
     def _pending_dispatches_by_instance(
         self,

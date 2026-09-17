@@ -982,6 +982,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
             Dict[str, tuple[PendingDispatch, ...]]
         ] = None,
         probe_ready_delay_ms_by_instance: Optional[Dict[str, float]] = None,
+        snapshot_fault_records: Optional[list[Dict[str, Any]]] = None,
     ) -> tuple[
         Dict[str, WaitTimeResult],
         Dict[str, WaitTimeResult],
@@ -1022,6 +1023,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                     probe_ready_delay_ms_by_instance=(
                         probe_ready_delay_ms_by_instance
                     ),
+                    snapshot_fault_records=snapshot_fault_records,
                 )
             )
             for fetch_key, fetch_args in fetch_specs.items()
@@ -1353,6 +1355,9 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
         affinity_routing: Optional[Dict[str, Any]] = None
         score_candidate_terms: Optional[Dict[str, Any]] = None
         score_policy_terms: Optional[Dict[str, Any]] = None
+        # Transient per-engine snapshot-read faults degraded during this
+        # decision (retry / cached / HTTP / excluded candidate).
+        snapshot_read_faults: list[Dict[str, Any]] = []
 
         try:
             prompt_text = self._extract_prompt_text(queued.payload)
@@ -1416,6 +1421,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                         probe_ready_delay_ms_by_instance=(
                             probe_ready_delay_ms_by_instance
                         ),
+                        snapshot_fault_records=snapshot_read_faults,
                     )
 
                 self._utility_state.current_slo_ms = request_slo_ms
@@ -1628,6 +1634,10 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                         )
                     if isinstance(affinity_routing, dict):
                         payload["affinity_routing"] = dict(affinity_routing)
+                    if snapshot_read_faults:
+                        payload["snapshot_read_faults"] = [
+                            dict(fault) for fault in snapshot_read_faults
+                        ]
                     wait_payload = wait_record.raw_payload if wait_record else None
                     if isinstance(wait_payload, dict):
                         metadata = None
@@ -1705,6 +1715,11 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                         "wait_estimator": self._wait_estimator_name,
                         "route_strategy": self._route_strategy,
                         "request_bucket": request_bucket,
+                        "snapshot_read_faults": (
+                            [dict(fault) for fault in snapshot_read_faults]
+                            if snapshot_read_faults
+                            else None
+                        ),
                         "error": f"{exc.__class__.__name__}: {exc}",
                     }
                 )
@@ -5134,6 +5149,7 @@ async def run_policy(
             "route_strategy": item.get("route_strategy", route_strategy),
             "feasible_slo_mode": resolved_feasible_slo_mode,
             "wait_time_metadata": item.get("wait_time_metadata"),
+            "snapshot_read_faults": item.get("snapshot_read_faults"),
             "shortest_queue_routing": item.get("shortest_queue_routing"),
             "affinity_routing": item.get("affinity_routing"),
             "request_bucket": item.get("request_bucket", req.bucket),
@@ -5161,6 +5177,13 @@ async def run_policy(
         }
         per_request.append(record)
 
+    # Transient per-engine snapshot-read faults and the fallback each took, so
+    # an auditor reads straight from point.json how often routing degraded.
+    snapshot_read_fault_summary = (
+        scheduler.snapshot_fault_summary()
+        if hasattr(scheduler, "snapshot_fault_summary")
+        else None
+    )
     total = len(per_request)
     failures = total - successes
     throughput_qps_all = total / elapsed_s
@@ -5246,6 +5269,7 @@ async def run_policy(
             "cost_source_counts": cost_source_counts,
             "instance_route_counts": instance_counts,
             "accuracy_latency_tradeoff": build_tradeoff_summary(per_request),
+            "snapshot_read_faults": snapshot_read_fault_summary,
         },
         "per_request": per_request,
     }
@@ -5460,7 +5484,11 @@ def parse_args() -> argparse.Namespace:
         default=0.05,
         help=(
             "Timeout in seconds for prompt-aware critical-path /wait_time polling "
-            "before falling back to cached /wait_time."
+            "before falling back to cached /wait_time. A transient snapshot-read "
+            "fault on one engine retries the read once within this budget, then "
+            "degrades to that instance's cached estimate, the HTTP /wait_time "
+            "fallback, or exclusion of that candidate; counts are reported in "
+            "the run summary as snapshot_read_faults."
         ),
     )
     parser.add_argument(

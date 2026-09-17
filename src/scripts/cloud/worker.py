@@ -115,6 +115,12 @@ def audit_cell(payload, cell):
     summary = run['summary']
     if summary.get('failed_requests') != 0 or summary.get('succeeded_requests') != len(rows):
         raise ValueError('Incomplete requests or end-to-end TTFT')
+    # Transient snapshot-read faults degrade one candidate; a decision that lost
+    # every candidate is the one case that still fails a request. Older points
+    # predate the counters and are audited by the checks above alone.
+    faults = summary.get('snapshot_read_faults')
+    if isinstance(faults, dict) and (faults.get('totals') or {}).get('requests_without_estimate'):
+        raise ValueError('Routing decisions lost every candidate to snapshot read faults')
     require_complete_ttft(run)
     arrivals = [r.get('system_entry_offset_s') for r in rows]
     if any(not isinstance(t, (float, int)) or not math.isfinite(t) or t < 0 for t in arrivals):
