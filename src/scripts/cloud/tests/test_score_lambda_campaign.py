@@ -143,17 +143,18 @@ def test_router_argv_carries_the_cell_lambda_only_under_the_sweep():
     assert lambda_argv(base, active, None) == base and parse(lambda_argv(base, active, None)).lambda_weight == 5e-4
     assert parse(base).score_lambda_weight is None
     assert lambda_argv(base, sfs, None) == base
-    for bad_manifest in (sfs, {'kind': None, 'cells': []}):
+    untuned = {k: v for k, v in sfs.items() if k != 'score_lambda_weight'}
+    for bad_manifest in (untuned, {'kind': None, 'cells': []}):
         with pytest.raises(ValueError, match='sweep overlay or an overlay-wide tuned value'):
             lambda_argv(base, bad_manifest, 0.05)
-    # A tuned multiplier reaches SCORE cells of an ordinary overlay, and only those cells.
+    # A tuned multiplier reaches the SCORE cells of an ordinary overlay, and only those cells.
     from scripts.cloud.worker import routing_lambda
-    tuned = dict(sfs, score_lambda_weight=0.05)
-    score_cell = next(c for c in tuned['cells'] if c['policy'] == 'score')
-    hard_cell = next(c for c in tuned['cells'] if c['policy'] == 'hard')
-    assert routing_lambda(tuned, score_cell) == 0.05 and routing_lambda(tuned, hard_cell) is None
-    assert routing_lambda(sfs, score_cell) is None
-    tuned_argv = lambda_argv(base, tuned, routing_lambda(tuned, score_cell))
+    score_cell = next(c for c in sfs['cells'] if c['policy'] == 'score')
+    hard_cell = next(c for c in sfs['cells'] if c['policy'] == 'hard')
+    assert sfs['score_lambda_weight'] == 0.05  # the campaign's tuned SCORE multiplier
+    assert routing_lambda(sfs, score_cell) == 0.05 and routing_lambda(sfs, hard_cell) is None
+    assert routing_lambda(untuned, score_cell) is None
+    tuned_argv = lambda_argv(base, sfs, routing_lambda(sfs, score_cell))
     assert parse(tuned_argv).score_lambda_weight == 0.05 and parse(tuned_argv).lambda_weight == 5e-4
     for bad in (-1.0, float('nan'), float('inf')):
         with pytest.raises(ValueError):
