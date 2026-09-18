@@ -450,7 +450,12 @@ async def execute(options, manifest, definition, model_paths, output):
                     'campaign_kind': manifest.get('kind'), 'policy_smoke': policies,
                     'remaining_length_rule': active_rule['rule'], 'remaining_length': remaining_length_record(active_rule),
                     'snapshot_staleness_levels_ms': staleness_levels(manifest),
-                    'lambda_weights': lambda_levels(manifest), 'data_role': campaign_data_role(manifest),
+                    # lambda_weights lists the per-cell multipliers a sweep overlay varies; an ordinary
+                    # overlay instead carries one tuned SCORE multiplier for all of its SCORE cells, and a
+                    # release is reviewed against the qualification alone, so it is recorded here too.
+                    'lambda_weights': lambda_levels(manifest),
+                    'score_lambda_weight': manifest.get('score_lambda_weight'),
+                    'data_role': campaign_data_role(manifest),
                     'calibration_capped_outputs': calibration_capped_outputs(read(output/'model_metrics.json')),
                     'serving_coefficients': 'Canonical SFS batch coefficients retained; destination residuals require review',
                     'evaluation_started': False})
