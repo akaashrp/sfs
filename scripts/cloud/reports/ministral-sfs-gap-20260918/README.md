@@ -399,3 +399,18 @@ Nothing in the Qwen results, the serving-configuration overlays, or the predicto
 | `evidence/corrected-estimate-check.json` | `num_batches` x measured step time vs measured queue delay, plus the measured step-time-by-concurrency table per engine |
 | `evidence/per-engine-capacity.json` | per-engine routed counts, QPS, attainment, TTFT percentiles and token throughput for `hard`, shortest queue, mooncake and RouteBalance at all three rates, with capacity shares |
 | `batchfit.py`, `cellstats.py`, `corrected.py`, `capacity.py` | the analysis scripts, run read-only on Vast under `taskset -c 84-95` |
+
+---
+
+## Resolved after the report: the Bridges Ministral runs were never affected
+
+The report left open whether the April Bridges Ministral SFS reference carries the same defect. It does
+not. `src/slurm/runs/ministral3_router_common.sh:135-150` builds every Ministral server's simulation
+arguments through `scripts.runs.service_metrics_config simulation-args`, i.e. the same
+`build_simulation_args` the fix now routes the cloud pools through, under
+`--expected-feature-set cross_term`; it then refuses to launch unless exactly seven arguments come back,
+which is the feature-set flag plus the six coefficients. The defect was confined to the second launch
+path, `scripts/cloud/pool.py`, which reimplemented that construction and dropped the declaration.
+
+So Bridges Ministral numbers stay citable alongside the corrected cloud reruns, and the blast radius is
+exactly the three `ministral-hard-*` cells run on Vast.
