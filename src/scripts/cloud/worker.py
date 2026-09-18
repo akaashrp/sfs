@@ -79,6 +79,42 @@ def staleness_argv(argv, manifest, staleness):
     return set_option(argv, '--snapshot-staleness-ms', f'{delay:g}')
 
 
+PROBE_KINDS = ('score_lambda_sweep',)
+
+
+def campaign_data_role(manifest):
+    """'tuning_probe' for an overlay whose points may never be reported; 'evaluation' otherwise."""
+    return 'tuning_probe' if manifest.get('kind') in PROBE_KINDS else 'evaluation'
+
+
+def ledger_dir(state, manifest):
+    """Completed-cell receipts of this overlay: probe receipts stay out of the canonical completed ledger."""
+    return Path(state)/('completed-probes' if campaign_data_role(manifest) == 'tuning_probe' else 'completed')
+
+
+def cell_lambda(cell):
+    """The cell's SCORE Lagrange multiplier, or None when the cell keeps the bundle's own --lambda-weight."""
+    weight = cell.get('lambda_weight')
+    return None if weight is None else float(weight)
+
+
+def lambda_levels(manifest):
+    """Sorted distinct per-cell lambda weights of the manifest cells; [] when no cell overrides the bundle."""
+    return sorted({w for w in (cell_lambda(c) for c in manifest['cells']) if w is not None})
+
+
+def lambda_argv(argv, manifest, weight):
+    """Router argv for one run: a per-cell lambda replaces the bundle value only under a score_lambda_sweep overlay."""
+    if weight is None:
+        return list(argv)
+    if manifest.get('kind') != 'score_lambda_sweep':
+        raise ValueError('A per-cell lambda weight is only authorized under a score_lambda_sweep overlay')
+    weight = float(weight)
+    if not math.isfinite(weight) or weight < 0:
+        raise ValueError('A cell lambda weight must be finite and non-negative')
+    return set_option(argv, '--lambda-weight', f'{weight:.12g}')
+
+
 def family_remaining_length(manifest, definition):
     """Pool-ready {'tables', 'rules'} for this family's models, or None (current rule everywhere)."""
     block = manifest.get('remaining_length')
@@ -332,8 +368,8 @@ async def execute(options, manifest, definition, model_paths, output):
             if options.mode in ('qualify', 'campaign'):
                 await calibrate(options.family, definition, calibration, clients, base_args, output)
             argv = arguments(definition, options.bundle, options.variant, manifest, qualification)
-            def args_for(policy, rate, count, staleness=None):
-                args = parse(staleness_argv(argv, manifest, staleness))
+            def args_for(policy, rate, count, staleness=None, lambda_weight=None):
+                args = parse(lambda_argv(staleness_argv(argv, manifest, staleness), manifest, lambda_weight))
                 args.utilities, args.num_requests, args.request_rate_qps = [policy], count, rate
                 args.per_request_wait_log = [str(output/f'wait_{m}.log') for m in definition['models']]
                 return args
@@ -386,6 +422,7 @@ async def execute(options, manifest, definition, model_paths, output):
                     'campaign_kind': manifest.get('kind'), 'policy_smoke': policies,
                     'remaining_length_rule': active_rule['rule'], 'remaining_length': remaining_length_record(active_rule),
                     'snapshot_staleness_levels_ms': staleness_levels(manifest),
+                    'lambda_weights': lambda_levels(manifest), 'data_role': campaign_data_role(manifest),
                     'calibration_capped_outputs': calibration_capped_outputs(read(output/'model_metrics.json')),
                     'serving_coefficients': 'Canonical SFS batch coefficients retained; destination residuals require review',
                     'evaluation_started': False})
@@ -403,7 +440,7 @@ async def execute(options, manifest, definition, model_paths, output):
                 if not requested.issubset({c['id'] for c in cells}):
                     raise ValueError('Requested cells do not match this family/variant')
                 cells = [c for c in cells if c['id'] in requested]
-            ledger = Path(options.state)/'completed'
+            ledger = ledger_dir(options.state, manifest)
             for cell in cells:
                 with locks(Path(options.state)/'cell-locks', [cell['id']]):
                     done = ledger/(cell['id']+'.json')
@@ -417,8 +454,8 @@ async def execute(options, manifest, definition, model_paths, output):
                             raise ValueError('Completed point checksum changed')
                         continue
                     validate_release(qualification, options, source_hashes(), active_rule['rule'])
-                    staleness = cell_staleness(cell)
-                    args = args_for(cell['policy'], cell['qps'], cell['requests'], staleness)
+                    staleness, weight = cell_staleness(cell), cell_lambda(cell)
+                    args = args_for(cell['policy'], cell['qps'], cell['requests'], staleness, weight)
                     requests, _, _ = exp._build_request_set(args)
                     if len(requests) != cell['requests']:
                         raise ValueError('Evaluation ingestion budget changed')
@@ -430,6 +467,8 @@ async def execute(options, manifest, definition, model_paths, output):
                         raise ValueError('Router did not record the pool remaining-length rule')
                     if float(payload['router']['runs'][0].get('snapshot_staleness_ms', 0) or 0) != staleness:
                         raise ValueError('Router did not record the cell snapshot staleness')
+                    if weight is not None and float(payload['config']['lambda_weight']) != weight:
+                        raise ValueError('Router did not record the cell lambda weight')
                     if source_hashes() != source:
                         raise ValueError('Runtime source changed during evaluation')
                     point = folder/'point.json'
@@ -439,7 +478,9 @@ async def execute(options, manifest, definition, model_paths, output):
                         'campaign_sha256': digest(options.campaign) if getattr(options, 'campaign', None) else None,
                         'campaign_kind': manifest.get('kind'), 'remaining_length_rule': active_rule['rule'],
                         'remaining_length': remaining_length_record(active_rule),
-                        'snapshot_staleness_ms': staleness, 'snapshot_staleness_levels_ms': staleness_levels(manifest)}
+                        'snapshot_staleness_ms': staleness, 'snapshot_staleness_levels_ms': staleness_levels(manifest),
+                        'lambda_weight': weight, 'lambda_weights': lambda_levels(manifest),
+                        'data_role': cell.get('data_role', campaign_data_role(manifest))}
                     write(folder/'audit.json', entry)
                     write(done, entry)
                     write(output/'phase.json', {'state': 'CELL_COMPLETE', 'cell': cell['id'], 'time': time.time(),
@@ -481,7 +522,7 @@ def main():
     p.add_argument('--family', choices=['qwen', 'ministral'], required=True)
     p.add_argument('--variant', choices=['canonical', 'mlp_quality', 'mlp_length', 'flash_quality'], default='canonical')
     p.add_argument('--gpus', required=True); p.add_argument('--cpus'); p.add_argument('--qualification'); p.add_argument('--cells')
-    p.add_argument('--campaign', help='Explicit overlay on the frozen artifact bundle (baseline, sfs_score, predictor_variants or staleness_sweep kind)')
+    p.add_argument('--campaign', help='Explicit overlay on the frozen artifact bundle (baseline, sfs_score, predictor_variants, staleness_sweep or score_lambda_sweep kind)')
     options = p.parse_args()
     if options.family == 'ministral' and options.variant != 'canonical':
         p.error('Predictor ablations are Qwen only')

@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "kind": "score_lambda_sweep",
+  "status": "AUTHORIZED_AFTER_SOURCE_AND_GPU_GATES",
+  "decision": "SCORE lambda tuning probe 2026-09-17: four short SCORE cells on Qwen at 7 QPS x 2,000 requests, identical in every respect to the canonical qwen-score-7 cell of scripts/cloud/sfs-score-campaign-20260917.json except for the Lagrange multiplier lambda of the SCORE objective d_t = argmax_i Qhat_i - lambda (w_C c_i Shat_i + w_L W_i + w_L s_i Shat_i) and for the shortened budget. The SCORE paper (Lakha, Yu, Shahout, ICLR 2025 SLLM workshop) states that lambda is the knob that enforces the cost and latency constraints while w_C and w_L only set their relative importance, and never fixes its value; its scales (quality 1..5, outputs up to 512 tokens, 1 request/second, two models) differ from ours (quality in [0, 1], outputs up to 8192 tokens, 6-8.3 QPS, three models), so lambda is the single quantity swept here. w_C = w_L = 1 is kept and nothing else is tuned. Our SCORE baseline at lambda = 5e-4, the multiplier chosen for the SFS objective, collapses (TTFT SLO attainment 6.5 percent at 6 QPS and 3.8 percent at 7 QPS, median TTFT about 215 s), which is what this probe is meant to diagnose. NOT REPORTABLE: every cell carries data_role tuning_probe and a 2,000-request budget, its id is prefixed with probe- so it can never collide with a reportable cell id, and the worker writes the receipts to <state>/completed-probes, outside the canonical completed ledger. The lambda chosen from this probe must then be used for ALL SCORE cells (6/7/8/8.3 QPS), which are rerun in full at 16,000 requests under the SFS/SCORE overlay.",
+  "policies": {
+    "qwen": [
+      "score"
+    ]
+  },
+  "cells": [
+    {
+      "id": "probe-qwen-score-7-lambda5em4",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 7.0,
+      "requests": 2000,
+      "lambda_weight": 0.0005,
+      "data_role": "tuning_probe"
+    },
+    {
+      "id": "probe-qwen-score-7-lambda5em3",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 7.0,
+      "requests": 2000,
+      "lambda_weight": 0.005,
+      "data_role": "tuning_probe"
+    },
+    {
+      "id": "probe-qwen-score-7-lambda5em2",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 7.0,
+      "requests": 2000,
+      "lambda_weight": 0.05,
+      "data_role": "tuning_probe"
+    },
+    {
+      "id": "probe-qwen-score-7-lambda5em1",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 7.0,
+      "requests": 2000,
+      "lambda_weight": 0.5,
+      "data_role": "tuning_probe"
+    }
+  ],
+  "requests_total": 8000,
+  "lambda_weights": [
+    0.0005,
+    0.005,
+    0.05,
+    0.5
+  ],
+  "reference": {
+    "cell": "qwen-score-7",
+    "overlay": "scripts/cloud/sfs-score-campaign-20260917.json",
+    "lambda_weight": 0.0005,
+    "requests": 16000,
+    "note": "The probes stand in for the canonical qwen-score-7 cell (same family, policy, rate, remaining-length rule and source lineage) at four multipliers; the lambda = 5e-4 probe is the control for the value the campaign overlay currently carries. These 2,000-request points are a tuning probe and are NOT reportable: they never replace qwen-score-7 or any other SCORE cell, are never collated into the canonical completed ledger, and only select the lambda under which the full 16,000-request SCORE cells are then rerun. A pool runs all four probes in one qualification and smokes once, at the bundle's own lambda."
+  },
+  "worker": {
+    "flag": "--lambda-weight",
+    "semantics": "Each cell's lambda_weight replaces the bundle's --lambda-weight for that cell's router run only; the per-pool smoke keeps the bundle value. The router records it in point.json config.lambda_weight, and the worker refuses the cell unless the recorded value matches. qualification.json and every probe receipt carry lambda_weight, lambda_weights (the sweep's level list) and data_role tuning_probe.",
+    "command": "python -m scripts.cloud.worker campaign --bundle <bundle> --models <models.json> --state <state> --output <output> --family qwen --gpus <4 gpu ids> --campaign scripts/cloud/score-lambda-sweep-20260917.json --cells probe-qwen-score-7-lambda5em4,probe-qwen-score-7-lambda5em3,probe-qwen-score-7-lambda5em2,probe-qwen-score-7-lambda5em1"
+  },
+  "remaining_length": {
+    "tables": "scripts/cloud/remaining-length-tables-20260917",
+    "files": {
+      "manifest.json": "2eac8a79de5650982d998c7ded87f8cf48e19f3a53d1005afb734d7c4c491fbb",
+      "qwen3-0.6b.json": "50a14ca76681895a622cbf2d69ba362e37792b32b76c5967b7b9b67f3f6ed87d",
+      "qwen3-32b.json": "74e3a4ef30c8be24e01983b2609c4d76c8641422f26def2a899ec47ec88cf599",
+      "qwen3-8b.json": "2392950a25c04003e945124554fd33654da1c552ccdecf7e59d20770f9c04ce6"
+    },
+    "rules": {
+      "qwen3-0.6b": "running_all:0.5:prompt_bin"
+    },
+    "off_models": [
+      "qwen3-8b",
+      "qwen3-32b",
+      "ministral3-3b",
+      "ministral3-8b",
+      "ministral3-14b"
+    ],
+    "note": "Identical to scripts/cloud/sfs-score-campaign-20260917.json so each probe differs from the canonical qwen-score-7 cell by lambda and by its request budget alone: only the qwen3-0.6b server receives --remaining-length-mode running_all --remaining-length-table qwen3-0.6b.json --remaining-length-quantile 0.5 --remaining-length-conditioning prompt_bin, and the router attaches that table for its missing-prediction fill on that instance only. only the qwen3-0.6b server receives --remaining-length-mode running_all --remaining-length-table qwen3-0.6b.json --remaining-length-quantile 0.5 --remaining-length-conditioning prompt_bin, and the router attaches that table for its missing-prediction fill on that instance only. qwen3-8b and qwen3-32b stay off: reserve-tail-20260916 README sections 4.2/4.3 (8B target component within noise, hindsight replay worse under every candidate; 32B sub-second either way). Ministral stays off: no Ministral paired evidence (reserve-tail-ministral-20260917 is analysis only), the rule is only plumbed for the Qwen family and scripts.cloud.pool refuses it for a Ministral server. Tables were built from the calibration outputs only (zero overlap with the 16,000 evaluation ids); manifest.json records the build paths on the controller.",
+    "evidence": {
+      "paired_run": "scripts/cloud/reports/reserve-tail-20260916/paired-qps8p6-on/result_summary.json (Vast /workspace/sfs/state/diagnostics/reserve-tail-20260916/paired-qps8p6-on; canonical 8.6 QPS hard control, 16,000 requests, source bedeec4 + reserve diff)",
+      "readiness_note": "scripts/cloud/reserve-paired-run-20260916.md",
+      "on": {
+        "rule": "qwen3-0.6b=running_all_prompt_bin_q50",
+        "ttft_slo_attainment_pct": 90.89375,
+        "pro_ontimeutility": 0.47315245581222454,
+        "flash_ontimeutility": 0.5106716853900976,
+        "realized_qps": 8.590666810927857,
+        "raw_sha256": "01fb35c7ad67db820ccec798c064a8dcabd851b5bdb772263d5cb5acbf7ebc9b"
+      },
+      "off_controls": {
+        "qps8p6": {
+          "remote_output": "/workspace/sfs/state/controls/qps8p6",
+          "ttft_slo_attainment_pct": 49.9625,
+          "pro_ontimeutility": 0.27815865541318135,
+          "raw_sha256": "d6e6d043c305b107fb4f7d8f54ad41cd461a20df77a279d77724fc2e298da726"
+        },
+        "qps8p6-repeat1": {
+          "remote_output": "/workspace/sfs/state/controls/qps8p6-repeat1",
+          "ttft_slo_attainment_pct": 63.7125,
+          "pro_ontimeutility": 0.35614945124710856,
+          "raw_sha256": "1f6099fff5b066736da2d8ffc2df285494902210d6584916fe02a84dc924224a"
+        }
+      },
+      "reading": "ON exceeds the better OFF control on both acceptance metrics (attainment 90.89 vs 63.71 percent; Pro OnTimeUtility 0.4732 vs 0.3561), outside the 13.8-point OFF spread; the pre-registered reading rule in the readiness note therefore admits the 0.6B rule for the campaign."
+    }
+  },
+  "accepted_prior_source_digests": {}
+}

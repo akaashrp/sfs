@@ -113,6 +113,8 @@ def check_record(record, expected, campaign_sha=None, kind=None, rules=None):
             raise ValueError(f'Cell ran under a different remaining-length rule: {cid}')
         if kind == 'staleness_sweep' and record.get('snapshot_staleness_ms') != record['cell']['snapshot_staleness_ms']:
             raise ValueError(f'Cell ran under a different snapshot staleness: {cid}')
+        if kind == 'score_lambda_sweep' and record.get('lambda_weight') != record['cell']['lambda_weight']:
+            raise ValueError(f'Cell ran under a different lambda weight: {cid}')
     return cid
 
 
