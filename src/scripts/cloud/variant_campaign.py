@@ -9,6 +9,7 @@ The same per-engine remaining-length rule as the SFS/SCORE overlay applies to ev
 from copy import deepcopy
 
 from scripts.cloud.baseline_campaign import RATES
+from scripts.cloud.campaigns import apply_tuned_score_lambda
 
 # The ablations drop 6 QPS: the canonical grid shows almost no policy differentiation there,
 # so the predictor arms are measured at 7, 8 and 8.3 only (user decision, 18 September 2026).
@@ -77,4 +78,5 @@ def apply_variant_campaign(bundle, campaign):
     result['comparators'] = deepcopy(comparators)
     result['remaining_length'] = resolve_remaining_length(campaign.get('remaining_length'), result['families'])
     result['accepted_prior_source_digests'] = accepted_prior_source_digests(campaign)
+    result = apply_tuned_score_lambda(result, campaign)
     return result

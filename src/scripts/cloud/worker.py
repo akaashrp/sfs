@@ -12,6 +12,7 @@ import time
 import uuid
 
 from scripts.cloud.common import ROOT, digest, read, write, expand, set_option, source_hashes, source_digest, validate_bundle, locks, portable_cache, portable_routebalance
+from scripts.cloud.batch_residual import audit_pool
 from scripts.cloud.pool import pool, hardware, remaining_length_provenance
 
 
@@ -98,21 +99,42 @@ def cell_lambda(cell):
     return None if weight is None else float(weight)
 
 
+def routing_lambda(manifest, cell):
+    """The SCORE routing multiplier for one cell: per-cell under a sweep, else the overlay's tuned value.
+
+    SCORE's lambda is the multiplier of its own constraint formulation and is a tuning knob of that
+    method; the campaign's --lambda-weight is the cost weight of the objective every method is scored
+    on.  Only the former moves here, so a tuned SCORE still competes on the same OnTimeUtility as the
+    policies that carry no multiplier at all.
+    """
+    weight = cell_lambda(cell)
+    if weight is None and str(cell.get('policy')) == 'score':
+        overlay = manifest.get('score_lambda_weight')
+        weight = None if overlay is None else float(overlay)
+    return weight
+
+
 def lambda_levels(manifest):
     """Sorted distinct per-cell lambda weights of the manifest cells; [] when no cell overrides the bundle."""
     return sorted({w for w in (cell_lambda(c) for c in manifest['cells']) if w is not None})
 
 
 def lambda_argv(argv, manifest, weight):
-    """Router argv for one run: a per-cell lambda replaces the bundle value only under a score_lambda_sweep overlay."""
+    """Router argv for one run: a SCORE routing multiplier, which never touches the evaluation lambda.
+
+    A per-cell weight is authorized only under a score_lambda_sweep overlay; any other overlay carries
+    at most one tuned value for all of its SCORE cells.  Either way it is passed as
+    --score-lambda-weight, so --lambda-weight stays at the bundle's value and every cell of the
+    campaign, SCORE included, is scored on one objective.
+    """
     if weight is None:
         return list(argv)
-    if manifest.get('kind') != 'score_lambda_sweep':
-        raise ValueError('A per-cell lambda weight is only authorized under a score_lambda_sweep overlay')
+    if manifest.get('kind') != 'score_lambda_sweep' and manifest.get('score_lambda_weight') is None:
+        raise ValueError('A SCORE routing multiplier requires a sweep overlay or an overlay-wide tuned value')
     weight = float(weight)
     if not math.isfinite(weight) or weight < 0:
-        raise ValueError('A cell lambda weight must be finite and non-negative')
-    return set_option(argv, '--lambda-weight', f'{weight:.12g}')
+        raise ValueError('A SCORE routing multiplier must be finite and non-negative')
+    return set_option(argv, '--score-lambda-weight', f'{weight:.12g}')
 
 
 def family_remaining_length(manifest, definition):
@@ -385,6 +407,12 @@ async def execute(options, manifest, definition, model_paths, output):
                     audit_run(payload['router']['runs'][0], 192)
                     from scripts.runs.measured_audit import require_complete_ttft
                     require_complete_ttft(payload['router']['runs'][0])
+            # Smoke has now driven enough batches through every engine to replay that engine's own
+            # batch-latency coefficients against what it actually did.  A coefficient consumed under the
+            # wrong feature set still runs, still audits clean, and makes every wait estimate meaningless
+            # (scripts/cloud/reports/ministral-sfs-gap-20260918), so no pool evaluates before this agrees.
+            write(output/'batch_residual_audit.json',
+                  audit_pool(read(instances_path)['instances'], output))
             if options.family == 'ministral' and options.variant == 'canonical':
                 # The former 192-request/2-QPS smoke missed long busy iterations.
                 # Exercise both snapshot baselines with 512 balanced calibration
@@ -454,7 +482,7 @@ async def execute(options, manifest, definition, model_paths, output):
                             raise ValueError('Completed point checksum changed')
                         continue
                     validate_release(qualification, options, source_hashes(), active_rule['rule'])
-                    staleness, weight = cell_staleness(cell), cell_lambda(cell)
+                    staleness, weight = cell_staleness(cell), routing_lambda(manifest, cell)
                     args = args_for(cell['policy'], cell['qps'], cell['requests'], staleness, weight)
                     requests, _, _ = exp._build_request_set(args)
                     if len(requests) != cell['requests']:
@@ -467,8 +495,10 @@ async def execute(options, manifest, definition, model_paths, output):
                         raise ValueError('Router did not record the pool remaining-length rule')
                     if float(payload['router']['runs'][0].get('snapshot_staleness_ms', 0) or 0) != staleness:
                         raise ValueError('Router did not record the cell snapshot staleness')
-                    if weight is not None and float(payload['config']['lambda_weight']) != weight:
-                        raise ValueError('Router did not record the cell lambda weight')
+                    if weight is not None and float(payload['config']['score_lambda_weight']) != weight:
+                        raise ValueError('Router did not record the cell SCORE routing multiplier')
+                    if float(payload['config']['lambda_weight']) != float(parse(argv).lambda_weight):
+                        raise ValueError('Cell was scored on a different objective lambda than the bundle')
                     if source_hashes() != source:
                         raise ValueError('Runtime source changed during evaluation')
                     point = folder/'point.json'
@@ -480,6 +510,8 @@ async def execute(options, manifest, definition, model_paths, output):
                         'remaining_length': remaining_length_record(active_rule),
                         'snapshot_staleness_ms': staleness, 'snapshot_staleness_levels_ms': staleness_levels(manifest),
                         'lambda_weight': weight, 'lambda_weights': lambda_levels(manifest),
+                        'score_routing_lambda_weight': weight,
+                        'evaluation_lambda_weight': float(parse(argv).lambda_weight),
                         'data_role': cell.get('data_role', campaign_data_role(manifest))}
                     write(folder/'audit.json', entry)
                     write(done, entry)

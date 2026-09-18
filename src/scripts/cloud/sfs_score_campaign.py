@@ -8,6 +8,7 @@ from copy import deepcopy
 from pathlib import Path
 
 from scripts.cloud.baseline_campaign import RATES
+from scripts.cloud.campaigns import apply_tuned_score_lambda
 from scripts.cloud.common import ROOT, digest, read
 
 KIND = 'sfs_score'
@@ -114,4 +115,5 @@ def apply_sfs_score_campaign(bundle, campaign):
     result['kind'] = KIND
     result['remaining_length'] = resolve_remaining_length(campaign.get('remaining_length'), result['families'])
     result['accepted_prior_source_digests'] = accepted_prior_source_digests(campaign)
+    result = apply_tuned_score_lambda(result, campaign)
     return result

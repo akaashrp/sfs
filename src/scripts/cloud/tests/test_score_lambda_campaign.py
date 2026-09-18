@@ -132,15 +132,29 @@ def test_router_argv_carries_the_cell_lambda_only_under_the_sweep():
     assert [cell_lambda(c) for c in active['cells']] == [0.0005, 0.005, 0.05, 0.5] and cell_lambda(sfs['cells'][0]) is None
     for cell in active['cells']:
         argv = lambda_argv(base, active, cell_lambda(cell))
-        assert argv.count('--lambda-weight') == 1 and argv[-2] == '--lambda-weight'
-        assert parse(argv).lambda_weight == float(cell['lambda_weight'])
+        # The swept value is SCORE's own Lagrange multiplier and moves the routing flag only: the
+        # objective every cell is scored on stays at the bundle's --lambda-weight, so probes routed
+        # under different multipliers remain comparable on one OnTimeUtility.
+        assert argv.count('--score-lambda-weight') == 1 and argv[-2] == '--score-lambda-weight'
+        assert parse(argv).score_lambda_weight == float(cell['lambda_weight'])
+        assert parse(argv).lambda_weight == 5e-4
         assert parse(argv).utilities == ['score'] and parse(argv).request_rate_qps == 7.0
     # The per-pool smoke and every non-probe overlay keep the bundle's own multiplier.
     assert lambda_argv(base, active, None) == base and parse(lambda_argv(base, active, None)).lambda_weight == 5e-4
+    assert parse(base).score_lambda_weight is None
     assert lambda_argv(base, sfs, None) == base
     for bad_manifest in (sfs, {'kind': None, 'cells': []}):
-        with pytest.raises(ValueError, match='score_lambda_sweep'):
+        with pytest.raises(ValueError, match='sweep overlay or an overlay-wide tuned value'):
             lambda_argv(base, bad_manifest, 0.05)
+    # A tuned multiplier reaches SCORE cells of an ordinary overlay, and only those cells.
+    from scripts.cloud.worker import routing_lambda
+    tuned = dict(sfs, score_lambda_weight=0.05)
+    score_cell = next(c for c in tuned['cells'] if c['policy'] == 'score')
+    hard_cell = next(c for c in tuned['cells'] if c['policy'] == 'hard')
+    assert routing_lambda(tuned, score_cell) == 0.05 and routing_lambda(tuned, hard_cell) is None
+    assert routing_lambda(sfs, score_cell) is None
+    tuned_argv = lambda_argv(base, tuned, routing_lambda(tuned, score_cell))
+    assert parse(tuned_argv).score_lambda_weight == 0.05 and parse(tuned_argv).lambda_weight == 5e-4
     for bad in (-1.0, float('nan'), float('inf')):
         with pytest.raises(ValueError):
             lambda_argv(base, active, bad)
