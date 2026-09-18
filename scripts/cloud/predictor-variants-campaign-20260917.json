@@ -313,6 +313,20 @@
       "note": "April 2026 Bridges canonical latency_agnostic reference (current reserve rule, Bridges H100 hosts); the user accepted it as the comparator on 2026-09-17 in place of a Vast rerun. variant_matrix.json labels these rows provider=bridges with the point path and sha256; OnTimeUtility is recomputed from the point on the observed judge cohort when the point is readable."
     }
   },
+  "score_lambda_weight": 0.05,
+  "score_lambda_evidence": {
+    "sweep": "scripts/cloud/score-lambda-sweep-20260917.json",
+    "results": "scripts/cloud/reports/score-lambda-sweep-20260917/score-lambda-sweep.json",
+    "results_sha256": "1e800cfa156a9b7d07dc304f93cc60fa67072a87c37c18e54275365279939728",
+    "levels_probed": [
+      0.0005,
+      0.005,
+      0.05,
+      0.5
+    ],
+    "basis": "2,000-request probes at 7 QPS on the canonical Qwen pool, all four scored at the campaign's own 5e-4 so the levels are comparable: TTFT SLO attainment 9.70 / 77.35 / 97.30 / 98.25 % and Pro OnTimeUtility 0.0571 / 0.3055 / 0.3056 / 0.2750",
+    "decision": "5e-2 for every SCORE cell of the campaign (user decision, 18 September 2026). 5e-3 ties it on utility but leaves a 62 s p90 TTFT; 5e-1 sends 92 % of traffic to the 0.6B. SCORE's multiplier is a published tuning knob, so it is tuned once and never again; the objective every method is scored on stays at the bundle's 5e-4."
+  },
   "remaining_length": {
     "tables": "scripts/cloud/remaining-length-tables-20260917",
     "files": {
