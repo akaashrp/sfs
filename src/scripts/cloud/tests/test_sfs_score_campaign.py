@@ -38,7 +38,8 @@ def test_overlay_is_accepted_and_preserves_the_bundle():
     campaign = read(OVERLAY); bundle = _bundle(); saved = deepcopy(bundle)
     active = apply_sfs_score_campaign(bundle, campaign)
     assert bundle == saved and active['files'] == saved['files'] and active['variants'] == saved['variants']
-    assert len(active['cells']) == 14 and active['requests_total'] == 176000 == campaign['requests_total']
+    # 2 policies x (4 Qwen rates x 16,000 + 4 Ministral rates x 8,000).
+    assert len(active['cells']) == 16 and active['requests_total'] == 192000 == campaign['requests_total']
     assert {c['id'] for c in active['cells']} == {f'{f}-{p}-{q:g}' for f in RATES for p in POLICIES for q in RATES[f]}
     assert all(c['variant'] == 'canonical' and c['requests'] == (16000 if c['family'] == 'qwen' else 8000) for c in active['cells'])
     for family in RATES:
@@ -59,7 +60,8 @@ def test_overlay_is_accepted_and_preserves_the_bundle():
 
 def _drop(c): c['cells'].pop()
 def _rate(c): c['cells'][0]['qps'] = 8.6
-def _budget(c): c['cells'][-1]['requests'] = 16000
+# Target a Ministral cell by family, not by position: a Qwen cell legitimately carries 16,000.
+def _budget(c): next(x for x in c['cells'] if x['family'] == 'ministral')['requests'] = 16000
 def _dup(c): c['cells'][1]['id'] = c['cells'][0]['id']
 def _variant(c): c['cells'][0]['variant'] = 'mlp_length'
 def _id(c): c['cells'][0]['id'] = 'qwen-hard-six'
@@ -96,7 +98,7 @@ def test_kind_dispatch_selects_the_validator():
     from scripts.cloud.campaigns import apply_any_campaign
     assert apply_any_campaign(_bundle(), read(OVERLAY))['kind'] == 'sfs_score'
     baseline = apply_any_campaign(_bundle(), read(BASELINE))
-    assert len(baseline['cells']) == 28 and 'kind' not in baseline and 'remaining_length' not in baseline
+    assert len(baseline['cells']) == 32 and 'kind' not in baseline and 'remaining_length' not in baseline
     with pytest.raises(ValueError, match='Unknown campaign kind'):
         apply_any_campaign(_bundle(), {'kind': 'mystery', 'cells': []})
 

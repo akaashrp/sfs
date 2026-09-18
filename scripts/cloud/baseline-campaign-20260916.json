@@ -3,6 +3,134 @@
   "status": "AUTHORIZED_AFTER_SOURCE_AND_GPU_GATES",
   "cells": [
     {
+      "id": "ministral-mooncake_prefill-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-mooncake_prefill-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-mooncake_prefill-8.1",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 8.1,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-mooncake_prefill-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "mooncake_prefill",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-routebalance-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-routebalance-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-routebalance-8.1",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 8.1,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-routebalance-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "routebalance",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-shortest_queue-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "shortest_queue",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-shortest_queue-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "shortest_queue",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-shortest_queue-8.1",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "shortest_queue",
+      "qps": 8.1,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-shortest_queue-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "shortest_queue",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-vllm_sr_latency-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-vllm_sr_latency-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-vllm_sr_latency-8.1",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 8.1,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-vllm_sr_latency-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "vllm_sr_latency",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
       "id": "qwen-lmdeploy_proxy-6",
       "family": "qwen",
       "variant": "canonical",
@@ -31,38 +159,6 @@
       "family": "qwen",
       "variant": "canonical",
       "policy": "lmdeploy_proxy",
-      "qps": 8.3,
-      "requests": 16000
-    },
-    {
-      "id": "qwen-vllm_sr_latency-6",
-      "family": "qwen",
-      "variant": "canonical",
-      "policy": "vllm_sr_latency",
-      "qps": 6.0,
-      "requests": 16000
-    },
-    {
-      "id": "qwen-vllm_sr_latency-7",
-      "family": "qwen",
-      "variant": "canonical",
-      "policy": "vllm_sr_latency",
-      "qps": 7.0,
-      "requests": 16000
-    },
-    {
-      "id": "qwen-vllm_sr_latency-8",
-      "family": "qwen",
-      "variant": "canonical",
-      "policy": "vllm_sr_latency",
-      "qps": 8.0,
-      "requests": 16000
-    },
-    {
-      "id": "qwen-vllm_sr_latency-8.3",
-      "family": "qwen",
-      "variant": "canonical",
-      "policy": "vllm_sr_latency",
       "qps": 8.3,
       "requests": 16000
     },
@@ -131,103 +227,39 @@
       "requests": 16000
     },
     {
-      "id": "ministral-shortest_queue-6.0125",
-      "family": "ministral",
-      "variant": "canonical",
-      "policy": "shortest_queue",
-      "qps": 6.0125,
-      "requests": 8000
-    },
-    {
-      "id": "ministral-shortest_queue-7.8625",
-      "family": "ministral",
-      "variant": "canonical",
-      "policy": "shortest_queue",
-      "qps": 7.8625,
-      "requests": 8000
-    },
-    {
-      "id": "ministral-shortest_queue-8.7875",
-      "family": "ministral",
-      "variant": "canonical",
-      "policy": "shortest_queue",
-      "qps": 8.7875,
-      "requests": 8000
-    },
-    {
-      "id": "ministral-vllm_sr_latency-6.0125",
-      "family": "ministral",
+      "id": "qwen-vllm_sr_latency-6",
+      "family": "qwen",
       "variant": "canonical",
       "policy": "vllm_sr_latency",
-      "qps": 6.0125,
-      "requests": 8000
+      "qps": 6.0,
+      "requests": 16000
     },
     {
-      "id": "ministral-vllm_sr_latency-7.8625",
-      "family": "ministral",
+      "id": "qwen-vllm_sr_latency-7",
+      "family": "qwen",
       "variant": "canonical",
       "policy": "vllm_sr_latency",
-      "qps": 7.8625,
-      "requests": 8000
+      "qps": 7.0,
+      "requests": 16000
     },
     {
-      "id": "ministral-vllm_sr_latency-8.7875",
-      "family": "ministral",
+      "id": "qwen-vllm_sr_latency-8",
+      "family": "qwen",
       "variant": "canonical",
       "policy": "vllm_sr_latency",
-      "qps": 8.7875,
-      "requests": 8000
+      "qps": 8.0,
+      "requests": 16000
     },
     {
-      "id": "ministral-mooncake_prefill-6.0125",
-      "family": "ministral",
+      "id": "qwen-vllm_sr_latency-8.3",
+      "family": "qwen",
       "variant": "canonical",
-      "policy": "mooncake_prefill",
-      "qps": 6.0125,
-      "requests": 8000
-    },
-    {
-      "id": "ministral-mooncake_prefill-7.8625",
-      "family": "ministral",
-      "variant": "canonical",
-      "policy": "mooncake_prefill",
-      "qps": 7.8625,
-      "requests": 8000
-    },
-    {
-      "id": "ministral-mooncake_prefill-8.7875",
-      "family": "ministral",
-      "variant": "canonical",
-      "policy": "mooncake_prefill",
-      "qps": 8.7875,
-      "requests": 8000
-    },
-    {
-      "id": "ministral-routebalance-6.0125",
-      "family": "ministral",
-      "variant": "canonical",
-      "policy": "routebalance",
-      "qps": 6.0125,
-      "requests": 8000
-    },
-    {
-      "id": "ministral-routebalance-7.8625",
-      "family": "ministral",
-      "variant": "canonical",
-      "policy": "routebalance",
-      "qps": 7.8625,
-      "requests": 8000
-    },
-    {
-      "id": "ministral-routebalance-8.7875",
-      "family": "ministral",
-      "variant": "canonical",
-      "policy": "routebalance",
-      "qps": 8.7875,
-      "requests": 8000
+      "policy": "vllm_sr_latency",
+      "qps": 8.3,
+      "requests": 16000
     }
   ],
-  "requests_total": 352000,
+  "requests_total": 384000,
   "excluded_policies": [
     "score",
     "hard"

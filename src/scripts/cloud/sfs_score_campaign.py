@@ -21,6 +21,20 @@ def cell_id(family, policy, qps):
     return f'{family}-{policy}-{qps:g}'
 
 
+def accepted_prior_campaign_digests(campaign):
+    """Earlier overlay digests whose completed cells stay valid, each with the reason it is accepted.
+
+    Adding a cell to a grid, or adding a setting that a completed cell could not have consumed, leaves
+    every measured cell exactly as it was. Rerunning them would burn GPU hours to reproduce identical
+    numbers, so the digest is accepted by name and the reason is recorded next to it.
+    """
+    accepted = campaign.get('accepted_prior_campaign_digests', {})
+    if not isinstance(accepted, dict) or not all(isinstance(k, str) and len(k) == 64 and isinstance(v, str) and v
+                                                 for k, v in accepted.items()):
+        raise ValueError('accepted_prior_campaign_digests must map 64-hex overlay digests to reasons')
+    return dict(accepted)
+
+
 def accepted_prior_source_digests(campaign):
     accepted = campaign.get('accepted_prior_source_digests', {})
     if not isinstance(accepted, dict) or not all(isinstance(k, str) and len(k) == 64 and isinstance(v, str) and v
@@ -115,5 +129,6 @@ def apply_sfs_score_campaign(bundle, campaign):
     result['kind'] = KIND
     result['remaining_length'] = resolve_remaining_length(campaign.get('remaining_length'), result['families'])
     result['accepted_prior_source_digests'] = accepted_prior_source_digests(campaign)
+    result['accepted_prior_campaign_digests'] = accepted_prior_campaign_digests(campaign)
     result = apply_tuned_score_lambda(result, campaign)
     return result

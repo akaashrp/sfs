@@ -1,7 +1,10 @@
 """Explicit authorized cells layered over immutable workload/model artifacts."""
 from copy import deepcopy
 
-RATES = {'qwen': (6., 7., 8., 8.3), 'ministral': (6.0125, 7.8625, 8.7875)}
+# Ministral rates are fractions of K_M = 9.25: 0.65, 0.85, 0.876 and 0.95. 8.1 was authorized by the
+# user on 18 September 2026 to locate where SFS stops meeting SLOs, after it led both lower rates and
+# collapsed at 8.7875 (scripts/cloud/reports/sfs-saturation-fallback-20260918).
+RATES = {'qwen': (6., 7., 8., 8.3), 'ministral': (6.0125, 7.8625, 8.1, 8.7875)}
 POLICIES = {'qwen': ('lmdeploy_proxy', 'vllm_sr_latency', 'mooncake_prefill', 'routebalance'),
             'ministral': ('shortest_queue', 'vllm_sr_latency', 'mooncake_prefill', 'routebalance')}
 

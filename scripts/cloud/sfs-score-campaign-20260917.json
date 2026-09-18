@@ -15,6 +15,70 @@
   },
   "cells": [
     {
+      "id": "ministral-hard-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-hard-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-hard-8.1",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 8.1,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-hard-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-score-6.0125",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 6.0125,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-score-7.8625",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 7.8625,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-score-8.1",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 8.1,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-score-8.7875",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "score",
+      "qps": 8.7875,
+      "requests": 8000
+    },
+    {
       "id": "qwen-hard-6",
       "family": "qwen",
       "variant": "canonical",
@@ -77,57 +141,9 @@
       "policy": "score",
       "qps": 8.3,
       "requests": 16000
-    },
-    {
-      "id": "ministral-hard-6.0125",
-      "family": "ministral",
-      "variant": "canonical",
-      "policy": "hard",
-      "qps": 6.0125,
-      "requests": 8000
-    },
-    {
-      "id": "ministral-hard-7.8625",
-      "family": "ministral",
-      "variant": "canonical",
-      "policy": "hard",
-      "qps": 7.8625,
-      "requests": 8000
-    },
-    {
-      "id": "ministral-hard-8.7875",
-      "family": "ministral",
-      "variant": "canonical",
-      "policy": "hard",
-      "qps": 8.7875,
-      "requests": 8000
-    },
-    {
-      "id": "ministral-score-6.0125",
-      "family": "ministral",
-      "variant": "canonical",
-      "policy": "score",
-      "qps": 6.0125,
-      "requests": 8000
-    },
-    {
-      "id": "ministral-score-7.8625",
-      "family": "ministral",
-      "variant": "canonical",
-      "policy": "score",
-      "qps": 7.8625,
-      "requests": 8000
-    },
-    {
-      "id": "ministral-score-8.7875",
-      "family": "ministral",
-      "variant": "canonical",
-      "policy": "score",
-      "qps": 8.7875,
-      "requests": 8000
     }
   ],
-  "requests_total": 176000,
+  "requests_total": 192000,
   "reuse": {
     "qwen-hard-8": {
       "candidates": {
@@ -212,5 +228,9 @@
   },
   "accepted_prior_source_digests": {
     "cb1b4d856ebcf7f2d9cc96aca0b25d2d81e0485a82d4c5e76d9936a58178943e": "Source pin of checkout da1c78b under which the nine audited cells (Qwen LMDeploy 6/7/8/8.3, Qwen vLLM-SR 6, Ministral shortest queue 6.0125/7.8625/8.7875, Ministral vLLM-SR 6.0125) and the Mooncake/RouteBalance resumption pools completed. Accepted after the arrival-schedule and raw-SSE changes: the sampled arrival sequence is unchanged and non-streaming policies are unaffected; those cells realized 0.6-1.0 percent below target (vLLM-SR 6: 7.9 and 5.2 percent) and are retained, not rerun."
+  },
+  "accepted_prior_campaign_digests": {
+    "d26d335c0eb73ac5951e98021e9297c071dcd930b51eecbe9c4ca017b2a2209e": "Pre-tuning overlay: same grid, budgets and remaining-length rule. It differs only in that SCORE's routing multiplier was later tuned to 5e-2, which no SFS (hard) cell can consume, and the four qwen-hard cells completed under it are unchanged by that edit.",
+    "41c1cc6b433a76ced9cd479b86735334c8d3fca4763728ebee16a7c3a5bba7bf": "Pre-extension overlay: same cells, budgets, rule and tuned multiplier. It differs only in that 8.1 QPS was added to the Ministral grid by user authorization on 18 September 2026, which adds cells and cannot change a cell already measured at another rate."
   }
 }

@@ -11,8 +11,10 @@ def test_active_and_fallback_campaign_preserve_bundled_artifacts():
     saved = deepcopy(bundle)
     active = apply_campaign(bundle, campaign)
     assert bundle == saved and active['files'] == saved['files']
-    assert len(active['cells']) == 28
-    assert active['requests_total'] == 352000
+    # 4 Qwen policies x 4 rates x 16,000 plus 4 Ministral policies x 4 rates x 8,000; the Ministral
+    # grid gained 8.1 QPS on 18 September 2026 (scripts/cloud/baseline_campaign.RATES).
+    assert len(active['cells']) == 32
+    assert active['requests_total'] == 384000
     assert not any(c['policy'] in ('score','hard','hard_prefill_tps') for c in active['cells'])
     assert len(campaign['fallback_cells']) == 7
     assert all(c['qps'] in RATES[c['family']] for c in campaign['fallback_cells'])

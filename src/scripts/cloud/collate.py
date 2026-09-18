@@ -103,12 +103,18 @@ def expected_rules(manifest):
             for family, definition in manifest['families'].items()}
 
 
-def check_record(record, expected, campaign_sha=None, kind=None, rules=None):
-    """A completed cell must belong to the overlay; under a kinded overlay also to this exact overlay and rule."""
+def check_record(record, expected, campaign_sha=None, kind=None, rules=None, accepted_campaigns=()):
+    """A completed cell must belong to the overlay; under a kinded overlay also to this exact overlay and rule.
+
+    An overlay that only gains cells, or gains a setting no completed cell could have used, does not
+    change what an already-measured cell means. Such an earlier overlay digest is accepted only when the
+    overlay lists it with its reason, so the exception stays as auditable as the binding it relaxes.
+    """
     cid = record['cell']['id']
     if cid not in expected or record['cell'] != expected[cid]: raise ValueError('Unexpected campaign cell')
     if kind:
-        if record.get('campaign_sha256') != campaign_sha: raise ValueError(f'Cell completed under a different campaign overlay: {cid}')
+        if record.get('campaign_sha256') not in (campaign_sha, *accepted_campaigns):
+            raise ValueError(f'Cell completed under a different campaign overlay: {cid}')
         if record.get('remaining_length_rule') != rules[record['cell']['family']]:
             raise ValueError(f'Cell ran under a different remaining-length rule: {cid}')
         if kind == 'staleness_sweep' and record.get('snapshot_staleness_ms') != record['cell']['snapshot_staleness_ms']:
@@ -240,7 +246,8 @@ def collate(bundle, roots, output, allow_partial=False, judge='auto', campaign=N
     for root in roots:
         for audit in cell_records(root):
             record = read(audit); point = audit.parent/'point.json'
-            cid = check_record(record, expected, campaign_sha, kind, rules)
+            cid = check_record(record, expected, campaign_sha, kind, rules,
+                               tuple(m.get('accepted_prior_campaign_digests', {})))
             if cid in points: raise ValueError(f'Duplicate completed cell across hosts/attempts: {cid}')
             if digest(point) != record['point_sha256'] or record['bundle_sha256'] != digest(bundle/'bundle.json'):
                 raise ValueError('Result or input bundle checksum mismatch')
