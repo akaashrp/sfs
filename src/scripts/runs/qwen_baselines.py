@@ -23,6 +23,7 @@ import time
 from scripts.prep.paper_ablation_data import BUCKETS, MODELS, rows, sha256, validate as validate_data, write_json
 from scripts.eval.estimator_ablation import PRICES
 from scripts.runs.ministral3_methodology_stage import POLICIES as CORE_POLICIES, audit_run, length_stratified_requests, smoke_requests, wait_drained
+from scripts.runs.service_metrics_config import build_simulation_args
 
 POLICIES = (*CORE_POLICIES, "vllm_sr_latency")
 NEW_POLICIES = ("mooncake_prefill", "lmdeploy_proxy", "routebalance", "score", "vllm_sr_latency")
@@ -37,6 +38,8 @@ PROFILE = {"dtype": "auto (BF16 checkpoints)", "max_model_len": 131072,
     "tensor_parallel_sizes": [1, 1, 2], "gpu": "H100-80GB",
     "rope_scaling": {"rope_type": "yarn", "factor": 4.0, "original_max_position_embeddings": 32768}}
 COEFFICIENT_NAMES = ("intercept", "prefill_coeff", "prefill_sq_coeff", "decode_coeff", "sum_coeff", "sum_sq_coeff")
+# These are legacy-feature-set fits: the sixth coefficient multiplies the sum of squared context lengths.
+FEATURE_SET = "legacy"
 COEFFICIENTS = (
     (.002582076153059547, 2.0335711505545034e-6, 1.8925400079684374e-10, 1.6889500804006565e-5, 3.5429418765562916e-8, 1.5754738957656986e-13),
     (.007295929680901453, 2.0789009922784725e-5, 5.119559033569263e-10, 2.5632010897991973e-5, 4.6490885513702363e-8, 2.6851287984524727e-13),
@@ -69,7 +72,8 @@ def pool_config(manifest, ports=(9200, 9201, 9202), tag="cpu"):
             "model_id": model, "snapshot_shm_name": f"sfs_{tag}_{index}",
             "snapshot_shm_size_bytes": 8*1024*1024, "max_num_batched_tokens": 32768,
             "max_num_seqs": 512, "chunked_prefill_enabled": True, "long_prefill_token_threshold": 0,
-            "ttft_batch_model": dict(zip(COEFFICIENT_NAMES, COEFFICIENTS[index]))})
+            "ttft_batch_model": dict(zip(COEFFICIENT_NAMES, COEFFICIENTS[index])),
+            "batch_time_feature_set": FEATURE_SET})
     return {"instances": instances, "serving_profile": PROFILE,
         "instance_costs": {r["instance_id"]: dict(zip(("prompt", "output"), PRICES[r["model_id"]])) for r in instances},
         "cost_units": "USD per million tokens", "canonical_manifest": manifest.get("manifest_path")}
@@ -220,8 +224,10 @@ def server_argv(root, model_path, row, index, output):
         "--enable-snapshot-shm-publishing", "--snapshot-shm-name", row["snapshot_shm_name"],
         "--snapshot-shm-size-bytes", str(row["snapshot_shm_size_bytes"]), "--snapshot-shm-publish-interval-ms", "0",
         "--output-length-model-path", str(root/"src/assets/predictors/output_length_predictor")]
-    for key, value in row["ttft_batch_model"].items():
-        argv += ["--simulation-"+key.replace("_","-"), str(value)]
+    # The feature set decides whether vLLM reads the sixth coefficient as the sum of squared context
+    # lengths or as the prefill x processed-context cross term, so it travels with the coefficients.
+    argv += build_simulation_args({"sfs_simulation": {**row["ttft_batch_model"],
+                                                     "feature_set": row.get("batch_time_feature_set", FEATURE_SET)}})
     return argv
 
 

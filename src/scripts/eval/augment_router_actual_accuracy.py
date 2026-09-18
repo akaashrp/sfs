@@ -62,6 +62,7 @@ class FileStats:
     missing_example_id: int = 0
     unresolved_model: int = 0
     missing_quality: int = 0
+    failed_scored_zero: int = 0
     skipped_reason: Optional[str] = None
 
 
@@ -253,6 +254,16 @@ def augment_file(
                 stats.missing_example_id += 1
                 continue
 
+            if record.get("error"):
+                # A request the producer never completed has no response and no scored candidate.
+                # Score it zero instead of raising: it stays in every denominator and contributes
+                # nothing. Every successful row keeps the strict resolution below.
+                stats.failed_scored_zero += 1
+                if record.get("actual_accuracy") != 0.0:
+                    record["actual_accuracy"] = 0.0
+                    any_changes = True
+                continue
+
             model_label = resolve_model_label(
                 response_model=record.get("response_model"),
                 instance_id=record.get("instance_id"),
@@ -438,7 +449,8 @@ def main() -> None:
                 f"missing_map={stats.missing_req_map}, "
                 f"missing_example={stats.missing_example_id}, "
                 f"unresolved_model={stats.unresolved_model}, "
-                f"missing_quality={stats.missing_quality}"
+                f"missing_quality={stats.missing_quality}, "
+                f"failed_scored_zero={stats.failed_scored_zero}"
             )
 
     seen = len(file_stats)
@@ -450,6 +462,7 @@ def main() -> None:
     missing_example = sum(s.missing_example_id for s in file_stats)
     unresolved_model = sum(s.unresolved_model for s in file_stats)
     missing_quality = sum(s.missing_quality for s in file_stats)
+    failed_scored_zero = sum(s.failed_scored_zero for s in file_stats)
 
     print("[DONE]")
     print(f"  files_seen={seen}")
@@ -461,6 +474,7 @@ def main() -> None:
     print(f"  missing_example_id={missing_example}")
     print(f"  unresolved_model={unresolved_model}")
     print(f"  missing_quality={missing_quality}")
+    print(f"  failed_scored_zero={failed_scored_zero}")
     print(f"  dry_run={bool(args.dry_run)}")
 
 

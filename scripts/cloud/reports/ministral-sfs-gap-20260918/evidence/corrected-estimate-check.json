@@ -1,0 +1,196 @@
+{
+ "measured_step_ms_by_concurrency": {
+  "vllm-ministral3-3b": {
+   "0-5": 4.219,
+   "5-10": 6.186,
+   "10-20": 8.343,
+   "20-35": 11.048,
+   "35-50": 13.573,
+   "50-70": 17.01,
+   "70-90": 26.237,
+   "90-120": 26.928,
+   "120-inf": 27.494
+  },
+  "vllm-ministral3-8b": {
+   "0-5": 7.174,
+   "5-10": 9.899,
+   "10-20": 11.896,
+   "20-35": 13.765,
+   "35-50": 18.4,
+   "50-70": 25.796,
+   "70-90": 26.655,
+   "90-120": 26.915,
+   "120-inf": 27.605
+  },
+  "vllm-ministral3-14b": {
+   "0-5": 10.515,
+   "5-10": 13.49,
+   "10-20": 14.595,
+   "20-35": 16.494,
+   "35-50": 19.037,
+   "50-70": 26.104,
+   "70-90": 26.393,
+   "90-120": 27.168,
+   "120-inf": 28.007
+  }
+ },
+ "cells": {
+  "m6.0125": [
+   {
+    "i": 1,
+    "n": 1600,
+    "raw_pred_ms_p50": 2772.41,
+    "corrected_pred_ms_p50": 13.76,
+    "measured_queue_delay_ms_p50": 0.0,
+    "raw_over_actual_p50": null,
+    "corrected_over_actual_p50": null,
+    "pairs_used": 0
+   },
+   {
+    "i": 2,
+    "n": 1600,
+    "raw_pred_ms_p50": 2248.34,
+    "corrected_pred_ms_p50": 13.57,
+    "measured_queue_delay_ms_p50": 0.0,
+    "raw_over_actual_p50": null,
+    "corrected_over_actual_p50": null,
+    "pairs_used": 0
+   },
+   {
+    "i": 3,
+    "n": 1600,
+    "raw_pred_ms_p50": 2509.01,
+    "corrected_pred_ms_p50": 13.76,
+    "measured_queue_delay_ms_p50": 0.0,
+    "raw_over_actual_p50": null,
+    "corrected_over_actual_p50": null,
+    "pairs_used": 0
+   },
+   {
+    "i": 4,
+    "n": 1600,
+    "raw_pred_ms_p50": 2210.5,
+    "corrected_pred_ms_p50": 13.76,
+    "measured_queue_delay_ms_p50": 0.0,
+    "raw_over_actual_p50": null,
+    "corrected_over_actual_p50": null,
+    "pairs_used": 0
+   },
+   {
+    "i": 5,
+    "n": 1600,
+    "raw_pred_ms_p50": 2273.6,
+    "corrected_pred_ms_p50": 13.76,
+    "measured_queue_delay_ms_p50": 0.0,
+    "raw_over_actual_p50": null,
+    "corrected_over_actual_p50": null,
+    "pairs_used": 0
+   }
+  ],
+  "m7.8625": [
+   {
+    "i": 1,
+    "n": 1600,
+    "raw_pred_ms_p50": 6212.99,
+    "corrected_pred_ms_p50": 18.4,
+    "measured_queue_delay_ms_p50": 0.0,
+    "raw_over_actual_p50": 3.4,
+    "corrected_over_actual_p50": 0.01,
+    "pairs_used": 238
+   },
+   {
+    "i": 2,
+    "n": 1600,
+    "raw_pred_ms_p50": 5522.58,
+    "corrected_pred_ms_p50": 18.4,
+    "measured_queue_delay_ms_p50": 0.0,
+    "raw_over_actual_p50": 1.7,
+    "corrected_over_actual_p50": 0.01,
+    "pairs_used": 176
+   },
+   {
+    "i": 3,
+    "n": 1600,
+    "raw_pred_ms_p50": 5861.75,
+    "corrected_pred_ms_p50": 25.8,
+    "measured_queue_delay_ms_p50": 0.0,
+    "raw_over_actual_p50": 5.2,
+    "corrected_over_actual_p50": 0.02,
+    "pairs_used": 89
+   },
+   {
+    "i": 4,
+    "n": 1600,
+    "raw_pred_ms_p50": 4950.44,
+    "corrected_pred_ms_p50": 18.4,
+    "measured_queue_delay_ms_p50": 0.0,
+    "raw_over_actual_p50": 1.6,
+    "corrected_over_actual_p50": 0.01,
+    "pairs_used": 79
+   },
+   {
+    "i": 5,
+    "n": 1600,
+    "raw_pred_ms_p50": 4926.06,
+    "corrected_pred_ms_p50": 18.4,
+    "measured_queue_delay_ms_p50": 0.0,
+    "raw_over_actual_p50": 3.7,
+    "corrected_over_actual_p50": 0.02,
+    "pairs_used": 185
+   }
+  ],
+  "m8.7875": [
+   {
+    "i": 1,
+    "n": 1600,
+    "raw_pred_ms_p50": 7130.06,
+    "corrected_pred_ms_p50": 26.39,
+    "measured_queue_delay_ms_p50": 0.01,
+    "raw_over_actual_p50": 3.0,
+    "corrected_over_actual_p50": 0.01,
+    "pairs_used": 681
+   },
+   {
+    "i": 2,
+    "n": 1600,
+    "raw_pred_ms_p50": 15411.69,
+    "corrected_pred_ms_p50": 34.02,
+    "measured_queue_delay_ms_p50": 2743.47,
+    "raw_over_actual_p50": 20.9,
+    "corrected_over_actual_p50": 0.05,
+    "pairs_used": 1404
+   },
+   {
+    "i": 3,
+    "n": 1600,
+    "raw_pred_ms_p50": 1987161.18,
+    "corrected_pred_ms_p50": 8233.67,
+    "measured_queue_delay_ms_p50": 9844.67,
+    "raw_over_actual_p50": 184.7,
+    "corrected_over_actual_p50": 0.77,
+    "pairs_used": 1583
+   },
+   {
+    "i": 4,
+    "n": 1600,
+    "raw_pred_ms_p50": 2885772.59,
+    "corrected_pred_ms_p50": 13043.46,
+    "measured_queue_delay_ms_p50": 15540.9,
+    "raw_over_actual_p50": 198.5,
+    "corrected_over_actual_p50": 0.84,
+    "pairs_used": 1600
+   },
+   {
+    "i": 5,
+    "n": 1600,
+    "raw_pred_ms_p50": 4272964.82,
+    "corrected_pred_ms_p50": 18741.89,
+    "measured_queue_delay_ms_p50": 23339.4,
+    "raw_over_actual_p50": 185.9,
+    "corrected_over_actual_p50": 0.81,
+    "pairs_used": 1600
+   }
+  ]
+ },
+ "what": "corrected_pred_ms = num_batches (from the simulation's own metadata) * the MEASURED median engine step time at the concurrency the snapshot reported. Tests whether the simulator's scheduling is right and only its per-batch clock is wrong."
+}

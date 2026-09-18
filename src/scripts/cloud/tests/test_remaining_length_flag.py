@@ -123,3 +123,31 @@ def test_canonical_control_default_rules():
     from scripts.cloud.canonical_control import PAIRED_RUN_RULES
     assert parse_remaining_length_rules(PAIRED_RUN_RULES) == {
         "qwen3-0.6b": {"mode": "running_all", "quantile": 0.5, "conditioning": "prompt_bin"}}
+
+
+def test_pool_passes_the_declared_batch_time_feature_set(tmp_path):
+    """A cross_term fit must reach vLLM as the cross-term option, never as the legacy sum-of-squares one."""
+    from scripts.cloud.pool import config, server_argv
+
+    coefficients = {"intercept": 0.0038, "prefill_coeff": 9.2e-06, "decode_coeff": 7.3e-06,
+                    "sum_coeff": 3.76e-08, "prefill_sq_coeff": 3.69e-10, "sum_sq_coeff": 8.63e-10}
+    def pool(feature_set):
+        simulation = dict(coefficients, **({"feature_set": feature_set} if feature_set else {}))
+        metrics = {"models": {m: {"sfs_simulation": simulation} for m in
+                              ("ministral3-3b", "ministral3-8b", "ministral3-14b")}}
+        rows = config("ministral", {"profile": "canonical"}, metrics, [8001, 8002, 8003], "tag")["instances"]
+        return [a for a in server_argv("ministral", "/m", rows[0], 0, tmp_path, "/len") if a.startswith("--simulation")]
+
+    cross = pool("cross_term")
+    assert "--simulation-batch-time-feature-set=cross_term" in cross
+    assert f"--simulation-prefill-x-context-coeff={coefficients['sum_sq_coeff']:.17g}" in cross
+    assert not any(a.startswith("--simulation-sum-sq-coeff") for a in cross)
+
+    legacy = pool("legacy")
+    assert "--simulation-batch-time-feature-set=legacy" in legacy
+    assert f"--simulation-sum-sq-coeff={coefficients['sum_sq_coeff']:.17g}" in legacy
+    assert not any(a.startswith("--simulation-prefill-x-context-coeff") for a in legacy)
+
+    assert pool(None) == legacy  # an undeclared feature set stays legacy, which is what those fits are
+    with pytest.raises(ValueError, match="unsupported batch-time feature set"):
+        pool("quadratic_context")

@@ -149,6 +149,20 @@
       "rule": "The worker skips a cell only when <state>/completed/<cell id>.json exists, belongs to this bundle and its source pin is the current one or an accepted prior digest. Both lane controls ran under source 09b0478 with the current rule (flag OFF) and with the pre-thread arrival producer; reusing either mixes rules and source lineages with the rule-ON cells of this overlay. Nothing is written automatically: if the user still decides to reuse one, they write the ledger entry and add its source digest to accepted_prior_source_digests with the reason; otherwise the cell is rerun like the others."
     }
   },
+  "score_lambda_weight": 0.05,
+  "score_lambda_evidence": {
+    "sweep": "scripts/cloud/score-lambda-sweep-20260917.json",
+    "results": "scripts/cloud/reports/score-lambda-sweep-20260917/score-lambda-sweep.json",
+    "results_sha256": "1e800cfa156a9b7d07dc304f93cc60fa67072a87c37c18e54275365279939728",
+    "levels_probed": [
+      0.0005,
+      0.005,
+      0.05,
+      0.5
+    ],
+    "basis": "2,000-request probes at 7 QPS on the canonical Qwen pool, all four scored at the campaign's own 5e-4 so the levels are comparable: TTFT SLO attainment 9.70 / 77.35 / 97.30 / 98.25 % and Pro OnTimeUtility 0.0571 / 0.3055 / 0.3056 / 0.2750",
+    "decision": "5e-2 for every SCORE cell of the campaign (user decision, 18 September 2026). 5e-3 ties it on utility but leaves a 62 s p90 TTFT; 5e-1 sends 92 % of traffic to the 0.6B. SCORE's multiplier is a published tuning knob, so it is tuned once and never again; the objective every method is scored on stays at the bundle's 5e-4."
+  },
   "remaining_length": {
     "tables": "scripts/cloud/remaining-length-tables-20260917",
     "files": {

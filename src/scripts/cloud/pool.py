@@ -12,6 +12,21 @@ import urllib.request
 import uuid
 
 from scripts.cloud.common import ROOT, read, write, set_option, locks
+from scripts.runs.service_metrics_config import build_simulation_args
+
+
+def batch_time_feature_set(simulation, model):
+    """The batch-latency feature set a fit declares, which decides how vLLM reads its sixth coefficient.
+
+    A ``cross_term`` fit stores the prefill x processed-context coefficient under ``sum_sq_coeff``; passed
+    without its feature set, vLLM defaults to ``legacy`` and multiplies it by the sum of squared context
+    lengths instead, which over-predicts batch time by two orders of magnitude.  Dropping the field is
+    therefore never a safe default, so an unrecognised or missing value is an error rather than a fallback.
+    """
+    declared = simulation.get("feature_set", "legacy")
+    if declared not in ("legacy", "cross_term"):
+        raise ValueError(f"{model} declares an unsupported batch-time feature set {declared!r}")
+    return declared
 
 
 def config(family, definition, metrics, ports, tag):
@@ -29,7 +44,8 @@ def config(family, definition, metrics, ports, tag):
             "max_num_batched_tokens": 32768, "max_num_seqs": 512,
             "chunked_prefill_enabled": True, "long_prefill_token_threshold": 0,
             "ttft_batch_model": {k: rows[model]["sfs_simulation"][k] for k in
-                ("intercept", "prefill_coeff", "prefill_sq_coeff", "decode_coeff", "sum_coeff", "sum_sq_coeff")}})
+                ("intercept", "prefill_coeff", "prefill_sq_coeff", "decode_coeff", "sum_coeff", "sum_sq_coeff")},
+            "batch_time_feature_set": batch_time_feature_set(rows[model]["sfs_simulation"], model)})
         costs[key] = {"prompt": (.10, .15, .20)[i], "output": (.10, .15, .20)[i]}
     return {"instances": instances, "instance_costs": costs, "cost_units": "USD per million tokens",
             "serving_profile": definition["profile"]}
@@ -107,8 +123,10 @@ def server_argv(family, model_path, row, index, output, length_predictor, remain
             "--enable-snapshot-shm-publishing", "--snapshot-shm-name", row["snapshot_shm_name"],
             "--snapshot-shm-size-bytes", str(row["snapshot_shm_size_bytes"]), "--snapshot-shm-publish-interval-ms", "0",
             "--output-length-model-path", str(length_predictor), "--disable-uvicorn-access-log"]
-        for key, value in row["ttft_batch_model"].items():
-            argv += ["--simulation-" + key.replace("_", "-"), str(value)]
+        if "batch_time_feature_set" not in row:
+            raise ValueError("This instances.json predates the batch-time feature-set fix; rebuild the pool config")
+        argv += build_simulation_args({"sfs_simulation": {**row["ttft_batch_model"],
+                                                          "feature_set": row["batch_time_feature_set"]}})
     return [*argv, "--host", "127.0.0.1"]
 
 

@@ -7,6 +7,7 @@ import sys
 import time
 import uuid
 from scripts.cloud.common import ROOT, read, write, digest, locks
+from scripts.cloud.salvage import salvage_summary
 
 
 def submit(state, argv):
@@ -31,12 +32,15 @@ def status(state, bundle, campaign=None):
         from scripts.cloud.campaigns import apply_any_campaign
         manifest = apply_any_campaign(manifest, read(campaign), inspect=True)
     cells = manifest['cells']
-    completed, invalid = [], []
-    for path in (state/'completed').glob('*.json'):
+    completed, invalid, salvaged = [], [], {}
+    from scripts.cloud.worker import ledger_dir
+    # A tuning-probe overlay keeps its receipts in its own directory, never the canonical completed ledger.
+    for path in ledger_dir(state, manifest).glob('*.json'):
         entry = read(path)
         try:
             if digest(entry['point']) != entry['point_sha256']: raise ValueError()
             completed.append(entry['cell']['id'])
+            if entry.get('salvage'): salvaged[entry['cell']['id']] = salvage_summary(entry)
         except (OSError, ValueError): invalid.append(path.stem)
     jobs = []
     for path in sorted((state/'jobs').glob('*.json')):
@@ -52,9 +56,11 @@ def status(state, bundle, campaign=None):
             'output': str(folder), 'log': record['log']})
     ids = {c['id'] for c in cells}
     result = {'expected':len(cells), 'completed':len(set(completed) & ids), 'invalid':invalid,
+              'salvaged':salvaged, 'penalised_requests':sum(s['penalised_requests'] for s in salvaged.values()),
               'remaining':[c['id'] for c in cells if c['id'] not in completed], 'jobs':jobs,
               'completed_outside_campaign':sorted(set(completed) - ids),
               'campaign':str(campaign) if campaign else None, 'campaign_kind':manifest.get('kind'),
+              'ledger':str(ledger_dir(state, manifest)), 'data_role':manifest.get('data_role', 'evaluation'),
               'campaign_sha256':digest(campaign) if campaign else None}
     print(__import__('json').dumps(result, indent=2))
 
@@ -75,7 +81,7 @@ if __name__ == '__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('mode', choices=['submit','status','release'])
     p.add_argument('--state'); p.add_argument('--bundle'); p.add_argument('--qualification')
-    p.add_argument('--campaign', help='Overlay whose cells status accounts for (baseline, sfs_score or predictor_variants)')
+    p.add_argument('--campaign', help='Overlay whose cells status accounts for (baseline, sfs_score, predictor_variants, staleness_sweep or score_lambda_sweep)')
     p.add_argument('--timing-review'); p.add_argument('--load-review')
     options, argv = p.parse_known_args()
     if argv[:1] == ['--']: argv=argv[1:]

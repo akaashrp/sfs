@@ -38,7 +38,7 @@ def build(bundle):
 
 def build_sfs_score(bundle):
     """The eight unchunked SFS/SCORE cells with the canonical overlay's remaining-length block (Qwen models only)."""
-    m=manifest(bundle);canonical=read(CANONICAL_SFS_SCORE)['remaining_length']
+    m=manifest(bundle);canonical_overlay=read(CANONICAL_SFS_SCORE);canonical=canonical_overlay['remaining_length']
     cells=[dict({k:c[k] for k in KEYS},status='runnable') for c in m['cells'] if c['policy'] in BLOCKED]
     off=[model for model in m['models'] if model not in canonical['rules']]
     return {'schema_version':1,'kind':SFS_SCORE_KIND,'configuration_id':CONFIG_ID,'status':'AUTHORIZED_PENDING_LANE_QUALIFICATION',
@@ -49,6 +49,10 @@ def build_sfs_score(bundle):
                    'Each lane is qualified separately under --profile fcfs with the fitted FCFS coefficients; the configuration id, coefficient '
                    'file hash, this overlay hash, the rule and the table sha256 are bound to every qualification and completed-ledger entry.',
         'profile':SETTINGS,'policies':list(BLOCKED),'cells':cells,'requests_total':sum(c['requests'] for c in cells),
+        # SCORE's tuned Lagrange multiplier is inherited from the canonical overlay rather than restated, so one
+        # tuned value covers every serving configuration by construction and cannot drift between them.
+        'score_lambda_weight':canonical_overlay['score_lambda_weight'],
+        'score_lambda_evidence':dict(canonical_overlay['score_lambda_evidence']),
         'models':m['models'],'evaluation':m['evaluation'],'restrictions':m['restrictions'],
         'gpu_allocation':{'lane_a':[0,1,2,3],'lane_b':[4,5,6,7]},
         'lanes':{'a':[c['id'] for c in cells if c['policy']=='hard'],'b':[c['id'] for c in cells if c['policy']=='score']},

@@ -9,6 +9,11 @@ The same per-engine remaining-length rule as the SFS/SCORE overlay applies to ev
 from copy import deepcopy
 
 from scripts.cloud.baseline_campaign import RATES
+from scripts.cloud.campaigns import apply_tuned_score_lambda
+
+# The ablations drop 6 QPS: the canonical grid shows almost no policy differentiation there,
+# so the predictor arms are measured at 7, 8 and 8.3 only (user decision, 18 September 2026).
+ABLATION_RATES = (7.0, 8.0, 8.3)
 from scripts.cloud.sfs_score_campaign import accepted_prior_source_digests, check_cells, resolve_remaining_length
 
 KIND = 'predictor_variants'
@@ -48,7 +53,7 @@ def apply_variant_campaign(bundle, campaign):
     noop = {c['policy'] for c in cells} & set(NOOP_POLICIES)
     if noop:
         raise ValueError(f'No-op policies belong in noop_policies with reuse pointers, not in cells: {sorted(noop)}')
-    expected = {('qwen', variant, policy, rate) for variant in VARIANTS for policy in ABLATED_POLICIES for rate in RATES['qwen']}
+    expected = {('qwen', variant, policy, rate) for variant in VARIANTS for policy in ABLATED_POLICIES for rate in ABLATION_RATES}
     check_cells(cells, expected, {'qwen': 16000}, KIND)
     noop_policies = campaign.get('noop_policies')
     if (not isinstance(noop_policies, dict) or set(noop_policies) != set(NOOP_POLICIES)
@@ -63,7 +68,7 @@ def apply_variant_campaign(bundle, campaign):
         raise ValueError('Variant overlay must set exactly the hard, score and latency_agnostic smoke policies for Qwen')
     qwen = result['families']['qwen']
     qwen['policies'] = list(ABLATED_POLICIES)
-    qwen['qps'] = list(RATES['qwen'])
+    qwen['qps'] = list(ABLATION_RATES)
     result['cells'] = deepcopy(cells)
     result['requests_total'] = sum(c['requests'] for c in cells)
     if campaign.get('requests_total') not in (None, result['requests_total']):
@@ -73,4 +78,5 @@ def apply_variant_campaign(bundle, campaign):
     result['comparators'] = deepcopy(comparators)
     result['remaining_length'] = resolve_remaining_length(campaign.get('remaining_length'), result['families'])
     result['accepted_prior_source_digests'] = accepted_prior_source_digests(campaign)
+    result = apply_tuned_score_lambda(result, campaign)
     return result

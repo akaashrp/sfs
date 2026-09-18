@@ -35,7 +35,14 @@ def bundle(tmp_path):
 def flags(argv):
     out = {}
     for i, token in enumerate(argv):
-        if token.startswith('--'): out[token] = argv[i+1] if i+1 < len(argv) and not argv[i+1].startswith('--') else True
+        if not token.startswith('--'):
+            continue
+        # Simulation options arrive as a single --option=value token (scripts.runs.service_metrics_config).
+        if '=' in token:
+            option, _, value = token.partition('=')
+            out[option] = value
+        else:
+            out[token] = argv[i+1] if i+1 < len(argv) and not argv[i+1].startswith('--') else True
     return out
 
 
@@ -155,7 +162,7 @@ def test_rule_reaches_only_the_small_engine_under_the_fcfs_profile(bundle, tmp_p
         off = instance_argv('qwen', tmp_path/'model', row, i, tmp_path, bundle/'qwen/length', bundle, 'fcfs')
         got, base = flags(argv), flags(off)
         assert base['--no-enable-chunked-prefill'] is True and base['--scheduling-policy'] == 'fcfs' and base['--max-num-batched-tokens'] == '65536'
-        assert got['--simulation-intercept'] == '1.0' and len([t for t in argv if t.startswith('--')]) == len(got)
+        assert float(got['--simulation-intercept']) == 1.0 and len([t for t in argv if t.startswith('--')]) == len(got)
         if row['model_id'] == 'qwen3-0.6b':
             assert {k: v for k, v in got.items() if not k.startswith('--remaining-length')} == base
             assert got['--remaining-length-mode'] == 'running_all' and got['--remaining-length-table'] == str(TABLES.resolve()/'qwen3-0.6b.json')

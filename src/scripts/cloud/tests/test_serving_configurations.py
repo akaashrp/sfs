@@ -45,7 +45,14 @@ def bundle(tmp_path):
 def flags(argv):
     out = {}
     for i, token in enumerate(argv):
-        if token.startswith('--'): out[token] = argv[i+1] if i+1 < len(argv) and not argv[i+1].startswith('--') else True
+        if not token.startswith('--'):
+            continue
+        # Simulation options arrive as a single --option=value token (scripts.runs.service_metrics_config).
+        if '=' in token:
+            option, _, value = token.partition('=')
+            out[option] = value
+        else:
+            out[token] = argv[i+1] if i+1 < len(argv) and not argv[i+1].startswith('--') else True
     return out
 
 
@@ -105,7 +112,7 @@ def test_argv_deltas_reach_every_qwen_server(bundle, tmp_path):
                 assert row['max_num_batched_tokens'] == 32768 and row['prefix_caching_enabled'] is True and got['--max-num-batched-tokens'] == '32768'
                 assert '--no-enable-prefix-caching' not in argv and got['--enable-chunked-prefill'] is True
             assert got == expected and got['--tensor-parallel-size'] == str((1, 1, 2)[i]) and got['--max-model-len'] == '131072'
-            assert got['--simulation-intercept'] == str(base['ttft_batch_model']['intercept'])   # canonical coefficients until a refit is passed
+            assert float(got['--simulation-intercept']) == base['ttft_batch_model']['intercept']   # canonical coefficients until a refit is passed
         # The FCFS delta is untouched by the generalization.
         fcfs_argv = flags(instance_argv('qwen', tmp_path/'model', cfg['instances'][0], 0, tmp_path, bundle/'qwen/length', bundle, 'fcfs'))
         assert fcfs_argv['--no-enable-chunked-prefill'] is True and fcfs_argv['--max-num-batched-tokens'] == '65536' and fcfs_argv['--scheduling-policy'] == 'fcfs'
@@ -267,7 +274,7 @@ def test_chunk8192_refits_coefficients_and_prefix_cache_refuses_them(bundle, tmp
     for i, row in enumerate(cfg['instances']):
         assert row['ttft_batch_model'] == fitted[row['model_id']] and row['max_num_batched_tokens'] == 8192
         argv = flags(instance_argv('qwen', tmp_path/'model', row, i, tmp_path, bundle/'qwen/length', bundle, 'chunk8192'))
-        assert argv['--simulation-intercept'] == str(fitted[row['model_id']]['intercept']) and argv['--max-num-batched-tokens'] == '8192'
+        assert float(argv['--simulation-intercept']) == fitted[row['model_id']]['intercept'] and argv['--max-num-batched-tokens'] == '8192'
     assert instance_config('qwen', None, bundle, PORTS, 'iso', 'chunk8192')['coefficient_status'] == 'CANONICAL_PLACEHOLDER_FOR_TRACE_COLLECTION_ONLY'
     for model in FCFS_MATRIX['models']: trace(calibration/f'batch_stats_{model}.csv', truth, seed=3, start=2e9)
     coefficients.validate(tmp_path/'chunk.json', calibration, tmp_path/'audit.json', CHUNK8192)

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "predictor_variants",
   "status": "AUTHORIZED_AFTER_SOURCE_AND_GPU_GATES",
-  "decision": "User decisions 2026-09-16/17 (scripts/cloud/reports/variants-20260916/PLAN.md): predictor/judge ablations {flash_quality, mlp_quality, mlp_length} x {hard, score, latency_agnostic} x {6, 7, 8, 8.3} QPS x 16,000 requests = 36 fresh Qwen cells. No-op policies are not rerun; their canonical cells are reused. Comparators: canonical hard and score from the Vast SFS/SCORE overlay (sfs-score-campaign-20260917.json); canonical latency_agnostic from the April Bridges reference (host/source difference accepted by the user; labelled provider=bridges). hard_prefill_tps is deferred. One pool per variant, each qualified separately (--variant is per pool).",
+  "decision": "User decisions 2026-09-16/17 (scripts/cloud/reports/variants-20260916/PLAN.md): predictor/judge ablations {flash_quality, mlp_quality, mlp_length} x {hard, score, latency_agnostic} x {7, 8, 8.3} QPS x 16,000 requests = 27 fresh Qwen cells (6 QPS dropped on 18 September 2026: the canonical grid shows little differentiation there). No-op policies are not rerun; their canonical cells are reused. Comparators: canonical hard and score from the Vast SFS/SCORE overlay (sfs-score-campaign-20260917.json); canonical latency_agnostic from the April Bridges reference (host/source difference accepted by the user; labelled provider=bridges). hard_prefill_tps is deferred. One pool per variant, each qualified separately (--variant is per pool).",
   "variants": {
     "flash_quality": "router --accuracy-model-path = bundle variants/flash_quality (LightGBM trained on Flash labels); servers byte-identical to canonical; primary judge at collation = Flash",
     "mlp_quality": "router --accuracy-model-path = bundle variants/mlp_quality; servers byte-identical to canonical",
@@ -16,14 +16,6 @@
     ]
   },
   "cells": [
-    {
-      "id": "qwen-flash_quality-hard-6",
-      "family": "qwen",
-      "variant": "flash_quality",
-      "policy": "hard",
-      "qps": 6.0,
-      "requests": 16000
-    },
     {
       "id": "qwen-flash_quality-hard-7",
       "family": "qwen",
@@ -46,14 +38,6 @@
       "variant": "flash_quality",
       "policy": "hard",
       "qps": 8.3,
-      "requests": 16000
-    },
-    {
-      "id": "qwen-flash_quality-score-6",
-      "family": "qwen",
-      "variant": "flash_quality",
-      "policy": "score",
-      "qps": 6.0,
       "requests": 16000
     },
     {
@@ -81,14 +65,6 @@
       "requests": 16000
     },
     {
-      "id": "qwen-flash_quality-latency_agnostic-6",
-      "family": "qwen",
-      "variant": "flash_quality",
-      "policy": "latency_agnostic",
-      "qps": 6.0,
-      "requests": 16000
-    },
-    {
       "id": "qwen-flash_quality-latency_agnostic-7",
       "family": "qwen",
       "variant": "flash_quality",
@@ -110,14 +86,6 @@
       "variant": "flash_quality",
       "policy": "latency_agnostic",
       "qps": 8.3,
-      "requests": 16000
-    },
-    {
-      "id": "qwen-mlp_quality-hard-6",
-      "family": "qwen",
-      "variant": "mlp_quality",
-      "policy": "hard",
-      "qps": 6.0,
       "requests": 16000
     },
     {
@@ -145,14 +113,6 @@
       "requests": 16000
     },
     {
-      "id": "qwen-mlp_quality-score-6",
-      "family": "qwen",
-      "variant": "mlp_quality",
-      "policy": "score",
-      "qps": 6.0,
-      "requests": 16000
-    },
-    {
       "id": "qwen-mlp_quality-score-7",
       "family": "qwen",
       "variant": "mlp_quality",
@@ -174,14 +134,6 @@
       "variant": "mlp_quality",
       "policy": "score",
       "qps": 8.3,
-      "requests": 16000
-    },
-    {
-      "id": "qwen-mlp_quality-latency_agnostic-6",
-      "family": "qwen",
-      "variant": "mlp_quality",
-      "policy": "latency_agnostic",
-      "qps": 6.0,
       "requests": 16000
     },
     {
@@ -209,14 +161,6 @@
       "requests": 16000
     },
     {
-      "id": "qwen-mlp_length-hard-6",
-      "family": "qwen",
-      "variant": "mlp_length",
-      "policy": "hard",
-      "qps": 6.0,
-      "requests": 16000
-    },
-    {
       "id": "qwen-mlp_length-hard-7",
       "family": "qwen",
       "variant": "mlp_length",
@@ -238,14 +182,6 @@
       "variant": "mlp_length",
       "policy": "hard",
       "qps": 8.3,
-      "requests": 16000
-    },
-    {
-      "id": "qwen-mlp_length-score-6",
-      "family": "qwen",
-      "variant": "mlp_length",
-      "policy": "score",
-      "qps": 6.0,
       "requests": 16000
     },
     {
@@ -273,14 +209,6 @@
       "requests": 16000
     },
     {
-      "id": "qwen-mlp_length-latency_agnostic-6",
-      "family": "qwen",
-      "variant": "mlp_length",
-      "policy": "latency_agnostic",
-      "qps": 6.0,
-      "requests": 16000
-    },
-    {
       "id": "qwen-mlp_length-latency_agnostic-7",
       "family": "qwen",
       "variant": "mlp_length",
@@ -305,7 +233,7 @@
       "requests": 16000
     }
   ],
-  "requests_total": 576000,
+  "requests_total": 432000,
   "noop_policies": {
     "round_robin": {
       "reuse": "scripts/cloud/reports/baseline-campaign-20260916/qwen-reference-inventory.json (April Bridges references, provider=bridges, via --bridges-reference)",
@@ -343,7 +271,6 @@
       "provider": "vast",
       "source": "scripts/cloud/sfs-score-campaign-20260917.json",
       "cells": [
-        "qwen-hard-6",
         "qwen-hard-7",
         "qwen-hard-8",
         "qwen-hard-8.3"
@@ -354,7 +281,6 @@
       "provider": "vast",
       "source": "scripts/cloud/sfs-score-campaign-20260917.json",
       "cells": [
-        "qwen-score-6",
         "qwen-score-7",
         "qwen-score-8",
         "qwen-score-8.3"
@@ -365,12 +291,6 @@
       "provider": "bridges",
       "source": "scripts/cloud/reports/baseline-campaign-20260916/qwen-reference-inventory.json",
       "points": {
-        "6": {
-          "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_no_snapshot_38531619_2026-04-07_080337/router_qps_no_snapshot_qwen3_lambda5em4_delta0_20260407_080930_qps6_point01.json",
-          "point_sha256": "2ab50234125e79e07e1c33f7881917c8fdff40fd0d7f5acd27fd104fdf56c6fc",
-          "status": "EXISTING_REFERENCE_RETAINED",
-          "system_entry_e2e_ttft_slo_attainment_pct": 36.86875
-        },
         "7": {
           "point": "/ocean/projects/cis250162p/aparthas/vllm_utils/experiments/router_qps_sweep_no_snapshot_38531619_2026-04-07_080337/router_qps_no_snapshot_qwen3_lambda5em4_delta0_20260407_080930_qps7_point02.json",
           "point_sha256": "3fbee017ddfe0ab7b6bc4d76e555ff77fa4855e55a4401870e52858f2c3b036f",
@@ -392,6 +312,20 @@
       },
       "note": "April 2026 Bridges canonical latency_agnostic reference (current reserve rule, Bridges H100 hosts); the user accepted it as the comparator on 2026-09-17 in place of a Vast rerun. variant_matrix.json labels these rows provider=bridges with the point path and sha256; OnTimeUtility is recomputed from the point on the observed judge cohort when the point is readable."
     }
+  },
+  "score_lambda_weight": 0.05,
+  "score_lambda_evidence": {
+    "sweep": "scripts/cloud/score-lambda-sweep-20260917.json",
+    "results": "scripts/cloud/reports/score-lambda-sweep-20260917/score-lambda-sweep.json",
+    "results_sha256": "1e800cfa156a9b7d07dc304f93cc60fa67072a87c37c18e54275365279939728",
+    "levels_probed": [
+      0.0005,
+      0.005,
+      0.05,
+      0.5
+    ],
+    "basis": "2,000-request probes at 7 QPS on the canonical Qwen pool, all four scored at the campaign's own 5e-4 so the levels are comparable: TTFT SLO attainment 9.70 / 77.35 / 97.30 / 98.25 % and Pro OnTimeUtility 0.0571 / 0.3055 / 0.3056 / 0.2750",
+    "decision": "5e-2 for every SCORE cell of the campaign (user decision, 18 September 2026). 5e-3 ties it on utility but leaves a 62 s p90 TTFT; 5e-1 sends 92 % of traffic to the 0.6B. SCORE's multiplier is a published tuning knob, so it is tuned once and never again; the objective every method is scored on stays at the bundle's 5e-4."
   },
   "remaining_length": {
     "tables": "scripts/cloud/remaining-length-tables-20260917",

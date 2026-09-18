@@ -1,0 +1,7 @@
+{
+  "status": "RELEASED",
+  "qualification_sha256": "11aceec02436291436941b528714041d9669a119fd79b4e88b37d542aa377371",
+  "timing_review": "FCFS unchunked configuration qualified on GPUs 0-3 (lane A hardware) under a707597 with the same fitted coefficients (sha 8d4ded02). Independent post-calibration validation: R2 0.9915/0.9981/0.9997 (0.6B/8B/32B), decode MAE 0.28/0.88/0.27 ms, bias +0.08/-0.88/-0.20 ms, zero negative predictions. Service rates 3.210/3.003/1.484 req/s. Prefill held-out MAE 1.99/3.38/7.70 ms (median 0.78/1.92/2.11 ms). TPOT heads on independent smoke rows (255310/144968/95169): MAE 1.41/1.14/2.57 ms, bias +1.30/-0.06/+2.13 ms; mixed prefill-decode MAE 10.0/16.7/18.3 ms retained. Consistent with the GPU 4-7 qualification of the same configuration.",
+  "load_review": "All nine policy smokes completed 192/192 with zero failures and full end-to-end TTFT coverage (SFS 100, latency-agnostic 96.4, LMDeploy 96.4, Mooncake 100, round robin 93.8, RouteBalance 97.9, SCORE 84.4, shortest queue 96.4, vLLM-SR 100 percent), each realizing 2.003 QPS. Shortest-queue load probes stable at 6 QPS (6.078 realized) and 8.3 QPS (8.233). No OOM or preemption in server logs. Same authorized overlay (campaign sha 3dece543); this release serves lane A (Mooncake, RouteBalance, vLLM-SR at 6/7/8/8.3) on GPUs 0-3; SFS and SCORE FCFS cells remain blocked.",
+  "reviewed_at": 1789623912.5617187
+}

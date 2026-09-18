@@ -696,6 +696,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
         affinity_upgrade_margin: float = DEFAULT_AFFINITY_UPGRADE_MARGIN,
         score_cost_weight: float = 1.0,
         score_latency_weight: float = 1.0,
+        score_lambda_weight: Optional[float] = None,
         skip_wait_result_build: bool = False,
         include_unconditional_live_fetch: bool = True,
         readiness_diagnostics: bool = False,
@@ -737,6 +738,9 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
         self._affinity_upgrade_margin = max(float(affinity_upgrade_margin), 0.0)
         self._score_cost_weight = float(score_cost_weight)
         self._score_latency_weight = float(score_latency_weight)
+        self._score_lambda = (
+            self._lambda if score_lambda_weight is None else float(score_lambda_weight)
+        )
 
         if wait_estimators:
             for estimator_name, estimator_fn in wait_estimators:
@@ -1483,7 +1487,7 @@ class CollectingWaitTimeScheduler(WaitTimeScheduler):
                                 accuracy_scores=accuracy_scores,
                                 output_lengths=output_lengths,
                                 instance_costs=self._instance_costs,
-                                lambda_weight=self._lambda,
+                                lambda_weight=self._score_lambda,
                                 cost_weight=self._score_cost_weight,
                                 latency_weight=self._score_latency_weight,
                                 state=score_state,
@@ -2430,8 +2434,18 @@ def build_utility_fn(
     utility_state: UtilityState,
     score_cost_weight: float = 1.0,
     score_latency_weight: float = 1.0,
+    score_lambda_weight: Optional[float] = None,
 ) -> UtilityCallable:
     utility = utility_name.strip().lower()
+    # SCORE's lambda is the Lagrange multiplier of its own constraint formulation, a published
+    # tuning knob; ours is the fixed cost weight of the campaign objective every method is scored
+    # on.  They coincide by default and separate when SCORE's multiplier has been tuned, so that a
+    # tuned SCORE still competes on the same OnTimeUtility as everyone else.
+    score_multiplier = (
+        float(lambda_weight)
+        if score_lambda_weight is None
+        else float(score_lambda_weight)
+    )
 
     def soft(
         instance_id: str,
@@ -2502,7 +2516,7 @@ def build_utility_fn(
                     wait_results[instance_id].wait_ms
                 ),
                 latency_limit_ms=float(latency_limit_ms),
-                lambda_weight=float(lambda_weight),
+                lambda_weight=score_multiplier,
                 cost_weight=float(score_cost_weight),
                 latency_weight=float(score_latency_weight),
                 state=score_state,
@@ -4503,6 +4517,7 @@ async def run_policy(
     affinity_upgrade_margin: float = DEFAULT_AFFINITY_UPGRADE_MARGIN,
     score_cost_weight: float = 1.0,
     score_latency_weight: float = 1.0,
+    score_lambda_weight: Optional[float] = None,
     score_total_cost_budget: Optional[float] = None,
     close_instances_on_stop: bool = True,
     decouple_arrivals: bool = True,
@@ -4551,6 +4566,7 @@ async def run_policy(
         utility_state=utility_state,
         score_cost_weight=score_cost_weight,
         score_latency_weight=score_latency_weight,
+        score_lambda_weight=score_lambda_weight,
     )
     scheduler_kwargs = dict(
         defer_sidecar_writes=True,
@@ -4620,6 +4636,7 @@ async def run_policy(
             affinity_upgrade_margin=affinity_upgrade_margin,
             score_cost_weight=score_cost_weight,
             score_latency_weight=score_latency_weight,
+            score_lambda_weight=score_lambda_weight,
             wait_estimator=wait_estimator,
             wait_estimator_name=wait_estimator_name,
             wait_estimator_context=wait_estimator_context,
@@ -5684,6 +5701,17 @@ def parse_args() -> argparse.Namespace:
         help="Published SCORE latency-constraint weight w_L.",
     )
     parser.add_argument(
+        "--score-lambda-weight",
+        type=float,
+        default=None,
+        help=(
+            "Published SCORE Lagrange multiplier used for ROUTING only. Defaults to "
+            "--lambda-weight. Setting it lets a tuned SCORE route on its own multiplier "
+            "while every method, SCORE included, is still scored on the campaign "
+            "objective's --lambda-weight."
+        ),
+    )
+    parser.add_argument(
         "--score-total-cost-budget",
         type=float,
         default=None,
@@ -5851,6 +5879,11 @@ def parse_args() -> argparse.Namespace:
         or args.score_latency_weight < 0
     ):
         parser.error("--score-latency-weight must be finite and >= 0.")
+    if args.score_lambda_weight is not None and (
+        not math.isfinite(args.score_lambda_weight)
+        or args.score_lambda_weight < 0
+    ):
+        parser.error("--score-lambda-weight must be finite and >= 0.")
     if args.score_total_cost_budget is not None and (
         not math.isfinite(args.score_total_cost_budget)
         or args.score_total_cost_budget < 0
@@ -6726,6 +6759,11 @@ async def run_router_experiment(
             affinity_upgrade_margin=float(args.affinity_upgrade_margin),
             score_cost_weight=float(args.score_cost_weight),
             score_latency_weight=float(args.score_latency_weight),
+            score_lambda_weight=(
+                None
+                if args.score_lambda_weight is None
+                else float(args.score_lambda_weight)
+            ),
             score_total_cost_budget=args.score_total_cost_budget,
             latency_warmup_requests=getattr(args, "latency_warmup_requests", None),
             methodology_calibration_path=getattr(args, "methodology_calibration_json", None),
@@ -6764,6 +6802,17 @@ async def run_router_experiment(
                 "total_cost_budget": args.score_total_cost_budget,
                 "latency_limit_source": "request_e2e_latency_slo_ms",
                 "lambda_update": "fixed; paper does not specify controller",
+                "routing_lambda_weight": float(
+                    run_lambda
+                    if args.score_lambda_weight is None
+                    else args.score_lambda_weight
+                ),
+                "routing_lambda_source": (
+                    "campaign_objective_lambda"
+                    if args.score_lambda_weight is None
+                    else "tuned_score_multiplier"
+                ),
+                "evaluation_lambda_weight": float(run_lambda),
             }
         if route_strategy == "instance_affinity" and affinity_calibration is not None:
             run["baseline_config"]["instance_affinity"] = {
@@ -7309,6 +7358,7 @@ async def async_main(args: argparse.Namespace) -> None:
             "delta_weight": args.delta_weight,
             "score_cost_weight": args.score_cost_weight,
             "score_latency_weight": args.score_latency_weight,
+            "score_lambda_weight": args.score_lambda_weight,
             "score_total_cost_budget": args.score_total_cost_budget,
             "worker_count": args.worker_count,
             "max_queue_size": args.max_queue_size,

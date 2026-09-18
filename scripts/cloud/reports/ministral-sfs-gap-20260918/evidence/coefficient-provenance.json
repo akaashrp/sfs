@@ -1,0 +1,161 @@
+{
+ "what": "Where each engine's six simulation coefficients came from, and the mis-mapping.",
+ "defect": {
+  "summary": "bundle/ministral/bridges_metrics.json records sfs_simulation.feature_set = 'cross_term', so its sixth coefficient is the prefill x processed-context cross term (p_x_ctx). scripts/cloud/pool.py copies only the six coefficient KEYS into instances.json ttft_batch_model (dropping feature_set) and then emits them positionally as --simulation-<key>, i.e. --simulation-sum-sq-coeff, and never emits --simulation-batch-time-feature-set. vLLM therefore defaults to 'legacy' and the simulator multiplies the cross-term coefficient by sum_i ctx_i^2.",
+  "code": [
+   {
+    "path": "src/scripts/cloud/pool.py",
+    "lines": "31-32",
+    "text": "\"ttft_batch_model\": {k: rows[model][\"sfs_simulation\"][k] for k in (\"intercept\", \"prefill_coeff\", \"prefill_sq_coeff\", \"decode_coeff\", \"sum_coeff\", \"sum_sq_coeff\")}",
+    "problem": "feature_set is not copied"
+   },
+   {
+    "path": "src/scripts/cloud/pool.py",
+    "lines": "110-111",
+    "text": "for key, value in row[\"ttft_batch_model\"].items(): argv += [\"--simulation-\" + key.replace(\"_\", \"-\"), str(value)]",
+    "problem": "always names the legacy option and never passes --simulation-batch-time-feature-set"
+   },
+   {
+    "path": "src/scripts/runs/service_metrics_config.py",
+    "lines": "262-286",
+    "text": "build_simulation_args(): final_option = 'simulation-prefill-x-context-coeff' if feature_set == 'cross_term' else 'simulation-sum-sq-coeff'; returns f'--simulation-batch-time-feature-set={feature_set}' first",
+    "problem": "the correct mapping exists but the Ministral branch of pool.py does not use it"
+   },
+   {
+    "path": "vllm/vllm/config/scheduler.py",
+    "lines": "136, 358-379",
+    "text": "simulation_batch_time_feature_set: BatchTimeFeatureSet = 'legacy'; validation rejects prefill_x_context_coeff under legacy and sum_sq_coeff under cross_term",
+    "problem": "the validation cannot fire because the wrong-but-legal legacy option name is used"
+   },
+   {
+    "path": "vllm/vllm/v1/engine/scheduler_simulator.py",
+    "lines": "1060-1061, 1209-1232, 1383-1399",
+    "text": "sum_sq_tokens += request_tokens * request_tokens ; batch_ms = (... + sum_coeff*sum_context_length + context_feature_coeff*context_feature_value) * 1000.0 ; context_feature_value = prefill_x_processed_ctx_sum if cross_term else sum_sq_tokens",
+    "problem": "consumption point"
+   },
+   {
+    "path": "src/sfs_core/routing/snapshot_shm_client.py",
+    "lines": "421-441",
+    "text": "the router's native worker is constructed from the SHM header's six coefficients",
+    "problem": "the mis-mapped value reaches the router through the SHM header, not instances.json"
+   }
+  ],
+  "line_numbers_refer_to": "the committed state at bc72345 (git show bc72345:src/scripts/cloud/pool.py). A concurrent session has since landed the fix in the working tree, which shifts these line numbers; the pool that produced the measured cells was launched from the pre-fix code.",
+  "fix_landed_uncommitted": {
+   "files": [
+    "src/scripts/cloud/pool.py",
+    "src/scripts/runs/qwen_baselines.py",
+    "src/scripts/cloud/tests/test_remaining_length_flag.py"
+   ],
+   "summary": "pool.config now records batch_time_feature_set (raising on an unrecognised value) and pool.server_argv / qwen_baselines.server_argv both delegate to service_metrics_config.build_simulation_args, which emits --simulation-batch-time-feature-set and picks the matching sixth-coefficient option.",
+   "not_yet_validated_on_gpu": true
+  }
+ },
+ "ministral": {
+  "bundle": "/workspace/sfs/bundle/ministral/bridges_metrics.json",
+  "feature_set_recorded": "cross_term",
+  "launched_without_feature_set_flag": true,
+  "per_model": {
+   "ministral3-3b": {
+    "intercept": 0.0038808002358326414,
+    "prefill_coeff": 9.208409031895887e-06,
+    "prefill_sq_coeff": 3.690021870800471e-10,
+    "decode_coeff": 7.30279094579031e-06,
+    "sum_coeff": 3.7673513671254484e-08,
+    "sixth_coeff": 8.631857012697289e-10,
+    "fit_rows": 363431,
+    "r2_all_rows": 0.996861994269032
+   },
+   "ministral3-8b": {
+    "intercept": 0.006805240376208842,
+    "prefill_coeff": 2.1848431300184167e-05,
+    "prefill_sq_coeff": 5.060573359618139e-10,
+    "decode_coeff": 1.0179621403155105e-05,
+    "sum_coeff": 4.9924942986836443e-08,
+    "sixth_coeff": 1.1780830225912282e-09,
+    "fit_rows": 103140,
+    "r2_all_rows": 0.9989450852626436
+   },
+   "ministral3-14b": {
+    "intercept": 0.010098382838610098,
+    "prefill_coeff": 3.589235148440206e-05,
+    "prefill_sq_coeff": 6.409590753600644e-10,
+    "decode_coeff": 3.047659879869446e-05,
+    "sum_coeff": 5.676641912351193e-08,
+    "sixth_coeff": 1.4792443729747435e-09,
+    "fit_rows": 158242,
+    "r2_all_rows": 0.9942763770244684
+   }
+  },
+  "server_argv_evidence": "server_argv_ministral3-8b.json contains '--simulation-sum-sq-coeff', '1.1780830225912282e-09' and no '--simulation-batch-time-feature-set'"
+ },
+ "qwen": {
+  "bundle": "/workspace/sfs/bundle/qwen/bridges_metrics.json has NO sfs_simulation block",
+  "source": "hard-coded legacy coefficients, src/scripts/runs/experiments.py:2614-2646, via scripts/runs/qwen_baselines.py",
+  "per_model_sixth_coeff": {
+   "qwen3-0.6b": 1.5754738957656986e-13,
+   "qwen3-8b": 2.6851287984524727e-13,
+   "qwen3-32b": 4.519593317761812e-13
+  },
+  "note": "these ARE genuine legacy sum-of-squared-context coefficients, 4 orders of magnitude smaller than the Ministral cross-term values, which is why Qwen is unaffected"
+ },
+ "ratio_ministral_over_qwen_sixth_coeff": {
+  "8b_vs_8b": 4387.4
+ },
+ "engine_configuration": {
+  "ministral": {
+   "models": 3,
+   "tp": [
+    1,
+    1,
+    1
+   ],
+   "max_num_seqs": 512,
+   "max_num_batched_tokens": 32768,
+   "gpu_memory_utilization": 0.9,
+   "prefix_caching": false,
+   "chunked_prefill": true,
+   "gpu_kv_cache_tokens": {
+    "ministral3-3b": 617984,
+    "ministral3-8b": 391232,
+    "ministral3-14b": 267488
+   },
+   "remaining_length_rule": "off for all three"
+  },
+  "qwen": {
+   "models": 3,
+   "tp": [
+    1,
+    1,
+    2
+   ],
+   "max_num_seqs": 512,
+   "max_num_batched_tokens": 32768,
+   "gpu_memory_utilization": 0.9,
+   "prefix_caching": false,
+   "chunked_prefill": true,
+   "gpu_kv_cache_tokens": {
+    "qwen3-0.6b": 628512,
+    "qwen3-8b": 382304,
+    "qwen3-32b": 298416
+   },
+   "remaining_length_rule": "qwen3-0.6b = running_all:0.5:prompt_bin; 8b/32b off"
+  }
+ },
+ "policy_exposure": {
+  "affected": [
+   "hard (SFS)"
+  ],
+  "reason": "hard is the only campaign policy whose routing value is the native simulation's estimated_wait_ms (_baseline_runtime_params -> _wait_estimator_live, experiments.py:6410-6418, 3134)",
+  "unaffected_and_why": {
+   "score": "_wait_estimator_score_total_latency (experiments.py:3779): calibrated prefill_tps / decode_tps / mean_decode_batch_ms",
+   "hard_score_proxy": "_wait_estimator_score_proxy_ttft (3656): calibrated TPS",
+   "hard_prefill_tps / soft_prefill_tps": "_wait_estimator_prefill_tps_ttft (3587): theta_p only",
+   "hard_pk_mg1 / soft_pk_mg1": "_wait_estimator_pk_mg1 (3914): P-K + theta_p",
+   "shortest_queue": "computes the live estimate but routes on effective_num_requests (_select_shortest_queue_instance, experiments.py:1185)",
+   "latency_agnostic / round_robin / latency_and_cost_agnostic": "_wait_estimator_zero",
+   "mooncake_prefill / routebalance / lmdeploy_proxy / vllm_sr_latency": "no wait estimator"
+  },
+  "dead_code_note": "the analytic legacy-only TTFT estimator _estimate_live_prefill_term_ms (experiments.py:3064) has zero load-uses, as do _validate_live_ttft_params (2765) and _instance_ttft_params_from_metadata (2749); instances.json ttft_batch_model is therefore write-only and never reaches a routing decision."
+ }
+}

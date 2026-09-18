@@ -12,6 +12,7 @@ import time
 import uuid
 
 from scripts.cloud.common import ROOT, digest, read, write, expand, set_option, source_hashes, source_digest, validate_bundle, locks, portable_cache, portable_routebalance
+from scripts.cloud.batch_residual import audit_pool
 from scripts.cloud.pool import pool, hardware, remaining_length_provenance
 
 
@@ -100,6 +101,63 @@ def staleness_argv(argv, manifest, staleness):
     return set_option(argv, '--snapshot-staleness-ms', f'{delay:g}')
 
 
+PROBE_KINDS = ('score_lambda_sweep',)
+
+
+def campaign_data_role(manifest):
+    """'tuning_probe' for an overlay whose points may never be reported; 'evaluation' otherwise."""
+    return 'tuning_probe' if manifest.get('kind') in PROBE_KINDS else 'evaluation'
+
+
+def ledger_dir(state, manifest):
+    """Completed-cell receipts of this overlay: probe receipts stay out of the canonical completed ledger."""
+    return Path(state)/('completed-probes' if campaign_data_role(manifest) == 'tuning_probe' else 'completed')
+
+
+def cell_lambda(cell):
+    """The cell's SCORE Lagrange multiplier, or None when the cell keeps the bundle's own --lambda-weight."""
+    weight = cell.get('lambda_weight')
+    return None if weight is None else float(weight)
+
+
+def routing_lambda(manifest, cell):
+    """The SCORE routing multiplier for one cell: per-cell under a sweep, else the overlay's tuned value.
+
+    SCORE's lambda is the multiplier of its own constraint formulation and is a tuning knob of that
+    method; the campaign's --lambda-weight is the cost weight of the objective every method is scored
+    on.  Only the former moves here, so a tuned SCORE still competes on the same OnTimeUtility as the
+    policies that carry no multiplier at all.
+    """
+    weight = cell_lambda(cell)
+    if weight is None and str(cell.get('policy')) == 'score':
+        overlay = manifest.get('score_lambda_weight')
+        weight = None if overlay is None else float(overlay)
+    return weight
+
+
+def lambda_levels(manifest):
+    """Sorted distinct per-cell lambda weights of the manifest cells; [] when no cell overrides the bundle."""
+    return sorted({w for w in (cell_lambda(c) for c in manifest['cells']) if w is not None})
+
+
+def lambda_argv(argv, manifest, weight):
+    """Router argv for one run: a SCORE routing multiplier, which never touches the evaluation lambda.
+
+    A per-cell weight is authorized only under a score_lambda_sweep overlay; any other overlay carries
+    at most one tuned value for all of its SCORE cells.  Either way it is passed as
+    --score-lambda-weight, so --lambda-weight stays at the bundle's value and every cell of the
+    campaign, SCORE included, is scored on one objective.
+    """
+    if weight is None:
+        return list(argv)
+    if manifest.get('kind') != 'score_lambda_sweep' and manifest.get('score_lambda_weight') is None:
+        raise ValueError('A SCORE routing multiplier requires a sweep overlay or an overlay-wide tuned value')
+    weight = float(weight)
+    if not math.isfinite(weight) or weight < 0:
+        raise ValueError('A SCORE routing multiplier must be finite and non-negative')
+    return set_option(argv, '--score-lambda-weight', f'{weight:.12g}')
+
+
 def family_remaining_length(manifest, definition):
     """Pool-ready {'tables', 'rules'} for this family's models, or None (current rule everywhere)."""
     block = manifest.get('remaining_length')
@@ -144,6 +202,9 @@ def audit_cell(payload, cell):
     if {r['request_id'] for r in rows} != {f'req-{i}' for i in range(cell['requests'])}:
         raise ValueError('Missing or duplicate evaluation request identities')
     summary = run['summary']
+    # A failed request stops this pool, whatever its cause. The bounded infrastructure-fault
+    # salvage of scripts.cloud.salvage is an explicit, after-the-fact, user-authorised step and is
+    # deliberately not consulted here; salvage_rule/salvage_classification below only expose it.
     if summary.get('failed_requests') != 0 or summary.get('succeeded_requests') != len(rows):
         raise ValueError('Incomplete requests or end-to-end TTFT')
     # Transient snapshot-read faults degrade one candidate; a decision that lost
@@ -160,6 +221,25 @@ def audit_cell(payload, cell):
     if abs(realized/cell['qps'] - 1) > .1:
         raise ValueError('Arrival generator missed the requested rate by more than 10%')
     return {'status': 'PASS_CELL', 'requests': len(rows), 'realized_qps': realized}
+
+
+def salvage_rule():
+    """Read-only view of the infrastructure-fault salvage allowlist, cap and penalty.
+
+    Exposed next to audit_cell so reviewers and tools import one bound rule; audit_cell itself
+    never calls it and the worker's live behaviour is unchanged.
+    """
+    from scripts.cloud import salvage
+    return {'causes': {name: list(needles) for name, needles in salvage.SALVAGEABLE_CAUSES.items()},
+            'max_requests': salvage.MAX_SALVAGEABLE_REQUESTS,
+            'max_fraction_pct': salvage.MAX_SALVAGEABLE_FRACTION * 100,
+            'penalty': salvage.PENALTY, 'authorization': salvage.AUTHORIZATION}
+
+
+def salvage_classification(payload, cell):
+    """Read-only report of a completed point's failed rows under that rule. Never admits a cell."""
+    from scripts.cloud.salvage import classify_failures
+    return classify_failures(payload, cell)
 
 
 async def run_point(family, args, requests, clients, costs, metadata, folder, monitor=None, *, data_role='evaluation'):
@@ -359,8 +439,8 @@ async def execute(options, manifest, definition, model_paths, output):
                     'traces': {m: digest(output/f'calibration_trace_{m}.csv') for m in definition['models']}})
                 return
             argv = arguments(definition, options.bundle, options.variant, manifest, qualification)
-            def args_for(policy, rate, count, staleness=None):
-                args = parse(staleness_argv(argv, manifest, staleness))
+            def args_for(policy, rate, count, staleness=None, lambda_weight=None):
+                args = parse(lambda_argv(staleness_argv(argv, manifest, staleness), manifest, lambda_weight))
                 args.utilities, args.num_requests, args.request_rate_qps = [policy], count, rate
                 args.per_request_wait_log = [str(output/f'wait_{m}.log') for m in definition['models']]
                 return args
@@ -376,6 +456,12 @@ async def execute(options, manifest, definition, model_paths, output):
                     audit_run(payload['router']['runs'][0], 192)
                     from scripts.runs.measured_audit import require_complete_ttft
                     require_complete_ttft(payload['router']['runs'][0])
+            # Smoke has now driven enough batches through every engine to replay that engine's own
+            # batch-latency coefficients against what it actually did.  A coefficient consumed under the
+            # wrong feature set still runs, still audits clean, and makes every wait estimate meaningless
+            # (scripts/cloud/reports/ministral-sfs-gap-20260918), so no pool evaluates before this agrees.
+            write(output/'batch_residual_audit.json',
+                  audit_pool(read(instances_path)['instances'], output))
             if options.family == 'ministral' and options.variant == 'canonical':
                 # The former 192-request/2-QPS smoke missed long busy iterations.
                 # Exercise both snapshot baselines with 512 balanced calibration
@@ -411,6 +497,7 @@ async def execute(options, manifest, definition, model_paths, output):
                     'load_probes': load_probes, 'files': evidence, **provenance(options, manifest, active_rule),
                     'policy_smoke': policies, 'serving_profile': definition['profile'],
                     'snapshot_staleness_levels_ms': staleness_levels(manifest),
+                    'lambda_weights': lambda_levels(manifest), 'data_role': campaign_data_role(manifest),
                     'calibration_capped_outputs': calibration_capped_outputs(read(output/'model_metrics.json')),
                     'serving_coefficients': ('Fitted for this configuration from destination traces; independent residuals require review' if coefficients
                         else 'Canonical SFS batch coefficients retained by configuration policy (per-token step costs unchanged); destination residuals require review'
@@ -430,7 +517,7 @@ async def execute(options, manifest, definition, model_paths, output):
                 if not requested.issubset({c['id'] for c in cells}):
                     raise ValueError('Requested cells do not match this family/variant')
                 cells = [c for c in cells if c['id'] in requested]
-            ledger = Path(options.state)/'completed'
+            ledger = ledger_dir(options.state, manifest)
             for cell in cells:
                 with locks(Path(options.state)/'cell-locks', [cell['id']]):
                     done = ledger/(cell['id']+'.json')
@@ -444,8 +531,8 @@ async def execute(options, manifest, definition, model_paths, output):
                             raise ValueError('Completed point checksum changed')
                         continue
                     validate_release(qualification, options, source_hashes(), active_rule['rule'])
-                    staleness = cell_staleness(cell)
-                    args = args_for(cell['policy'], cell['qps'], cell['requests'], staleness)
+                    staleness, weight = cell_staleness(cell), routing_lambda(manifest, cell)
+                    args = args_for(cell['policy'], cell['qps'], cell['requests'], staleness, weight)
                     requests, _, _ = exp._build_request_set(args)
                     if len(requests) != cell['requests']:
                         raise ValueError('Evaluation ingestion budget changed')
@@ -457,6 +544,10 @@ async def execute(options, manifest, definition, model_paths, output):
                         raise ValueError('Router did not record the pool remaining-length rule')
                     if float(payload['router']['runs'][0].get('snapshot_staleness_ms', 0) or 0) != staleness:
                         raise ValueError('Router did not record the cell snapshot staleness')
+                    if weight is not None and float(payload['config']['score_lambda_weight']) != weight:
+                        raise ValueError('Router did not record the cell SCORE routing multiplier')
+                    if float(payload['config']['lambda_weight']) != float(parse(argv).lambda_weight):
+                        raise ValueError('Cell was scored on a different objective lambda than the bundle')
                     if source_hashes() != source:
                         raise ValueError('Runtime source changed during evaluation')
                     point = folder/'point.json'
@@ -464,7 +555,11 @@ async def execute(options, manifest, definition, model_paths, output):
                         **provenance(options, manifest, active_rule),
                         'source_sha256': source, 'bundle_sha256': digest(Path(options.bundle)/'bundle.json'),
                         'qualification_sha256': digest(qualification/'qualification.json'), 'hardware': machine,
-                        'snapshot_staleness_ms': staleness, 'snapshot_staleness_levels_ms': staleness_levels(manifest)}
+                        'snapshot_staleness_ms': staleness, 'snapshot_staleness_levels_ms': staleness_levels(manifest),
+                        'lambda_weight': weight, 'lambda_weights': lambda_levels(manifest),
+                        'score_routing_lambda_weight': weight,
+                        'evaluation_lambda_weight': float(parse(argv).lambda_weight),
+                        'data_role': cell.get('data_role', campaign_data_role(manifest))}
                     write(folder/'audit.json', entry)
                     write(done, entry)
                     write(output/'phase.json', {'state': 'CELL_COMPLETE', 'cell': cell['id'], 'time': time.time(),
@@ -509,8 +604,8 @@ def main():
     p.add_argument('--variant', choices=['canonical', 'mlp_quality', 'mlp_length', 'flash_quality'], default='canonical')
     p.add_argument('--gpus', required=True); p.add_argument('--cpus'); p.add_argument('--qualification'); p.add_argument('--cells')
     from scripts.cloud.serving.profiles import NAMES
-    p.add_argument('--campaign', help='Explicit overlay on the frozen artifact bundle (baseline, sfs_score, predictor_variants or '
-                                      'staleness_sweep kind; a serving-configuration overlay under its --profile)')
+    p.add_argument('--campaign', help='Explicit overlay on the frozen artifact bundle (baseline, sfs_score, predictor_variants, '
+                                      'staleness_sweep or score_lambda_sweep kind; a serving-configuration overlay under its --profile)')
     p.add_argument('--profile', choices=list(NAMES), default='canonical',
                    help='Serving configuration (scripts.cloud.serving.profiles): fcfs is the Qwen unchunked overlay, chunk8192 the 8192-token '
                         'step budget, prefix_cache the prefix-caching ablation; each is qualified separately')

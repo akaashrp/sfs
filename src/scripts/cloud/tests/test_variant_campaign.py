@@ -9,7 +9,7 @@ import pytest
 
 from scripts.cloud.baseline_campaign import RATES
 from scripts.cloud.common import ROOT, read, digest, write
-from scripts.cloud.variant_campaign import apply_variant_campaign, VARIANTS, ABLATED_POLICIES, NOOP_POLICIES, variant_cell_id
+from scripts.cloud.variant_campaign import ABLATION_RATES, apply_variant_campaign, VARIANTS, ABLATED_POLICIES, NOOP_POLICIES, variant_cell_id
 from scripts.cloud.tests.test_sfs_score_campaign import _bundle, OVERLAY as SFS_OVERLAY, SHA
 
 OVERLAY = ROOT/'scripts/cloud/predictor-variants-campaign-20260917.json'
@@ -26,18 +26,19 @@ def test_overlay_is_accepted_and_preserves_the_bundle():
     campaign = read(OVERLAY); bundle = _variant_bundle(); saved = deepcopy(bundle)
     active = apply_variant_campaign(bundle, campaign)
     assert bundle == saved and active['files'] == saved['files'] and active['families']['ministral'] == saved['families']['ministral']
-    assert len(active['cells']) == 36 and active['requests_total'] == 576000 == campaign['requests_total']
-    assert {c['id'] for c in active['cells']} == {variant_cell_id(v, p, q) for v in VARIANTS for p in ABLATED_POLICIES for q in RATES['qwen']}
+    assert len(active['cells']) == 27 and active['requests_total'] == 432000 == campaign['requests_total']
+    assert {c['id'] for c in active['cells']} == {variant_cell_id(v, p, q) for v in VARIANTS for p in ABLATED_POLICIES for q in ABLATION_RATES}
     assert all(c['family'] == 'qwen' and c['requests'] == 16000 and c['variant'] != 'canonical' for c in active['cells'])
-    assert active['families']['qwen']['policies'] == ['hard', 'score', 'latency_agnostic'] and active['families']['qwen']['qps'] == [6., 7., 8., 8.3]
+    assert active['families']['qwen']['policies'] == ['hard', 'score', 'latency_agnostic'] and active['families']['qwen']['qps'] == [7., 8., 8.3]
     assert active['kind'] == 'predictor_variants'
     assert set(active['noop_policies']) == set(NOOP_POLICIES)
     assert all(v['label'] == 'reused_canonical' and v['reuse'] and v['reason'] for v in active['noop_policies'].values())
     assert 'bridges' in active['noop_policies']['round_robin']['reuse'] and 'baseline-campaign' in active['noop_policies']['lmdeploy_proxy']['reuse']
     assert active['comparators']['latency_agnostic']['provider'] == 'bridges'
-    reference = {c['qps']: c['point_sha256'] for c in read(INVENTORY)['cells'] if c['policy'] == 'latency_agnostic'}
+    reference = {c['qps']: c['point_sha256'] for c in read(INVENTORY)['cells']
+                 if c['policy'] == 'latency_agnostic' and c['qps'] in ABLATION_RATES}
     assert {float(k): v['point_sha256'] for k, v in active['comparators']['latency_agnostic']['points'].items()} == reference
-    assert active['comparators']['hard']['cells'] == ['qwen-hard-6', 'qwen-hard-7', 'qwen-hard-8', 'qwen-hard-8.3']
+    assert active['comparators']['hard']['cells'] == ['qwen-hard-7', 'qwen-hard-8', 'qwen-hard-8.3']
     assert active['comparators']['score']['provider'] == 'vast'
     sfs = read(SFS_OVERLAY)['remaining_length']
     assert campaign['remaining_length']['files'] == sfs['files'] == SHA and campaign['remaining_length']['rules'] == sfs['rules']
@@ -197,19 +198,19 @@ def test_collate_binds_records_to_the_overlay_and_labels_status():
     active = apply_variant_campaign(_variant_bundle(), read(OVERLAY)); expected = {c['id']: c for c in active['cells']}
     rules = expected_rules(active)
     assert rules == {'qwen': RULE, 'ministral': 'current'}
-    cell = expected['qwen-mlp_length-hard-6']
+    cell = expected['qwen-mlp_length-hard-7']
     record = {'cell': cell, 'campaign_sha256': digest(OVERLAY), 'remaining_length_rule': RULE}
     assert check_record(record, expected, digest(OVERLAY), 'predictor_variants', rules) == cell['id']
     with pytest.raises(ValueError, match='Unexpected'):
         check_record({'cell': dict(cell, qps=8.6)}, expected, digest(OVERLAY), 'predictor_variants', rules)
     with pytest.raises(ValueError, match='Unexpected'):
-        check_record({'cell': dict(cell, id='qwen-hard-6')}, expected, digest(OVERLAY), 'predictor_variants', rules)
+        check_record({'cell': dict(cell, id='qwen-hard-7')}, expected, digest(OVERLAY), 'predictor_variants', rules)
     with pytest.raises(ValueError, match='different campaign'):
         check_record(dict(record, campaign_sha256='0'*64), expected, digest(OVERLAY), 'predictor_variants', rules)
     with pytest.raises(ValueError, match='remaining-length'):
         check_record(dict(record, remaining_length_rule='current'), expected, digest(OVERLAY), 'predictor_variants', rules)
     assert check_record({'cell': cell}, expected) == cell['id']    # the baseline overlay has no kind binding
-    assert audit_status(expected, []) == 'PASS_36_CELLS' and audit_status(expected, ['x']) == 'PARTIAL'
+    assert audit_status(expected, []) == 'PASS_27_CELLS' and audit_status(expected, ['x']) == 'PARTIAL'
     from scripts.cloud.sfs_score_campaign import apply_sfs_score_campaign
     sfs = apply_sfs_score_campaign(_variant_bundle(), read(SFS_OVERLAY))
     assert audit_status({c['id']: c for c in sfs['cells']}, []) == 'PASS_14_CELLS' and expected_rules(sfs) == rules
@@ -228,37 +229,37 @@ def _record(cid, rule=RULE):
 def test_variant_matrix_merges_measured_and_reused_rows():
     from scripts.cloud.collate import variant_matrix
     active = apply_variant_campaign(_variant_bundle(), read(OVERLAY))
-    measured = {'qwen-flash_quality-hard-6': (_observed(.4, .5), _record('qwen-flash_quality-hard-6'))}
-    reused = {'qwen-hard-6': (_observed(.3, .35), _record('qwen-hard-6'), '/collation/sfs'),
-              'qwen-lmdeploy_proxy-6': (_observed(.2, .25), _record('qwen-lmdeploy_proxy-6', 'current'), '/collation/baseline')}
-    bridges = {('latency_agnostic', 6.): {'provider': 'bridges', 'cell_id': None, 'point': '/bridges/la6.json', 'point_sha256': 'b',
+    measured = {'qwen-flash_quality-hard-7': (_observed(.4, .5), _record('qwen-flash_quality-hard-7'))}
+    reused = {'qwen-hard-7': (_observed(.3, .35), _record('qwen-hard-7'), '/collation/sfs'),
+              'qwen-lmdeploy_proxy-7': (_observed(.2, .25), _record('qwen-lmdeploy_proxy-7', 'current'), '/collation/baseline')}
+    bridges = {('latency_agnostic', 7.): {'provider': 'bridges', 'cell_id': None, 'point': '/bridges/la7.json', 'point_sha256': 'b',
                                           'status': 'EXISTING_REFERENCE_RETAINED', 'ttft_slo_attainment_pct': 36.9,
                                           'ontimeutility': {'pro': .1, 'flash': .12}, 'remaining_length_rule': 'current',
                                           'hardware': {'host': 'bridges'}, 'reused_from': str(INVENTORY)},
-               ('round_robin', 6.): {'provider': 'bridges', 'cell_id': None, 'point': '/bridges/rr6.json', 'point_sha256': 'r',
+               ('round_robin', 7.): {'provider': 'bridges', 'cell_id': None, 'point': '/bridges/rr7.json', 'point_sha256': 'r',
                                      'status': 'EXISTING_REFERENCE_RETAINED', 'ttft_slo_attainment_pct': 67.4, 'ontimeutility': None,
                                      'ontimeutility_note': 'Bridges point not readable on this host', 'remaining_length_rule': 'current',
                                      'hardware': {'host': 'bridges'}, 'reused_from': str(INVENTORY)}}
     matrix = variant_matrix(active, measured, reused, bridges)
     rows = {(r['variant'], r['policy'], r['qps']): r for r in matrix['rows']}
-    assert len(rows) == len(matrix['rows']) == (3 + 3*9) * 4
-    m = rows[('flash_quality', 'hard', 6.)]
+    assert len(rows) == len(matrix['rows']) == (3 + 3*9) * len(ABLATION_RATES)
+    m = rows[('flash_quality', 'hard', 7.)]
     assert m['source'] == 'measured' and m['provider'] == 'vast' and m['primary_judge'] == 'flash' and m['primary_ontimeutility'] == .5
     assert m['hardware'] == {'host': 'vast', 'gpus': ['NVIDIA H100 80GB HBM3']} and m['remaining_length_rule'] == RULE
     assert m['campaign_sha256'] == 'c' and m['qualification_sha256'] == 'q' and len(m['source_digest']) == 64
-    assert rows[('mlp_length', 'hard', 6.)] == {'variant': 'mlp_length', 'policy': 'hard', 'qps': 6., 'primary_judge': 'pro',
-                                                'source': 'missing', 'cell_id': 'qwen-mlp_length-hard-6'}
-    c = rows[('canonical', 'hard', 6.)]
+    assert rows[('mlp_length', 'hard', 7.)] == {'variant': 'mlp_length', 'policy': 'hard', 'qps': 7., 'primary_judge': 'pro',
+                                                'source': 'missing', 'cell_id': 'qwen-mlp_length-hard-7'}
+    c = rows[('canonical', 'hard', 7.)]
     assert c['source'] == 'reused_canonical' and c['provider'] == 'vast' and c['primary_judge'] == 'pro' and c['primary_ontimeutility'] == .3
-    assert c['reused_from'] == '/collation/sfs' and c['cell_id'] == 'qwen-hard-6'
-    f = rows[('flash_quality', 'lmdeploy_proxy', 6.)]
+    assert c['reused_from'] == '/collation/sfs' and c['cell_id'] == 'qwen-hard-7'
+    f = rows[('flash_quality', 'lmdeploy_proxy', 7.)]
     assert f['source'] == 'reused_canonical' and f['primary_judge'] == 'flash' and f['primary_ontimeutility'] == .25
-    assert f['cell_id'] == 'qwen-lmdeploy_proxy-6' and f['remaining_length_rule'] == 'current'
-    assert rows[('mlp_quality', 'lmdeploy_proxy', 6.)]['primary_ontimeutility'] == .2
-    la = rows[('canonical', 'latency_agnostic', 6.)]
-    assert la['provider'] == 'bridges' and la['source'] == 'reused_canonical' and la['point'] == '/bridges/la6.json' and la['primary_ontimeutility'] == .1
+    assert f['cell_id'] == 'qwen-lmdeploy_proxy-7' and f['remaining_length_rule'] == 'current'
+    assert rows[('mlp_quality', 'lmdeploy_proxy', 7.)]['primary_ontimeutility'] == .2
+    la = rows[('canonical', 'latency_agnostic', 7.)]
+    assert la['provider'] == 'bridges' and la['source'] == 'reused_canonical' and la['point'] == '/bridges/la7.json' and la['primary_ontimeutility'] == .1
     assert la['reused_from'] == str(INVENTORY) and la['cell_id'] is None
-    rr = rows[('mlp_quality', 'round_robin', 6.)]
+    rr = rows[('mlp_quality', 'round_robin', 7.)]
     assert rr['provider'] == 'bridges' and rr['primary_ontimeutility'] is None and 'not readable' in rr['ontimeutility_note']
     assert rows[('canonical', 'score', 7.)]['source'] == 'missing_canonical'
     assert rows[('mlp_length', 'vllm_sr_latency', 8.3)] == {'variant': 'mlp_length', 'policy': 'vllm_sr_latency', 'qps': 8.3,
@@ -275,11 +276,11 @@ def test_bridges_reference_rows_recompute_utility_from_readable_points(tmp_path)
                     'ttft_slo_ms': 200., 'response_model': 'qwen3-8b', 'actual_cost': 1.}]
     summary = {'system_entry_e2e_ttft_slo_attainment_pct': 50.}
     point = tmp_path/'point.json'
-    write(point, {'config': {'lambda_weight': .5, 'request_rate_qps': 6.}, 'router': {'runs': [
+    write(point, {'config': {'lambda_weight': .5, 'request_rate_qps': 7.}, 'router': {'runs': [
         {'utility': 'round_robin', 'per_request': per_request, 'summary': summary},
         {'utility': 'latency_agnostic', 'per_request': per_request, 'summary': summary}]}})
     reference = tmp_path/'inventory.json'
-    cells = [{'family': 'qwen', 'policy': 'latency_agnostic', 'qps': 6., 'requests': 2, 'point': str(point), 'point_sha256': digest(point),
+    cells = [{'family': 'qwen', 'policy': 'latency_agnostic', 'qps': 7., 'requests': 2, 'point': str(point), 'point_sha256': digest(point),
               'summary': summary, 'status': 'EXISTING_REFERENCE_RETAINED'},
              {'family': 'qwen', 'policy': 'round_robin', 'qps': 7., 'requests': 2, 'point': str(tmp_path/'missing.json'), 'point_sha256': '0'*64,
               'summary': {'system_entry_e2e_ttft_slo_attainment_pct': 40.}, 'status': 'EXISTING_REFERENCE_RETAINED'}]
@@ -289,7 +290,7 @@ def test_bridges_reference_rows_recompute_utility_from_readable_points(tmp_path)
                'flash': {('qwen3-8b', 'alpaca', 'e0'): .8, ('qwen3-8b', 'alpaca', 'e1'): .8}}
     common = {('alpaca', 'e0'), ('alpaca', 'e1')}
     rows = bridges_reference_rows(reference, mapping, quality, common)
-    la = rows[('latency_agnostic', 6.)]
+    la = rows[('latency_agnostic', 7.)]
     assert la['provider'] == 'bridges' and la['ontimeutility'] == {'pro': pytest.approx(.25), 'flash': pytest.approx(.15)}
     assert la['ttft_slo_attainment_pct'] == 50. and la['point_sha256'] == digest(point) and la['remaining_length_rule'] == 'current'
     assert la['observed_scored_queries'] == 2 and 'Recomputed' in la['ontimeutility_note']
@@ -307,16 +308,16 @@ def test_control_status_accounts_for_overlay_cells(tmp_path, capsys):
     from scripts.cloud.control import status
     state = tmp_path/'state'; (state/'jobs').mkdir(parents=True)
     point = tmp_path/'point.json'; write(point, {'x': 1})
-    write(state/'completed'/'qwen-mlp_length-hard-6.json', {'cell': {'id': 'qwen-mlp_length-hard-6'}, 'point': str(point), 'point_sha256': digest(point)})
+    write(state/'completed'/'qwen-mlp_length-hard-7.json', {'cell': {'id': 'qwen-mlp_length-hard-7'}, 'point': str(point), 'point_sha256': digest(point)})
     bundle = tmp_path/'bundle'; bundle.mkdir(); write(bundle/'bundle.json', _variant_bundle())
     status(str(state), str(bundle), str(OVERLAY))
     out = json.loads(capsys.readouterr().out)
-    assert out['expected'] == 36 and out['completed'] == 1 and out['campaign_kind'] == 'predictor_variants'
-    assert out['campaign_sha256'] == digest(OVERLAY) and len(out['remaining']) == 35 and 'qwen-mlp_length-hard-6' not in out['remaining']
+    assert out['expected'] == 27 and out['completed'] == 1 and out['campaign_kind'] == 'predictor_variants'
+    assert out['campaign_sha256'] == digest(OVERLAY) and len(out['remaining']) == 26 and 'qwen-mlp_length-hard-7' not in out['remaining']
     status(str(state), str(bundle), str(SFS_OVERLAY))
     out = json.loads(capsys.readouterr().out)
     assert out['expected'] == 14 and out['completed'] == 0 and out['campaign_kind'] == 'sfs_score' and len(out['remaining']) == 14
-    assert out['completed_outside_campaign'] == ['qwen-mlp_length-hard-6']
+    assert out['completed_outside_campaign'] == ['qwen-mlp_length-hard-7']
     status(str(state), str(bundle))
     out = json.loads(capsys.readouterr().out)
     assert out['expected'] == 0 and out['campaign_kind'] is None and out['campaign'] is None

@@ -30,7 +30,12 @@ def bundle(tmp_path):
 def flags(argv):
     out={}
     for i,token in enumerate(argv):
-        if token.startswith('--'):out[token]=argv[i+1] if i+1<len(argv) and not argv[i+1].startswith('--') else True
+        if not token.startswith('--'):continue
+        # Simulation options are emitted as one --option=value token so a negative decimal cannot be
+        # mistaken for an option by vLLM's parser (scripts.runs.service_metrics_config).
+        if '=' in token:
+            option,_,value=token.partition('=');out[option]=value
+        else:out[token]=argv[i+1] if i+1<len(argv) and not argv[i+1].startswith('--') else True
     return out
 
 
@@ -111,7 +116,7 @@ def test_fitted_coefficients_reach_router_and_servers(bundle,tmp_path):
     for i,row in enumerate(cfg['instances']):
         assert row['ttft_batch_model']==fitted[row['model_id']]
         argv=flags(instance_argv('qwen',tmp_path/'model',row,i,tmp_path,bundle/'qwen/length',bundle,'fcfs'))
-        assert argv['--simulation-intercept']==str(fitted[row['model_id']]['intercept']) and argv['--no-enable-chunked-prefill'] is True
+        assert float(argv['--simulation-intercept'])==fitted[row['model_id']]['intercept'] and argv['--no-enable-chunked-prefill'] is True
     # The independent audit only scores batches recorded after calibration ended.
     for model in OVERLAY['models']:trace(calibration/f'batch_stats_{model}.csv',truth,seed=3,start=2e9)
     coefficients.validate(tmp_path/'coefficients.json',calibration,tmp_path/'audit.json')
