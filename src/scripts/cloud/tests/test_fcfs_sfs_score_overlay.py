@@ -235,3 +235,39 @@ def test_provenance_and_release_bind_configuration_coefficients_overlay_and_rule
     publish({'remaining_length_rule': 'current'})
     with pytest.raises(ValueError, match='remaining-length'):
         worker.validate_release(qdir, options, 's', RULE)
+
+
+def _sfs_bundle():
+    """A bundle stand-in for the canonical SFS/SCORE overlay, which spans both families."""
+    from scripts.cloud.tests.test_sfs_score_campaign import _bundle
+    return _bundle()
+
+def test_the_tuned_score_multiplier_reaches_the_router_for_every_overlay_that_runs_score(bundle):
+    """A tuned multiplier in an overlay document is worthless unless the applied manifest carries it.
+
+    The unchunked SCORE cells of 18 September 2026 ran at the campaign objective's lambda because this
+    kind's applier wrote the key into the generated document but never onto the applied manifest, which
+    is what worker.routing_lambda reads. Generator coverage alone did not catch it, so every overlay
+    that carries SCORE cells is checked here through the same path a worker takes.
+    """
+    from scripts.cloud.campaigns import apply_any_campaign
+    from scripts.cloud.fcfs.campaign import apply_campaign as apply_fcfs
+    from scripts.cloud.worker import lambda_argv, parse, routing_lambda
+
+    canonical = read(ROOT/'scripts/cloud/sfs-score-campaign-20260917.json')
+    unchunked = read(ROOT/'scripts/cloud/fcfs/campaign-sfs-score-20260917.json')
+    applied = {
+        'sfs_score': apply_any_campaign(_sfs_bundle(), canonical),
+        'fcfs_sfs_score': apply_fcfs(read(bundle/'bundle.json'), unchunked, 'run'),
+    }
+    for kind, manifest in applied.items():
+        assert manifest['score_lambda_weight'] == 0.05, kind
+        score = next(c for c in manifest['cells'] if c['policy'] == 'score')
+        hard = next(c for c in manifest['cells'] if c['policy'] == 'hard')
+        # The multiplier is SCORE's alone; an SFS cell must never receive it.
+        assert routing_lambda(manifest, score) == 0.05, kind
+        assert routing_lambda(manifest, hard) is None, kind
+        argv = lambda_argv(['--lambda-weight', '5e-4'], manifest, routing_lambda(manifest, score))
+        args = parse(argv)
+        assert args.score_lambda_weight == 0.05, kind      # routing
+        assert args.lambda_weight == 5e-4, kind            # evaluation, untouched

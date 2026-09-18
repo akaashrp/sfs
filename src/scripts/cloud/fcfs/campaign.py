@@ -108,6 +108,11 @@ def apply_campaign(bundle, campaign, mode):
         result['remaining_length']=resolve_remaining_length(campaign.get('remaining_length'),{'qwen':result['families']['qwen']})
         result['accepted_prior_source_digests']=accepted_prior_source_digests(campaign)
     result['cells']=[{k:c[k] for k in KEYS} for c in cells if not c['status'].startswith('BLOCKED')]
+    # SCORE's tuned multiplier has to reach the worker, not merely sit in the overlay document: the
+    # applied manifest is what routing_lambda() reads, and an overlay kind that forgets to carry it
+    # silently runs SCORE at the campaign objective's lambda instead of its tuned one.
+    from scripts.cloud.campaigns import apply_tuned_score_lambda
+    result=apply_tuned_score_lambda(result,campaign)
     result['blocked_cells']=[c['id'] for c in cells if c['status'].startswith('BLOCKED')]
     result['requests_total']=sum(c['requests'] for c in result['cells'])
     if campaign.get('requests_total')!=sum(c['requests'] for c in cells):
