@@ -23,7 +23,8 @@ INSPECT_MODES=('calibrate','qualify','inspect')   # modes that never launch a ce
 KEYS=('id','family','variant','policy','qps','requests')
 REQUESTS=16000
 OVERLAYS={'chunk8192':ROOT/'scripts/cloud/fcfs/campaign-chunk8192-20260917.json',
-          'prefix_cache':ROOT/'scripts/cloud/fcfs/campaign-prefix-cache-20260917.json'}
+          'prefix_cache':ROOT/'scripts/cloud/fcfs/campaign-prefix-cache-20260917.json',
+          'kv_constrained':ROOT/'scripts/cloud/fcfs/campaign-kv-constrained-20260918.json'}
 CANONICAL_SFS_SCORE=ROOT/'scripts/cloud/sfs-score-campaign-20260917.json'
 QUALIFICATION={
     'refit':['Gates of the configuration state root under this source (test.sh, prepare cpu/serving); no FCFS admission audit (canonical context length)',
@@ -42,6 +43,18 @@ NOTES={
                             'as a reduced grid of SFS (hard) plus the two strongest external baselines at 6/7/8/8.3 QPS x 16,000 requests, with the 0.6B '
                             'remaining-length rule. The 8192-token step changes the batch timing regime, so the SFS batch coefficients are refitted from '
                             'destination traces of this configuration and bound to every qualification and completed-ledger entry.'},
+    'kv_constrained':{'decision':'User decision 2026-09-17: a fourth serving configuration combining KV cache size (gpu_memory_utilization 0.70), '
+                                 'a concurrency cap (max_num_seqs 128) and a long-prefill threshold (2048 tokens), as a reduced grid of SFS (hard) plus '
+                                 'the two strongest external baselines at 6/7/8/8.3 QPS x 16,000 requests, with the 0.6B remaining-length rule. '
+                                 'Attribution between the three knobs is not the point: the configuration is one coherent constrained-capacity regime, '
+                                 'chosen because all three are settings vLLM actually schedules on and the SFS simulator models.',
+                      'estimators':'Every knob here is one the simulator already reads: max_num_seqs and long_prefill_token_threshold arrive in the '
+                                   'published snapshot config and bound its scheduling loop, and the KV cache size arrives as free blocks, which is what '
+                                   'drives its preemption path. Nothing about the estimator changes; what changes is that the engine now spends most of '
+                                   'its time in the regime where those terms bind.',
+                      'coefficients':'The 128-sequence cap truncates the decode-batch range the canonical fit was measured over, so the SFS batch '
+                                     'coefficients are refitted from destination traces of this configuration and validated by the batch-residual audit '
+                                     'before any cell runs.'},
     'prefix_cache':{'decision':'User decision 2026-09-17: prefix-caching serving configuration (vLLM automatic prefix caching on, canonical 32768-token step) as a '
                                'reduced grid of SFS (hard) plus the two strongest external baselines at 6/7/8/8.3 QPS x 16,000 requests, with the 0.6B '
                                'remaining-length rule. Per-token step costs are unchanged, so the canonical SFS batch coefficients are retained '

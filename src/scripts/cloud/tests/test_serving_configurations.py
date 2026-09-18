@@ -14,7 +14,7 @@ from scripts.cloud.fcfs.campaign import apply_campaign as apply_fcfs
 from scripts.cloud.pool import instance_argv, instance_config, remaining_length_provenance
 from scripts.cloud.serving import campaign, coefficients, profiles
 from scripts.cloud.serving.gpu_smoke import evidence, run as smoke_run
-from scripts.cloud.serving.profiles import CHUNK8192, PREFIX_CACHE, FCFS, PROFILES, NAMES, CANONICAL
+from scripts.cloud.serving.profiles import CHUNK8192, CONSTRAINED, PREFIX_CACHE, FCFS, PROFILES, NAMES, CANONICAL
 from scripts.cloud.sfs_score_campaign import apply_sfs_score_campaign
 from scripts.cloud.worker import configuration, coefficient_policy, family_remaining_length, provenance, remaining_length_record
 from scripts.runs import qwen_baselines as qwen
@@ -68,7 +68,8 @@ def trace(path, c, rows=400, noise=2e-5, seed=1, start=1e9):
 
 
 def test_profile_table():
-    assert NAMES == ('canonical', 'fcfs', 'chunk8192', 'prefix_cache') and set(PROFILES) == {'fcfs', 'chunk8192', 'prefix_cache'}
+    assert NAMES == ('canonical', 'fcfs', 'chunk8192', 'prefix_cache', 'kv_constrained')
+    assert set(PROFILES) == {'fcfs', 'chunk8192', 'prefix_cache', 'kv_constrained'}
     assert FCFS.configuration_id == fcfs.CONFIG_ID and FCFS.settings == fcfs.SETTINGS and FCFS.coefficient_policy == 'refit' and FCFS.admission_audit
     # Canonical reference row agrees with the canonical Qwen profile; each ablation changes exactly the named setting.
     assert all(CANONICAL[k] == qwen.PROFILE[k] for k in ('chunked_prefill', 'max_num_batched_tokens', 'max_model_len', 'max_num_seqs', 'prefix_caching', 'gpu_memory_utilization'))
@@ -78,11 +79,23 @@ def test_profile_table():
     assert PREFIX_CACHE.coefficient_policy == 'canonical' and not PREFIX_CACHE.admission_audit and PREFIX_CACHE.bounded_smoke is None
     assert CHUNK8192.snapshot_config == {'chunked_prefill_enabled': True, 'max_num_batched_tokens': 8192, 'max_num_seqs': 512, 'max_model_len': 131072, 'long_prefill_token_threshold': 0, 'policy': 'fcfs'}
     assert FCFS.snapshot_config['chunked_prefill_enabled'] is False and FCFS.snapshot_config['max_num_batched_tokens'] == 65536
+    # The constrained configuration changes three settings at once on purpose: it is one capacity regime,
+    # not three attributable knobs, and every one of them is a setting vLLM schedules on.
+    assert CONSTRAINED.configuration_id == 'qwen-kv-constrained' and CONSTRAINED.coefficient_policy == 'refit'
+    assert CONSTRAINED.changed == {'gpu_memory_utilization': .70, 'max_num_seqs': 128, 'long_prefill_token_threshold': 2048}
+    assert CONSTRAINED.settings['chunked_prefill'] is True and CONSTRAINED.settings['max_num_batched_tokens'] == 32768
+    assert not CONSTRAINED.admission_audit and CONSTRAINED.bounded_smoke == 'chunk_bound'
+    assert CONSTRAINED.snapshot_config == {'chunked_prefill_enabled': True, 'max_num_batched_tokens': 32768, 'max_num_seqs': 128,
+                                           'max_model_len': 131072, 'long_prefill_token_threshold': 2048, 'policy': 'fcfs'}
+    # The KV cache size is a server setting, not a snapshot one: the router reads its effect as free blocks.
+    assert 'gpu_memory_utilization' not in CONSTRAINED.snapshot_config and 'gpu_memory_utilization' not in CONSTRAINED.rows
     assert profiles.for_configuration('qwen-chunk8192') is CHUNK8192 and profiles.profile('prefix_cache') is PREFIX_CACHE
+    assert profiles.for_configuration('qwen-kv-constrained') is CONSTRAINED
     for bad in (lambda: profiles.profile('canonical'), lambda: profiles.profile('chunk4096'), lambda: profiles.for_configuration('canonical')):
         with pytest.raises(ValueError):
             bad()
-    for name, cid, policy in (('canonical', 'canonical', 'canonical'), ('fcfs', fcfs.CONFIG_ID, 'refit'), ('chunk8192', 'qwen-chunk8192', 'refit'), ('prefix_cache', 'qwen-prefix-cache', 'canonical')):
+    for name, cid, policy in (('canonical', 'canonical', 'canonical'), ('fcfs', fcfs.CONFIG_ID, 'refit'), ('chunk8192', 'qwen-chunk8192', 'refit'),
+                              ('prefix_cache', 'qwen-prefix-cache', 'canonical'), ('kv_constrained', 'qwen-kv-constrained', 'refit')):
         options = SimpleNamespace(profile=name)
         assert configuration(options) == cid and coefficient_policy(options) == policy
     assert configuration(SimpleNamespace()) == 'canonical'

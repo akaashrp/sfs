@@ -76,7 +76,15 @@ PREFIX_CACHE = Profile('prefix_cache', 'qwen-prefix-cache', dict(CANONICAL, pref
     boolean_swaps=(('--no-enable-prefix-caching', '--enable-prefix-caching'),), rows={'prefix_caching_enabled': True},
     extra_argv=('--enable-prompt-tokens-details',))
 
-PROFILES = {p.name: p for p in (FCFS, CHUNK8192, PREFIX_CACHE)}
+CONSTRAINED = Profile('kv_constrained', 'qwen-kv-constrained',
+    dict(CANONICAL, gpu_memory_utilization=.70, max_num_seqs=128, long_prefill_token_threshold=2048),
+    'refit', 'Constrained capacity: KV cache cut to 0.70 GPU memory utilization, concurrency capped at 128 sequences and '
+             'prompts over 2048 tokens admitted as long prefills, so the scheduler runs against KV pressure and a queue '
+             'rather than against a step budget',
+    options=(('--gpu-memory-utilization', .70), ('--max-num-seqs', 128), ('--long-prefill-token-threshold', 2048)),
+    rows={'max_num_seqs': 128, 'long_prefill_token_threshold': 2048}, bounded_smoke='chunk_bound')
+
+PROFILES = {p.name: p for p in (FCFS, CHUNK8192, PREFIX_CACHE, CONSTRAINED)}
 NAMES = ('canonical', *PROFILES)
 
 
