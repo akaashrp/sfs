@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_epoch": 1789621422.539305,
+  "updated_epoch": 1789654025.903118,
   "identity_fields": [
     "family",
     "variant",
@@ -1610,7 +1610,7 @@
       ],
       "ministral": {
         "status": "SUBMITTED_PENDING_LOW_PRIORITY",
-        "recorded_at_utc": "2026-09-17T04:52:12.916363+00:00",
+        "recorded_at_utc": "2026-09-17T14:07:05.885678+00:00",
         "purpose": "Ministral prefill-throughput-estimator baseline: hard_prefill_tps at 0.65/0.85/0.95 of K_M=9.25 (6.0125/7.8625/8.7875 QPS), 8,000 requests per cell, on the frozen Figure 5 workload and measured calibration",
         "provider": "bridges",
         "family": "ministral",
@@ -1619,7 +1619,7 @@
         "arrival_timing": "absolute_schedule_thread",
         "worktree": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917",
         "branch": "experiments/bridges-ptps-20260917",
-        "sfs_commit": "670a0af3cb1a4579eb2bada2255222e47666ebab",
+        "sfs_commit": "2ff8dd2d0ea14ed25bd2c6de2d63b522123c0dbe",
         "vllm_commit": "28bbf9226ffd607f01006aeece3996250ee3e4dc",
         "runner": {
           "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/src/scripts/runs/ministral3_hard_prefill_tps.py",
@@ -1638,7 +1638,7 @@
         "reference": "ops/cloud/ministral_sfs.py REFERENCE (Vast canonical Ministral SFS cells on the same frozen workload)",
         "side_manifest": {
           "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/side/manifest.json",
-          "sha256": "4cb135b124db9d7de73cd89d8234ef43ec0e4034b7351eb2274b6d0f795e8598",
+          "sha256": "3353dc34a863fb62242c7a969ab5ada912574a2344f8cada6d66019dd1d53e15",
           "legacy_manifest": "/ocean/projects/cis250162p/aparthas/sfs_model_family/experiments/campaign_cold_start_fix_20260912/ministral_figure5_manifest.json",
           "legacy_manifest_sha256": "865325ce8a5b3cf642a55a889bd67eae61e29f5deb48d8e5813a7fa704d52ff2",
           "legacy_32_cells_unchanged": true,
@@ -1651,7 +1651,8 @@
             "shortest_queue",
             "latency_agnostic",
             "round_robin"
-          ]
+          ],
+          "stale_previous": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/side.stale-20260917/manifest.json"
         },
         "calibration_reuse": {
           "stage": "/ocean/projects/cis250162p/aparthas/sfs_model_family/experiments/campaign_cold_start_fix_20260912/ministral_smoke/derived_stage",
@@ -1672,7 +1673,7 @@
         "gates": {
           "cpu_regression": {
             "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/tests/regression/gate.json",
-            "sha256": "720fd33c870e301890142fa59670080e7475bfa282cafe51544d73d479f0029b",
+            "sha256": "b8da7d61b099877ceca9e4aadf6875d746d10deae3a3123e304e07d94205f4c5",
             "status": "PASS_CPU_REGRESSION",
             "tests": 168
           },
@@ -1686,19 +1687,20 @@
           },
           "rehearsal": {
             "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/rehearsal.json",
-            "sha256": "08c5f847d7760e4694ae8f6f50624766b126c315ea47709795f81228abd011d1"
+            "sha256": "76bac973a2f2507371de0274ff80a52b02b5449b483dec206585deff251b9f4a"
           },
           "gpu_gates_in_order": [
             "ministral3_figure5 validate (frozen 32-cell manifest, service/predictor dirs)",
             "side manifest validate (frozen inputs, source, side module, legacy policy tuple)",
             "smoke: hard_prefill_tps, 192 calibration requests at 2 QPS; audit_run + complete TTFT + estimator path (prefill_tps_ttft, prefill TPS == service metrics, thread arrivals)",
             "sweep gated on that smoke audit; per-cell scripts.cloud.worker.audit_cell + ministral3_figure5.audit_points + estimator audit, labelled provider=bridges"
-          ]
+          ],
+          "cpu_import_check": "Launchers now import vllm.vllm_flash_attn.layers.rotary, vllm.model_executor.layers.rotary_embedding, vllm.v1.engine and vllm.v1.engine._scheduler_sim before the SFS_PREFLIGHT_ONLY exit"
         },
         "jobs": [
           {
             "name": "sfs-ptps-ministral-smoke",
-            "job_id": "46211709",
+            "job_id": "46248640",
             "arm": "canonical",
             "stage": "smoke",
             "dependency": null,
@@ -1708,27 +1710,27 @@
             "partition": "GPU-shared",
             "gpus": 3,
             "script": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/jobs/sfs-ptps-ministral-smoke.sbatch",
-            "script_sha256": "8d748fd2d71cd4a2b084507d4f108423ae451889afc05aa1de1b4267d5b68a29",
+            "script_sha256": "f97da89dc4e4eb0de8b8ed90fa126791e45be17a0698ec08b1b5492fb034e115",
             "stored_script_verified": true,
-            "submitted_at_utc": "2026-09-17T04:52:06.798211+00:00",
+            "submitted_at_utc": "2026-09-17T14:06:43.295782+00:00",
             "cells": [],
             "evaluation_cells": 0
           },
           {
             "name": "sfs-ptps-ministral-sweep",
-            "job_id": "46211710",
+            "job_id": "46248641",
             "arm": "canonical",
             "stage": "sweep",
-            "dependency": "46211709",
+            "dependency": "46248640",
             "nice": 400,
             "account": "cis260115p",
             "qos": "gpu",
             "partition": "GPU-shared",
             "gpus": 3,
             "script": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/jobs/sfs-ptps-ministral-sweep.sbatch",
-            "script_sha256": "c7a524501d87ef228247599967aa6f1457f2145f6c104142d1b748b368bca86a",
+            "script_sha256": "e508a7e5e9a7d5e2e2da5792e6894f55a8712cf7a3a3efca2fec8cc921b969ac",
             "stored_script_verified": true,
-            "submitted_at_utc": "2026-09-17T04:52:06.820351+00:00",
+            "submitted_at_utc": "2026-09-17T14:06:43.493218+00:00",
             "cells": [
               "ministral-hard_prefill_tps-6.0125-rerun",
               "ministral-hard_prefill_tps-7.8625-rerun",
@@ -1747,7 +1749,7 @@
             "requests": 8000,
             "provider": "bridges",
             "status": "SUBMITTED_PENDING",
-            "sweep_job_id": "46211710"
+            "sweep_job_id": "46248641"
           },
           {
             "id": "ministral-hard_prefill_tps-7.8625-rerun",
@@ -1758,7 +1760,7 @@
             "requests": 8000,
             "provider": "bridges",
             "status": "SUBMITTED_PENDING",
-            "sweep_job_id": "46211710"
+            "sweep_job_id": "46248641"
           },
           {
             "id": "ministral-hard_prefill_tps-8.7875-rerun",
@@ -1769,7 +1771,7 @@
             "requests": 8000,
             "provider": "bridges",
             "status": "SUBMITTED_PENDING",
-            "sweep_job_id": "46211710"
+            "sweep_job_id": "46248641"
           }
         ],
         "cell_ids": [
@@ -1789,7 +1791,104 @@
             "ministral-hard_prefill_tps-8.7875-rerun"
           ],
           "reason": "The Bridges Ministral path cannot run hard_prefill_tps without source changes: ministral3_methodology_stage.POLICIES and the frozen Figure 5 manifest contain only hard (live estimator); ministral3_figure5.load_manifest requires policies == POLICIES; ministral3_recovery RERUN/plan cells are fixed"
-        }
+        },
+        "failed_attempts": [
+          {
+            "status": "FAILED_ENVIRONMENT",
+            "recorded_at_utc": "2026-09-17T04:52:12.916363+00:00",
+            "jobs": [
+              {
+                "name": "sfs-ptps-ministral-smoke",
+                "job_id": "46211709",
+                "arm": "canonical",
+                "stage": "smoke",
+                "dependency": null,
+                "nice": 400,
+                "account": "cis260115p",
+                "qos": "gpu",
+                "partition": "GPU-shared",
+                "gpus": 3,
+                "script": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/jobs/sfs-ptps-ministral-smoke.sbatch",
+                "script_sha256": "8d748fd2d71cd4a2b084507d4f108423ae451889afc05aa1de1b4267d5b68a29",
+                "stored_script_verified": true,
+                "submitted_at_utc": "2026-09-17T04:52:06.798211+00:00",
+                "cells": [],
+                "evaluation_cells": 0
+              },
+              {
+                "name": "sfs-ptps-ministral-sweep",
+                "job_id": "46211710",
+                "arm": "canonical",
+                "stage": "sweep",
+                "dependency": "46211709",
+                "nice": 400,
+                "account": "cis260115p",
+                "qos": "gpu",
+                "partition": "GPU-shared",
+                "gpus": 3,
+                "script": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/jobs/sfs-ptps-ministral-sweep.sbatch",
+                "script_sha256": "c7a524501d87ef228247599967aa6f1457f2145f6c104142d1b748b368bca86a",
+                "stored_script_verified": true,
+                "submitted_at_utc": "2026-09-17T04:52:06.820351+00:00",
+                "cells": [
+                  "ministral-hard_prefill_tps-6.0125-rerun",
+                  "ministral-hard_prefill_tps-7.8625-rerun",
+                  "ministral-hard_prefill_tps-8.7875-rerun"
+                ],
+                "evaluation_cells": 3
+              }
+            ],
+            "side_manifest": {
+              "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/side/manifest.json",
+              "sha256": "4cb135b124db9d7de73cd89d8234ef43ec0e4034b7351eb2274b6d0f795e8598",
+              "legacy_manifest": "/ocean/projects/cis250162p/aparthas/sfs_model_family/experiments/campaign_cold_start_fix_20260912/ministral_figure5_manifest.json",
+              "legacy_manifest_sha256": "865325ce8a5b3cf642a55a889bd67eae61e29f5deb48d8e5813a7fa704d52ff2",
+              "legacy_32_cells_unchanged": true,
+              "legacy_policies_unchanged": [
+                "hard",
+                "score",
+                "lmdeploy_proxy",
+                "mooncake_prefill",
+                "routebalance",
+                "shortest_queue",
+                "latency_agnostic",
+                "round_robin"
+              ]
+            },
+            "gates": {
+              "cpu_regression": {
+                "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/tests/regression/gate.json",
+                "sha256": "720fd33c870e301890142fa59670080e7475bfa282cafe51544d73d479f0029b",
+                "status": "PASS_CPU_REGRESSION",
+                "tests": 168
+              },
+              "side_tests": {
+                "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/tests/side_tests.xml",
+                "sha256": "f52bd9b3aa1ecd6b9a1dfd1deabe17c441d37a5877a2635678e1863c3b2616f6"
+              },
+              "cpu_preflight": {
+                "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/preflight/sfs-ptps-ministral-smoke_cpu.json",
+                "status": "PASS_CPU_PREFLIGHT"
+              },
+              "rehearsal": {
+                "path": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/rehearsal.json",
+                "sha256": "08c5f847d7760e4694ae8f6f50624766b126c315ea47709795f81228abd011d1"
+              },
+              "gpu_gates_in_order": [
+                "ministral3_figure5 validate (frozen 32-cell manifest, service/predictor dirs)",
+                "side manifest validate (frozen inputs, source, side module, legacy policy tuple)",
+                "smoke: hard_prefill_tps, 192 calibration requests at 2 QPS; audit_run + complete TTFT + estimator path (prefill_tps_ttft, prefill TPS == service metrics, thread arrivals)",
+                "sweep gated on that smoke audit; per-cell scripts.cloud.worker.audit_cell + ministral3_figure5.audit_points + estimator audit, labelled provider=bridges"
+              ]
+            },
+            "sfs_commit": "670a0af3cb1a4579eb2bada2255222e47666ebab",
+            "failed_at_utc": "2026-09-17T14:07:05.885678+00:00",
+            "failure": "Smoke 46211709 failed after ~22 min: every vLLM engine crashed at import with ModuleNotFoundError: No module named 'vllm.vllm_flash_attn.layers' (smoke_pool_46211709/vllm_ministral3-3b.log). Sweep 46211710 was cancelled by Slurm (afterok, kill-on-invalid-dep). No GPU results.",
+            "root_cause": "The worktree vLLM (git worktree at 28bbf92 + symlinked compiled extensions from sfs_model_family/vllm) lacked the untracked vllm_flash_attn build outputs (__init__.py, flash_attn_interface.py, layers/, ops/). Fixed by symlinking them from sfs_model_family/vllm; that added 7 .py files to scripts.cloud.common.source_hashes, so the side manifest and CPU regression gate were regenerated (old copies: side.stale-20260917/, tests/regression.stale-20260917/).",
+            "evidence": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/smoke_pool_46211709",
+            "submission_record": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917/ministral/submission-failed-46211709.json"
+          }
+        ]
       },
       "priority": "Low. Canonical first, then mlp_length, mlp_quality, flash_quality via Slurm afterok dependencies and increasing --nice",
       "results_root": "/ocean/projects/cis250162p/aparthas/sfs_ptps_20260917/experiments/bridges_ptps_20260917",
