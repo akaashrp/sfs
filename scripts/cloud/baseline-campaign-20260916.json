@@ -3,6 +3,22 @@
   "status": "AUTHORIZED_AFTER_SOURCE_AND_GPU_GATES",
   "cells": [
     {
+      "id": "ministral-latency_agnostic-8.1",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "latency_agnostic",
+      "qps": 8.1,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-lmdeploy_proxy-8.1",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "lmdeploy_proxy",
+      "qps": 8.1,
+      "requests": 8000
+    },
+    {
       "id": "ministral-mooncake_prefill-6.0125",
       "family": "ministral",
       "variant": "canonical",
@@ -32,6 +48,14 @@
       "variant": "canonical",
       "policy": "mooncake_prefill",
       "qps": 8.7875,
+      "requests": 8000
+    },
+    {
+      "id": "ministral-round_robin-8.1",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "round_robin",
+      "qps": 8.1,
       "requests": 8000
     },
     {
@@ -259,7 +283,7 @@
       "requests": 16000
     }
   ],
-  "requests_total": 384000,
+  "requests_total": 408000,
   "excluded_policies": [
     "score",
     "hard"

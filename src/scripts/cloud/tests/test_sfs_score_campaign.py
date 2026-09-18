@@ -98,7 +98,7 @@ def test_kind_dispatch_selects_the_validator():
     from scripts.cloud.campaigns import apply_any_campaign
     assert apply_any_campaign(_bundle(), read(OVERLAY))['kind'] == 'sfs_score'
     baseline = apply_any_campaign(_bundle(), read(BASELINE))
-    assert len(baseline['cells']) == 32 and 'kind' not in baseline and 'remaining_length' not in baseline
+    assert len(baseline['cells']) == 35 and 'kind' not in baseline and 'remaining_length' not in baseline
     with pytest.raises(ValueError, match='Unknown campaign kind'):
         apply_any_campaign(_bundle(), {'kind': 'mystery', 'cells': []})
 

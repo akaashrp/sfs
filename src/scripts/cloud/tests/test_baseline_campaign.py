@@ -13,8 +13,8 @@ def test_active_and_fallback_campaign_preserve_bundled_artifacts():
     assert bundle == saved and active['files'] == saved['files']
     # 4 Qwen policies x 4 rates x 16,000 plus 4 Ministral policies x 4 rates x 8,000; the Ministral
     # grid gained 8.1 QPS on 18 September 2026 (scripts/cloud/baseline_campaign.RATES).
-    assert len(active['cells']) == 32
-    assert active['requests_total'] == 384000
+    assert len(active['cells']) == 35
+    assert active['requests_total'] == 408000
     assert not any(c['policy'] in ('score','hard','hard_prefill_tps') for c in active['cells'])
     assert len(campaign['fallback_cells']) == 7
     assert all(c['qps'] in RATES[c['family']] for c in campaign['fallback_cells'])
@@ -42,3 +42,22 @@ def test_accepted_prior_source_digests_are_carried_and_validated():
     with pytest.raises(ValueError): apply_campaign(bundle, bad)
     bad = deepcopy(campaign); bad['accepted_prior_source_digests'] = {'a'*64: ''}
     with pytest.raises(ValueError): apply_campaign(bundle, bad)
+
+
+def test_supplementary_cells_complete_one_rate_without_widening_the_grid():
+    """The three Bridges-measured Ministral policies are authorized at 8.1 only."""
+    from scripts.cloud.baseline_campaign import POLICIES, RATES, SUPPLEMENTARY, apply_campaign
+    bundle = {'families': {f: {'qps': [99], 'policies': ['hard'], 'requests': n}
+                           for f, n in [('qwen', 16000), ('ministral', 8000)]},
+              'files': {}, 'cells': []}
+    active = apply_campaign(bundle, read(ROOT/'scripts/cloud/baseline-campaign-20260916.json'))
+    cells = {(c['family'], c['policy'], c['qps']) for c in active['cells']}
+    for policy, rate in SUPPLEMENTARY['ministral']:
+        assert ('ministral', policy, rate) in cells                     # authorized at 8.1
+        assert policy not in POLICIES['ministral']                      # and nowhere else
+        for other in RATES['ministral']:
+            if other != rate:
+                assert ('ministral', policy, other) not in cells
+        # Smoke must still cover them, or the pool would evaluate an unproven policy.
+        assert policy in active['families']['ministral']['policies']
+    assert len(cells) == len(active['cells']) == 35
