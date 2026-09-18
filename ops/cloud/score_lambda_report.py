@@ -9,7 +9,11 @@ sha256, and reports, per lambda, the metrics the campaign reports for a SCORE ce
     index. The 2,000-request probe is the first 2,000 requests of the canonical 16,000-request
     sequence (the holdout pool is mixed and shuffled from the full per-bucket limit with the same
     seed and only then truncated to num_requests), so the frozen request map is restricted to the
-    routed ids and passed unchanged; the observed-query cohort stays the frozen full-bundle cohort;
+    routed ids and passed unchanged; the observed-query cohort stays the frozen full-bundle cohort.
+    observed_utilities scores a point with the multiplier that point was routed under, which would
+    make four differently-routed lambdas incomparable, so the reported (primary) number fixes the
+    campaign's reporting multiplier REPORTING_LAMBDA for every probe, exactly as every reportable
+    cell of the campaign is scored today; the as-run value is reported beside it, labelled;
   * median and p90 system-entry end-to-end TTFT;
   * per-model routing counts;
   * predicted-versus-actual error of SCORE's own latency terms for the selected engine.
@@ -21,6 +25,10 @@ from collections import Counter
 import json
 from pathlib import Path
 import statistics
+
+# Every reportable cell of the campaign - SFS, SCORE and every baseline - is scored with the
+# bundle's own multiplier, so OnTimeUtility is comparable across cells only at this fixed value.
+REPORTING_LAMBDA = 5e-4
 
 
 def _percentile(values, q):
@@ -63,7 +71,7 @@ def wait_errors(rows):
 
 
 def probe_row(record, bundle, mapping, quality, common):
-    from scripts.cloud.common import digest, read
+    from scripts.cloud.common import digest, read, source_digest
     from scripts.cloud.collate import observed_utilities
     from sfs_core.shared.model_label_helpers import normalize_model_label
     point = Path(record['point'])
@@ -78,8 +86,12 @@ def probe_row(record, bundle, mapping, quality, common):
     ttft = [float(r['system_entry_e2e_ttft_ms']) for r in rows]
     met = sum(1 for r in rows if r.get('system_entry_e2e_ttft_slo_met'))
     subset = {rid: entry for rid, entry in mapping.items() if rid in {r['request_id'] for r in rows}}
-    observed = observed_utilities(payload, subset, quality, common, 'pro')
+    reported = dict(payload, config=dict(payload['config'], lambda_weight=REPORTING_LAMBDA))
+    observed = observed_utilities(reported, subset, quality, common, 'pro')
+    as_run = observed_utilities(payload, subset, quality, common, 'pro')
     return {'cell': cell['id'], 'lambda_weight': cell['lambda_weight'], 'requests': len(rows),
+            'reporting_lambda_weight': REPORTING_LAMBDA,
+            'pro_ontimeutility_at_as_run_lambda': as_run['ontimeutility']['pro'],
             'data_role': record.get('data_role'), 'point': str(point), 'point_sha256': record['point_sha256'],
             'ttft_slo_attainment_pct': run['summary']['system_entry_e2e_ttft_slo_attainment_pct'],
             'ttft_slo_attainment_pct_recomputed': 100.0*met/len(rows),
@@ -93,6 +105,11 @@ def probe_row(record, bundle, mapping, quality, common):
             'model_counts': dict(Counter(normalize_model_label(r['response_model']) for r in rows if r.get('response_model'))),
             'mean_actual_cost': statistics.mean(float(r['actual_cost']) for r in rows),
             'realized_qps': len(rows)/float(run['summary']['elapsed_s']) if run['summary'].get('elapsed_s') else None,
+            'elapsed_s': run['summary'].get('elapsed_s'),
+            'mean_predicted_accuracy': (run['summary'].get('predicted_accuracy') or {}).get('mean'),
+            'campaign_sha256': record.get('campaign_sha256'), 'qualification_sha256': record.get('qualification_sha256'),
+            'source_digest': source_digest(record['source_sha256']), 'hardware_host': (record.get('hardware') or {}).get('host'),
+            'remaining_length_rule': record.get('remaining_length_rule'),
             'wait_error': wait_errors(rows)}
 
 
@@ -110,9 +127,13 @@ def report(bundle, state, output):
     rows.sort(key=lambda r: r['lambda_weight'])
     result = {'probe': 'scripts/cloud/score-lambda-sweep-20260917.json', 'data_role': 'tuning_probe',
               'bundle_sha256': digest(bundle/'bundle.json'), 'observed_query_cohort': len(common),
-              'utility_definition': 'mean over every routed request of (frozen judge quality of the answering model on '
-                                    'that query - lambda_weight * actual_cost), gated by the system-entry TTFT SLO; '
-                                    'requests outside the frozen observed-judge cohort are excluded, as in the campaign',
+              'reporting_lambda_weight': REPORTING_LAMBDA,
+              'utility_definition': 'pro_ontimeutility is the mean over every routed request of (frozen Pro judge quality '
+                                    'of the answering model on that query - 5e-4 * actual_cost), gated by the system-entry '
+                                    'TTFT SLO, with requests outside the frozen observed-judge cohort excluded: the '
+                                    'campaign definition, at the campaign reporting multiplier for every probe so the four '
+                                    'lambdas are comparable. pro_ontimeutility_at_as_run_lambda repeats it with each '
+                                    'probe\'s own routing multiplier and is reported only for completeness',
               'rows': rows}
     if output:
         Path(output).parent.mkdir(parents=True, exist_ok=True)
