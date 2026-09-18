@@ -213,7 +213,8 @@ def test_collate_binds_records_to_the_overlay_and_labels_status():
     assert audit_status(expected, []) == 'PASS_27_CELLS' and audit_status(expected, ['x']) == 'PARTIAL'
     from scripts.cloud.sfs_score_campaign import apply_sfs_score_campaign
     sfs = apply_sfs_score_campaign(_variant_bundle(), read(SFS_OVERLAY))
-    assert audit_status({c['id']: c for c in sfs['cells']}, []) == 'PASS_14_CELLS' and expected_rules(sfs) == rules
+    # 16 since 8.1 QPS joined the Ministral grid (scripts/cloud/baseline_campaign.RATES).
+    assert audit_status({c['id']: c for c in sfs['cells']}, []) == 'PASS_16_CELLS' and expected_rules(sfs) == rules
 
 
 def _observed(pro, flash):
@@ -316,7 +317,7 @@ def test_control_status_accounts_for_overlay_cells(tmp_path, capsys):
     assert out['campaign_sha256'] == digest(OVERLAY) and len(out['remaining']) == 26 and 'qwen-mlp_length-hard-7' not in out['remaining']
     status(str(state), str(bundle), str(SFS_OVERLAY))
     out = json.loads(capsys.readouterr().out)
-    assert out['expected'] == 14 and out['completed'] == 0 and out['campaign_kind'] == 'sfs_score' and len(out['remaining']) == 14
+    assert out['expected'] == 16 and out['completed'] == 0 and out['campaign_kind'] == 'sfs_score' and len(out['remaining']) == 16
     assert out['completed_outside_campaign'] == ['qwen-mlp_length-hard-7']
     status(str(state), str(bundle))
     out = json.loads(capsys.readouterr().out)
