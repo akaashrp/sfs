@@ -1,159 +1,92 @@
-# Cloud campaign status — 16 September 2026
+# Cloud campaign status — 18 September 2026
 
-This is a live operational handoff, captured after inspecting the Vast state,
-the completion ledger, the result collator, the local Git branches, and the
-Bridges queue. It distinguishes audited cells from raw but invalid artifacts.
-Refresh it after any restart or new completion.
+Live operational handoff, refreshed after the Ministral SFS diagnosis, the SCORE
+multiplier sweep and the requeue that followed both. It supersedes the 16 September
+capture. Refresh it after any restart or new completion.
 
 ## Current operational state
 
-- No evaluation pool is currently running on Vast. The Qwen and Ministral
-  campaign workers both stopped at their arrival-rate audit; all eight GPUs are
-  idle. The read-only monitor and collator remain running.
-- The primary cloud campaign is a 28-cell overlay:
-  - Qwen: LMDeploy, vLLM-SR, Mooncake, and RouteBalance at 6, 7, 8, and 8.3
-    QPS, with 16,000 requests per cell.
-  - Ministral: shortest queue, vLLM-SR, Mooncake, and RouteBalance at 6.0125,
-    7.8625, and 8.7875 QPS, with 8,000 requests per cell.
-  - SFS and SCORE are deliberately outside this launch list while the
-    remaining-output-length investigation is unresolved.
-- Mooncake and RouteBalance use the repaired telemetry behavior: snapshot age
-  is logged but no longer causes a one-second rejection; Ministral no longer
-  waits up to ten seconds for fresh telemetry. Both methods passed their GPU
-  smoke/stress gates, including a busy-snapshot probe older than one second.
-  Their full cells have not yet begun.
-- The active Vast checkout is `da1c78b`; the local/cloud preparation branch is
-  pushed through `7380c13`. The FCFS preparation worktree is pushed through
-  `7764e49`.
+- Two pools are evaluating on Vast, both on `repo-v7` (`9b8d040`), both released.
+  - GPUs 0-3: `score-qwen-tuned-20260918` — the four Qwen SCORE cells at 6/7/8/8.3
+    QPS by 16,000 requests, rerun at SCORE's tuned Lagrange multiplier 5e-2.
+  - GPUs 4-6: `sfs-score-ministral-20260918` — the three Ministral SFS cells rerun on
+    a corrected batch clock, then the three Ministral SCORE cells at the tuned
+    multiplier, 8,000 requests per cell.
+- Queued behind them, each chained on its predecessor's COMPLETE status:
+  unchunked lane A (qualify + 4 SFS cells, GPUs 0-3) and lane B (qualify + 4 SCORE
+  cells, GPUs 4-7) on `fcfs-repo-v7` (`235136c`); then the predictor ablations
+  (lane A: mlp_length 9 cells and flash_quality hard/score 6; lane B: mlp_quality 9
+  and flash_quality latency-agnostic 3, all at 7/8/8.3); then chunk-8192 (12 cells)
+  on GPUs 0-3 and the staleness sweep (4 cells) on GPUs 4-7.
+- Built and committed but not yet queued: the constrained-capacity serving
+  configuration `qwen-kv-constrained` (12 cells), last by the user's ordering.
+- 60 audited cells stand: 32 canonical and 28 unchunked FCFS.
 
-## Valid newly completed cloud cells
+## Two defects found and fixed today
 
-Every row below has the required request count, zero request failures, a
-passing cell audit, and a completion-ledger entry. `Arrival QPS` is recomputed
-from the recorded system-entry offsets; `OnTimeUtility` is the Pro-scored,
-actual SLO-gated utility in the collated result.
+### The Ministral batch-latency feature set (`scripts/cloud/reports/ministral-sfs-gap-20260918`)
 
-| Family | Policy | Target QPS | Arrival QPS | Requests | TTFT SLO attainment | OnTimeUtility |
-|---|---|---:|---:|---:|---:|---:|
-| Qwen | LMDeploy | 6 | 5.965 | 16,000 | 97.80% | 0.3819 |
-| Qwen | LMDeploy | 7 | 6.946 | 16,000 | 97.19% | 0.3895 |
-| Qwen | LMDeploy | 8 | 7.937 | 16,000 | 91.04% | 0.3897 |
-| Qwen | LMDeploy | 8.3 | 8.233 | 16,000 | 95.94% | 0.3961 |
-| Qwen | vLLM-SR | 6 | 5.524 | 16,000 | 38.68% | 0.1107 |
-| Ministral | shortest queue | 6.0125 | 5.963 | 8,000 | 97.74% | 0.4994 |
-| Ministral | shortest queue | 7.8625 | 7.785 | 8,000 | 92.94% | 0.4795 |
-| Ministral | shortest queue | 8.7875 | 8.675 | 8,000 | 73.31% | 0.3711 |
-| Ministral | vLLM-SR | 6.0125 | 5.700 | 8,000 | 25.25% | 0.1244 |
+`pool.py` copied the six batch-latency coefficients out of the Ministral fit and
+dropped the fit's `"feature_set": "cross_term"` declaration, so vLLM fell back to
+`legacy` and multiplied the prefill x processed-context coefficient by the sum of
+squared context lengths. Measured against 2,090,402 real engine steps, the simulated
+per-batch clock ran 107x to 257x fast. SFS's TTFT feasibility filter then found no
+feasible candidate on 99.78 / 99.88 / 99.88 percent of decisions (Qwen at 8.3: 0.29
+percent), so the policy degenerated to a squared-context balancer and lost to every
+baseline on every Ministral cell.
 
-The raw points and per-cell audits live under
-`/workspace/sfs/state/baselines/{qwen,ministral}-20260916/`; the derived
-summary lives under `/workspace/sfs/state/baseline-results/`. The distinction
-between arrival rate and achieved service throughput must be retained when
-interpreting these measurements.
+Both families now build engine arguments through `service_metrics_config.build_simulation_args`,
+which emits the declared feature set and the option that matches it; an unrecognised
+declaration is an error rather than a silent default. Because a mismatch of this kind
+still runs and still audits clean, every pool now replays its own coefficients against
+the batch statistics its engines just wrote and refuses to evaluate when the median
+predicted/actual batch time leaves [0.5, 2.0] (`scripts/cloud/batch_residual.py`).
 
-## Preserved but non-reportable partial cells
+Confirmed on the live pool: median predicted/actual is now 1.024 / 0.991 / 0.997 for
+3B / 8B / 14B over 41,978 batches, and the SFS smoke at 8.7875 QPS attains 100.00
+percent of TTFT SLOs with zero violation milliseconds, against 92.19 percent and
+2,068.9 ms on the broken pool. SCORE, which does not route on the simulator, is
+unchanged (78.65 vs 76.04 percent) — the control that isolates the cause.
 
-Both cells completed all requests, but the audit correctly rejected them
-because the recorded offered arrival rate was more than 10% below the requested
-rate. They have no completion-ledger entry and must not enter a figure or a
-cross-policy comparison.
+Blast radius: the three `ministral-hard-*` cells only. Qwen's coefficients are legacy
+fits and its arguments are unchanged apart from the now-explicit flag; the Bridges
+Ministral launcher always went through the correct builder.
 
-| Cell | Requests completed | Requested QPS | Recorded arrival QPS | Status |
-|---|---:|---:|---:|---|
-| Qwen vLLM-SR, 7 QPS | 16,000 | 7.000 | 5.648 | invalid: arrival-rate audit failed |
-| Ministral vLLM-SR, 7.8625 QPS | 8,000 | 7.8625 | 6.260 | invalid: arrival-rate audit failed |
+### SCORE's Lagrange multiplier (`scripts/cloud/reports/score-lambda-sweep-20260917`)
 
-The immediate stopping condition is known. The cause of the under-delivery in
-the arrival process has not yet been diagnosed, so the 10% gate should not be
-weakened merely to resume the campaign.
+SCORE's lambda and the campaign objective's cost weight were the same number, so the
+published method ran at 5e-4, where a second of predicted latency is worth half a
+thousandth of a quality point. It met 9.70 percent of TTFT SLOs. A four-level probe
+(2,000 requests at 7 QPS, all scored at the canonical 5e-4 so the levels are
+comparable) gives 9.70 / 77.35 / 97.30 / 98.25 percent attainment and 0.0571 / 0.3055
+/ 0.3056 / 0.2750 Pro OnTimeUtility at 5e-4 / 5e-3 / 5e-2 / 5e-1.
 
-## Remaining primary cloud work
+`--score-lambda-weight` now carries SCORE's routing multiplier alone, and 5e-2 is
+adopted for every SCORE cell of the campaign. Evaluation stays at the bundle's 5e-4
+for every method including SCORE, so one objective scores the whole grid.
 
-There are 19 actions remaining before the 28-cell primary overlay is complete:
-17 cells never began and the two invalid cells above require fresh reruns after
-the arrival issue is repaired and revalidated.
+## Superseded, not deleted
 
-| Family | Rerun after repair | Never started |
-|---|---|---|
-| Qwen | vLLM-SR at 7 | vLLM-SR at 8 and 8.3; Mooncake at 6/7/8/8.3; RouteBalance at 6/7/8/8.3 |
-| Ministral | vLLM-SR at 7.8625 | vLLM-SR at 8.7875; Mooncake at 6.0125/7.8625/8.7875; RouteBalance at 6.0125/7.8625/8.7875 |
+`state/superseded-20260918/` holds the five retired completed-ledger entries with the
+reason for each: `qwen-score-6` and `qwen-score-7` (routed at the untuned multiplier)
+and the three `ministral-hard-*` cells (wrong batch-time feature set). Their cell
+directories are renamed `...-superseded-<reason>`, and the alert watcher skips those,
+skips tuning probes, and skips pools stopped deliberately.
 
-The dispatcher is resume/skip-completed aware. It should retain the nine valid
-cells above, preserve the two rejected artifact directories, and launch only
-the repaired reruns and the never-started cells.
+## Headline results that stand
 
-## Reuse rather than duplicate work
+Qwen SFS leads every baseline at every canonical rate: OnTimeUtility 0.5402 / 0.5209
+/ 0.5043 / 0.4941 at 6 / 7 / 8 / 8.3 QPS with 96.6 / 95.4 / 94.3 / 93.6 percent TTFT
+attainment. The strongest external baselines are Mooncake (0.5103 at 7) and LMDeploy
+(0.3961 at 8.3). Ministral SFS is being remeasured; its earlier numbers are void.
 
-- Qwen already has audited historical round-robin, latency-agnostic, and
-  shortest-queue references at 6, 7, 8, and 8.3 QPS, each with 16,000 requests.
-  These are reference artifacts, not cloud jobs to repeat automatically.
-- Bridges has 12 valid Ministral cells for LMDeploy, round robin, and
-  latency-agnostic at 6.0125, 7.8625, 8.7875, and 9.7125 QPS, all with 8,000
-  successful requests. The first three rates can be reused for the current
-  grid; the valid 9.7125 QPS result remains archived and is not part of the
-  newly committed cloud grid.
-- Pending Bridges jobs remain untouched: `45842578` (`sfs-qwen_baselines`) and
-  `46077428` (`sfs-ministral-recovery`) are both still `PENDING` due to
-  priority. Do not cancel them automatically.
+## Open items
 
-## Deferred and held work
-
-- Seven `hard_prefill_tps` fallback cells are prepared but explicitly held:
-  Qwen at 6/7/8/8.3 and Ministral at 6.0125/7.8625/8.7875. They are lower
-  priority than the primary baseline completion and FCFS preparation.
-- Flash-quality, MLP-quality, and MLP-output-length variants remain deferred
-  until the canonical baseline comparison is settled.
-- The conditional remaining-output-length lookup is an investigation only.
-  No prediction change has been deployed to SFS or SCORE, and no SFS/SCORE
-  measurement should be silently substituted with it.
-
-## FCFS unchunked serving configuration preparation
-
-The isolated branch `experiments/qwen-fcfs-unchunked-20260916` prepares the
-second Qwen serving configuration requested for later evaluation:
-
-- FCFS; chunked prefill and prefix caching disabled; 65,536 model/batch-token
-  limits; 512 sequences; threshold 0; 0.90 GPU memory utilization.
-- The actual OpenAI chat preprocessing audit passed for all three Qwen models,
-  evaluation/calibration/warm-up inputs, and the preserved 8,192-token output
-  allowance. The largest formatted prompt is 32,801 tokens, leaving 24,543
-  tokens of context headroom under the 65,536-token limit.
-- Bounded GPU startup and loaded no-chunking smoke passed for Qwen 0.6B and 8B
-  on GPU 7. The Qwen 32B TP=2 smoke, all-model configuration-specific
-  calibration/refitting, scheduler-simulator validation, and loaded
-  predicted-versus-observed timing checks remain to be done.
-- The 36-cell FCFS matrix is prepared conceptually but has not been launched;
-  it remains blocked pending those qualification artifacts and a later explicit
-  full-matrix launch decision. The second additional serving configuration is
-  intentionally unspecified.
-
-## Recommended next sequence
-
-1. Diagnose the arrival-rate under-delivery using the two retained raw vLLM-SR
-   points. Repair the producer or measurement only with evidence, then run a
-   short bounded arrival validation at the affected targets.
-2. Resume the primary overlay with strict skip-completed behavior. Re-run only
-   the two rejected vLLM-SR points and execute the 17 cells that never started.
-   Continue to retain raw result and host provenance.
-3. Once the base campaign is stable, complete FCFS qualification: Qwen 32B
-   TP=2 smoke, independent calibration traces, batch-model refits, simulator
-   consistency, and representative loaded wait/TTFT validation. Do not launch
-   the FCFS full matrix as part of preparation.
-4. Revisit the held `hard_prefill_tps` fallbacks only when the higher-priority
-   primary and FCFS work no longer needs the pool.
-5. Periodically check the two pending Bridges jobs and reconcile any finished
-   outputs against the ledger without cancelling or duplicating valid work.
-
-## Key artifacts
-
-- Active primary overlay: `scripts/cloud/baseline-campaign-20260916.json`
-- Prior methodology/reuse review:
-  `scripts/cloud/baseline-and-reuse-review-20260916.md`
-- Cloud execution plan and ledger:
-  `scripts/cloud/execution-plan-20260916.json` and
-  `scripts/cloud/experiment-ledger-20260916.json`
-- Mooncake/RouteBalance GPU probe and timing reviews:
-  `scripts/cloud/reports/baseline-campaign-20260916/gpu7-probe.json`,
-  `qwen-timing-review.json`, and `ministral-timing-review.json`
-- FCFS implementation branch:
-  `/ocean/projects/cis250162p/aparthas/sfs_fcfs_20260916`
+- The dead analytic TTFT estimator in `experiments.py` hard-codes the legacy batch-time
+  form. It has no load-bearing callers, so it is a trap rather than a bug, but it should
+  be guarded or deleted at the next protected-source edit.
+- `fd253b4` records the overlay-wide SCORE multiplier in `qualification.json`; it lands
+  at the next deployment rather than disturbing the running pools.
+- The qwen3-0.6b batch fit over-predicts by about 18 percent (median 1.178). It is
+  inside the audit bound, conservative in direction, and unchanged across every audited
+  Qwen pool; worth revisiting only if SFS is ever tightened on the small engine.
