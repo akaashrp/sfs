@@ -423,3 +423,73 @@ def test_collation_and_status_show_salvaged_cells(tmp_path, capsys):
     assert reported['salvaged']['qwen-score-6']['cause_counts'] == {'shm_header_read': 1, 'snapshot_wait_timeout': 1}
     assert salvage_rule()['max_requests'] == 5 and salvage_rule()['max_fraction_pct'] == .05
     assert salvage_rule()['authorization'] == AUTHORIZATION
+
+
+BASELINE = 'RuntimeError: Failed to read consistent baseline scheduler snapshot'
+
+
+def test_a_torn_baseline_snapshot_read_is_an_infrastructure_fault():
+    assert cause_of(BASELINE) == 'baseline_snapshot_read'
+    for other in ('RuntimeError: Baseline scheduler snapshot is not published yet',
+                  'RuntimeError: Baseline scheduler snapshot version regressed; restart the client'):
+        assert cause_of(other) is None
+    report = classify_failures(_payload(requests=16000, errors={'req-3': BASELINE, 'req-9': BASELINE}), _cell(requests=16000))
+    assert report['salvageable'] and report['cause_counts'] == {'baseline_snapshot_read': 2}
+
+
+def _serving(tmp_path, cell, payload, overlay_extra=()):
+    """A serving-configuration run: cells under the run output, pins in a separate qualification directory."""
+    setup = _pool(tmp_path, cell, payload, name='run')
+    qualify = tmp_path/'qualify'
+    qualify.mkdir()
+    write(setup.campaign, {'schema_version': 1, 'kind': 'serving_config', 'cells': [cell], **dict(overlay_extra)})
+    for name in ('model_metrics.json',):
+        (qualify/name).write_bytes((setup.pool/name).read_bytes())
+    qualification = {**read(setup.pool/'qualification.json'), 'campaign_sha256': digest(setup.campaign),
+                     'campaign_kind': 'serving_config', 'configuration_id': 'qwen-kv-constrained',
+                     'coefficient_policy': 'refit', 'coefficients_sha256': 'c'*64, 'lambda_weights': [],
+                     'data_role': 'evaluation'}
+    write(qualify/'qualification.json', qualification)
+    write(qualify/'release.json', {'status': 'RELEASED', 'qualification_sha256': digest(qualify/'qualification.json'),
+                                   'timing_review': 'reviewed', 'load_review': 'reviewed'})
+    # The run output itself holds no qualification: its worker was pointed at the directory above.
+    (setup.pool/'qualification.json').unlink(); (setup.pool/'release.json').unlink()
+    return SimpleNamespace(**vars(setup), qualify=qualify)
+
+
+def test_a_serving_run_is_salvaged_against_its_separate_qualification(tmp_path):
+    cell = _cell(requests=16000, qps=7., policy='score', cid='qwen-kv-constrained-score-7')
+    payload = _payload(requests=16000, qps=7., errors={'req-11': BASELINE, 'req-12': BASELINE})
+    payload['config']['score_lambda_weight'] = .05
+    setup = _serving(tmp_path, cell, payload, {'score_lambda_weight': .05})
+    with pytest.raises(FileNotFoundError):
+        apply(setup.point, cell, setup.pool, setup.campaign, setup.state)
+    result = apply(setup.point, cell, setup.pool, setup.campaign, setup.state, qualification=setup.qualify)
+    assert result['action'] == 'written'
+    entry = read(setup.state/'completed'/(cell['id']+'.json'))
+    # Every provenance field the worker writes for a serving cell is present and taken from the qualification.
+    assert entry['configuration_id'] == 'qwen-kv-constrained' and entry['coefficient_policy'] == 'refit'
+    assert entry['coefficients_sha256'] == 'c'*64 and entry['data_role'] == 'evaluation'
+    assert entry['qualification_sha256'] == digest(setup.qualify/'qualification.json')
+    assert entry['lambda_weight'] == entry['score_routing_lambda_weight'] == .05 and entry['lambda_weights'] == []
+    assert entry['evaluation_lambda_weight'] == .5
+    assert entry['salvage']['cause_counts'] == {'baseline_snapshot_read': 2}
+    record = read(setup.point.parent/'salvage.json')
+    assert record['qualification'] == str(setup.qualify.resolve())
+    audit_completed_cell(read(setup.point), cell, entry)
+
+
+def test_a_serving_salvage_refuses_an_unrecorded_score_multiplier(tmp_path):
+    cell = _cell(requests=16000, qps=7., policy='score', cid='qwen-kv-constrained-score-7')
+    setup = _serving(tmp_path, cell, _payload(requests=16000, qps=7., errors={'req-11': BASELINE}),
+                     {'score_lambda_weight': .05})
+    with pytest.raises(SalvageError, match='SCORE routing multiplier'):
+        apply(setup.point, cell, setup.pool, setup.campaign, setup.state, qualification=setup.qualify)
+    assert not (setup.state/'completed'/(cell['id']+'.json')).exists()
+
+
+def test_an_overlay_without_a_cell_list_needs_the_bundle(tmp_path):
+    campaign = tmp_path/'campaign.json'
+    write(campaign, {'schema_version': 1, 'kind': 'serving_config', 'policies': ['mooncake_prefill']})
+    with pytest.raises(SalvageError, match='pass --bundle'):
+        cell_spec(campaign, 'qwen-kv-constrained-mooncake_prefill-7')
