@@ -154,7 +154,8 @@ def test_rule_reaches_only_the_small_engine_under_the_fcfs_profile(bundle, tmp_p
     prov = remaining_length_provenance(q, block)
     assert prov['rule'] == RULE and prov['models']['qwen3-0.6b']['table']['sha256'] == OVERLAY['remaining_length']['files']['qwen3-0.6b.json']
     assert all(prov['models'][m]['rule'] == 'current' and 'table' not in prov['models'][m] for m in ('qwen3-8b', 'qwen3-32b'))
-    fitted = {m: dict(zip(qwen.COEFFICIENT_NAMES, (1., 2., 3., 4., 5., 6.))) for m in MATRIX['models']}
+    fitted = {m: {**dict(zip(qwen.COEFFICIENT_NAMES, (1., 2., 3., 4., 5., 6.))), 'feature_set': 'legacy'}
+              for m in MATRIX['models']}
     cfg = instance_config('qwen', None, bundle, (9100, 9101, 9102), 'iso', 'fcfs', fitted)
     assert cfg['configuration_id'] == fcfs.CONFIG_ID and cfg['coefficient_status'] == 'FITTED_FOR_CONFIGURATION'
     for i, row in enumerate(cfg['instances']):

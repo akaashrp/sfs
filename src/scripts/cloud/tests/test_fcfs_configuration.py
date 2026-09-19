@@ -109,12 +109,14 @@ def test_fitted_coefficients_reach_router_and_servers(bundle,tmp_path):
     fitted=coefficients.load(tmp_path/'coefficients.json');payload=read(tmp_path/'coefficients.json')
     assert set(fitted)==set(OVERLAY['models']) and payload['configuration_id']==fcfs.CONFIG_ID and payload['profile']==fcfs.SETTINGS
     for model,row in payload['models'].items():
-        assert set(fitted[model])==set(coefficients.NAMES) and all(v>=0 for v in fitted[model].values())
+        assert set(fitted[model])=={*coefficients.NAMES,'feature_set'} and fitted[model]['feature_set']=='legacy'
+        assert all(fitted[model][k]>=0 for k in coefficients.NAMES)
         assert row['fit_prediction_diagnostics']['r2_all_rows']>.99 and row['trace_sha256']==digest(calibration/f'calibration_trace_{model}.csv')
     cfg=instance_config('qwen',None,bundle,(9100,9101,9102),'iso','fcfs',fitted)
     assert cfg['coefficient_status']=='FITTED_FOR_CONFIGURATION'
     for i,row in enumerate(cfg['instances']):
-        assert row['ttft_batch_model']==fitted[row['model_id']]
+        assert row['ttft_batch_model']=={k:fitted[row['model_id']][k] for k in coefficients.NAMES}
+        assert row['batch_time_feature_set']=='legacy'   # the unchunked configuration keeps the legacy fit
         argv=flags(instance_argv('qwen',tmp_path/'model',row,i,tmp_path,bundle/'qwen/length',bundle,'fcfs'))
         assert float(argv['--simulation-intercept'])==fitted[row['model_id']]['intercept'] and argv['--no-enable-chunked-prefill'] is True
     # The independent audit only scores batches recorded after calibration ended.

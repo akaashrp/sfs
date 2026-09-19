@@ -7,12 +7,13 @@ from scripts.cloud.common import read, write, digest
 from scripts.cloud.serving.profiles import profile as load_profile, for_configuration
 
 NAMES=('intercept','prefill_coeff','prefill_sq_coeff','decode_coeff','sum_coeff','sum_sq_coeff')
-FEATURES={'p':'prefill_coeff','d':'decode_coeff','s':'sum_coeff','p_sq_sum':'prefill_sq_coeff','s_sq':'sum_sq_coeff'}
+# The sixth coefficient is stored as sum_sq_coeff under either feature set -- the bundle and
+# service_metrics_config.build_simulation_args convention -- and the declared feature set decides whether
+# vLLM reads it as the sum of squared context lengths (legacy) or the prefill x processed-context cross term.
+FEATURES={'p':'prefill_coeff','d':'decode_coeff','s':'sum_coeff','p_sq_sum':'prefill_sq_coeff','s_sq':'sum_sq_coeff','p_x_ctx':'sum_sq_coeff'}
+FEATURE_SETS=('legacy','cross_term')
 # A sanity floor on the regression, not the accuracy gate: the batch-residual audit replays the fitted
-# coefficients against the engine's own batches during qualification and is what binds. R^2 punishes a
-# narrow load range rather than a poor fit -- the constrained configuration's 128-sequence cap truncates
-# the batch-size range, so its qwen3-0.6b fit scored R^2 0.9446 while predicting median 1.024x of actual
-# (p90 1.101, MAE 1.0 ms on 15 ms batches), better than the accepted canonical 0.6B fit at 1.178x.
+# coefficients against the engine's own batches during qualification and is what binds.
 MINIMUM_R2=.93
 
 
@@ -28,10 +29,10 @@ def traces(folder):
     return found
 
 
-def predict(frame, coefficients):
+def predict(frame, coefficients, feature_set='legacy'):
     import numpy as np
     from sfs_core.regression.two_part_fit import build_feature_matrix
-    x,names=build_feature_matrix(frame,feature_set='legacy')
+    x,names=build_feature_matrix(frame,feature_set=feature_set)
     return x@np.array([coefficients[FEATURES[n]] for n in names])+coefficients['intercept']
 
 
@@ -49,18 +50,18 @@ def fit(calibration, output, profile):
     """Same estimator as derive_nonnegative_calibration: Huber inliers, then NNLS."""
     import pandas as pd
     from sfs_core.regression.two_part_fit import fit_two_part_from_df
-    profile=refit_profile(profile);models={}
+    profile=refit_profile(profile);models={};feature_set=profile.fit_feature_set
     for model,trace in traces(calibration).items():
         frame=pd.read_csv(trace)
-        result=fit_two_part_from_df(frame,stall_percentile=99.9,feature_set='legacy',nonnegative_coefficients=True)
+        result=fit_two_part_from_df(frame,stall_percentile=99.9,feature_set=feature_set,nonnegative_coefficients=True)
         c={'intercept':float(result.base_model.intercept_),**{FEATURES[n]:float(v) for n,v in zip(result.feature_names,result.base_model.coef_)}}
-        d=diagnostics(frame,predict(frame,c))
+        d=diagnostics(frame,predict(frame,c,feature_set))
         if d['r2_all_rows']<MINIMUM_R2:raise ValueError(f"{model} {profile.configuration_id} batch fit R^2={d['r2_all_rows']:.4f} is below {MINIMUM_R2}")
-        models[model]={**c,'feature_set':'legacy','coefficient_constraint':result.coefficient_constraint,'fit_rows':int(len(frame)),
+        models[model]={**c,'feature_set':feature_set,'coefficient_constraint':result.coefficient_constraint,'fit_rows':int(len(frame)),
             'fit_inlier_rows':int(result.inlier_mask.sum()),'stall_probability':result.stall_probability,'fit_prediction_diagnostics':d,
             'trace':str(trace),'trace_sha256':digest(trace)}
     write(output,{'schema_version':1,'configuration_id':profile.configuration_id,'profile':profile.settings,'status':'FITTED_FOR_CONFIGURATION_REVIEW_REQUIRED',
-        'method':'Huber inliers at the 99.9th residual percentile, then nonnegative least squares on legacy features; destination calibration traces of this configuration only',
+        'method':f'Huber inliers at the 99.9th residual percentile, then nonnegative least squares on {feature_set} features; destination calibration traces of this configuration only',
         'models':models})
 
 
@@ -72,7 +73,12 @@ def load(path, profile):
     for model,row in payload['models'].items():
         if any(float(row[k])<0 for k in NAMES) or row['fit_prediction_diagnostics']['r2_all_rows']<MINIMUM_R2:
             raise ValueError(f'Rejected {profile.configuration_id} coefficients for {model}')
-        coefficients[model]={k:float(row[k]) for k in NAMES}
+        # The feature set travels with the values: dropping it is how the Ministral cross-term fit reached
+        # its engines as legacy. A file fitted under another feature set than the profile declares is refused.
+        feature_set=row.get('feature_set','legacy')
+        if feature_set not in FEATURE_SETS or feature_set!=profile.fit_feature_set:
+            raise ValueError(f'{profile.configuration_id} expects {profile.fit_feature_set} coefficients; {model} was fitted as {feature_set}')
+        coefficients[model]={**{k:float(row[k]) for k in NAMES},'feature_set':feature_set}
     return coefficients
 
 
@@ -84,15 +90,16 @@ def validate(coefficients_path, qualification, output, profile):
         with trace.open() as f:end=max(float(r['ts']) for r in csv.DictReader(f))
         frame=pd.read_csv(Path(qualification)/f'batch_stats_{model}.csv');frame=frame[(frame['ts']>end)&(frame['exec']>0)].reset_index(drop=True)
         if not len(frame):raise ValueError(f'No independent post-calibration batches for {model}')
-        models[model]={'calibration_last_epoch':end,'independent':diagnostics(frame,predict(frame,fitted[model])),
-                       'calibration':diagnostics(pd.read_csv(trace),predict(pd.read_csv(trace),fitted[model]))}
+        fs=fitted[model]['feature_set']
+        models[model]={'calibration_last_epoch':end,'feature_set':fs,'independent':diagnostics(frame,predict(frame,fitted[model],fs)),
+                       'calibration':diagnostics(pd.read_csv(trace),predict(pd.read_csv(trace),fitted[model],fs))}
     write(output,{'configuration_id':profile.configuration_id,'coefficients_sha256':digest(coefficients_path),'qualification':str(qualification),
         'scope':'Fitted SFS coefficients of this configuration on independently generated post-calibration smoke and load-probe batches; no refitting','models':models})
 
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('mode',choices=['fit','validate'])
-    p.add_argument('--profile',required=True,help='refit serving profile (fcfs, chunk8192)')
+    p.add_argument('--profile',required=True,help='refit serving profile (fcfs, chunk8192, kv_constrained)')
     p.add_argument('--calibration',type=Path,help='worker output directory holding calibration_trace_<model>.csv')
     p.add_argument('--coefficients',type=Path);p.add_argument('--output',type=Path,required=True);a=p.parse_args()
     if a.mode=='fit':fit(a.calibration,a.output,load_profile(a.profile))

@@ -42,6 +42,7 @@ class Profile:
     extra_argv: tuple = ()         # observability flags appended verbatim (no scheduling effect)
     admission_audit: bool = False  # worker requires setup/fcfs-inputs.json (actual chat admission audit)
     bounded_smoke: str = None      # gpu_smoke evidence rule: 'full_prefill', 'chunk_bound' or None
+    fit_feature_set: str = 'legacy'  # batch-latency feature set a refit profile fits and its engines consume
 
     @property
     def snapshot_config(self):
@@ -82,7 +83,12 @@ CONSTRAINED = Profile('kv_constrained', 'qwen-kv-constrained',
              'prompts over 2048 tokens admitted as long prefills, so the scheduler runs against KV pressure and a queue '
              'rather than against a step budget',
     options=(('--gpu-memory-utilization', .70), ('--max-num-seqs', 128), ('--long-prefill-token-threshold', 2048)),
-    rows={'max_num_seqs': 128, 'long_prefill_token_threshold': 2048}, bounded_smoke='chunk_bound')
+    rows={'max_num_seqs': 128, 'long_prefill_token_threshold': 2048}, bounded_smoke='chunk_bound',
+    # A 2048-token long-prefill threshold turns every long prompt into a chain of chunks that each attend to
+    # the prefix already in KV; only the cross-term feature (prefill x processed context) can express that.
+    # On this configuration's own calibration it cuts prefill-batch RMSE from 6.3/14.2/21.0 ms to
+    # 2.7/3.3/6.0 ms (0.6B/8B/32B) and lifts R^2 from 0.9446/0.9873/0.9926 to 0.9880/0.9992/0.9994.
+    fit_feature_set='cross_term')
 
 PROFILES = {p.name: p for p in (FCFS, CHUNK8192, PREFIX_CACHE, CONSTRAINED)}
 NAMES = ('canonical', *PROFILES)
@@ -126,7 +132,15 @@ def instances(profile, bundle, ports, tag, coefficients=None):
     for row in cfg['instances']:
         row.update(deepcopy(profile.rows))
         if coefficients is not None:
-            row['ttft_batch_model'] = coefficients[row['model_id']]
+            fitted = coefficients[row['model_id']]
+            if fitted.get('feature_set') not in ('legacy', 'cross_term'):
+                # Never default: an undeclared feature set is the exact failure that ran the Ministral clock
+                # 107-257x fast. Coefficients reach here through serving.coefficients.load, which declares it.
+                raise ValueError(f"Coefficients for {row['model_id']} do not declare a batch-time feature set")
+            row['ttft_batch_model'] = {k: v for k, v in fitted.items() if k != 'feature_set'}
+            # The engine argv builder reads the feature set from here; without it a cross-term fit would be
+            # read as legacy, which is exactly how the Ministral clock ran 107-257x fast.
+            row['batch_time_feature_set'] = fitted['feature_set']
     cfg['configuration_id'] = profile.configuration_id
     cfg['coefficient_policy'] = profile.coefficient_policy
     cfg['coefficient_status'] = status

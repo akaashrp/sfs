@@ -273,7 +273,8 @@ def test_chunk8192_refits_coefficients_and_prefix_cache_refuses_them(bundle, tmp
     payload = read(tmp_path/'chunk.json')
     assert payload['configuration_id'] == 'qwen-chunk8192' and payload['profile'] == CHUNK8192.settings and payload['status'].startswith('FITTED_FOR_CONFIGURATION')
     fitted = coefficients.load(tmp_path/'chunk.json', CHUNK8192)
-    assert set(fitted) == set(FCFS_MATRIX['models']) and all(set(f) == set(coefficients.NAMES) and all(v >= 0 for v in f.values()) for f in fitted.values())
+    assert set(fitted) == set(FCFS_MATRIX['models']) and all(set(f) == {*coefficients.NAMES, 'feature_set'} for f in fitted.values())
+    assert all(f['feature_set'] == 'legacy' and all(f[k] >= 0 for k in coefficients.NAMES) for f in fitted.values())
     assert all(row['fit_prediction_diagnostics']['r2_all_rows'] > .99 for row in payload['models'].values())
     # The fitted file is bound to its configuration: neither the FCFS profile nor the FCFS file crosses over.
     with pytest.raises(ValueError, match='not fitted'):
@@ -285,7 +286,8 @@ def test_chunk8192_refits_coefficients_and_prefix_cache_refuses_them(bundle, tmp
     cfg = instance_config('qwen', None, bundle, PORTS, 'iso', 'chunk8192', fitted)
     assert cfg['coefficient_status'] == 'FITTED_FOR_CONFIGURATION' and cfg['coefficient_policy'] == 'refit'
     for i, row in enumerate(cfg['instances']):
-        assert row['ttft_batch_model'] == fitted[row['model_id']] and row['max_num_batched_tokens'] == 8192
+        assert row['ttft_batch_model'] == {k: fitted[row['model_id']][k] for k in coefficients.NAMES} and row['max_num_batched_tokens'] == 8192
+        assert row['batch_time_feature_set'] == 'legacy'   # chunk8192 keeps the legacy fit
         argv = flags(instance_argv('qwen', tmp_path/'model', row, i, tmp_path, bundle/'qwen/length', bundle, 'chunk8192'))
         assert float(argv['--simulation-intercept']) == fitted[row['model_id']]['intercept'] and argv['--max-num-batched-tokens'] == '8192'
     assert instance_config('qwen', None, bundle, PORTS, 'iso', 'chunk8192')['coefficient_status'] == 'CANONICAL_PLACEHOLDER_FOR_TRACE_COLLECTION_ONLY'
@@ -419,3 +421,81 @@ def test_bounded_smoke_evidence_rules(tmp_path):
     with pytest.raises(ValueError, match='no bounded GPU smoke rule'):
         smoke_run(PREFIX_CACHE, tmp_path, {}, tmp_path/'smoke', ['0', '1'], (2,))
     assert not (tmp_path/'smoke').exists()
+
+
+def _cross_term_trace(path, c, rows=500, seed=7, start=1e9):
+    """Batches whose times follow a cross-term model, including long-prefill continuation chunks."""
+    rng = np.random.default_rng(seed)
+    with path.open('w') as f:
+        f.write('ts,engine,prefill,prefill_sq_sum,decode,decode_sq_sum,total,sched,exec,interval,num_seqs,sum_tokens,sum_sq_tokens,avg_tokens,max_tokens,prefill_x_processed_ctx_sum\n')
+        for i in range(rows):
+            p = int(rng.choice([0, 0, 0, 512, 2048])); d = int(rng.integers(1, 128))
+            ctx = int(rng.integers(0, 24000)) if p else 0          # prefix already in KV for a continuation chunk
+            n = d + (p > 0); s = p + ctx + d*int(rng.integers(200, 4000)); pxc = p*ctx
+            y = (c['intercept'] + c['prefill_coeff']*p + c['prefill_sq_coeff']*p*p + c['decode_coeff']*d + c['sum_coeff']*s
+                 + c['sum_sq_coeff']*pxc + rng.normal(0, 1e-5))
+            f.write(f'{start+i},0,{p},{p*p},{d},{d},{p+d},0.0004,{max(y,1e-4):.7f},0,{n},{s},{s*s},{s/n:.3f},{s},{pxc}\n')
+
+
+def test_constrained_refit_is_cross_term_from_fit_to_engine_argv(bundle, tmp_path):
+    """The constrained configuration fits, stores, loads and ships cross-term coefficients to every engine.
+
+    The Ministral defect was a cross-term fit reaching its engines as legacy; this walks the same path a
+    worker takes and asserts the feature set survives every hop, down to the real vLLM parser.
+    """
+    from vllm.utils import FlexibleArgumentParser
+    from scripts.cloud.batch_residual import audit_pool
+    truth = {'intercept': .004, 'prefill_coeff': 2e-6, 'prefill_sq_coeff': 1e-10, 'decode_coeff': 1.7e-5,
+             'sum_coeff': 3e-8, 'sum_sq_coeff': 8e-10}
+    calibration = tmp_path/'calibration'; calibration.mkdir()
+    for model in FCFS_MATRIX['models']:
+        _cross_term_trace(calibration/f'calibration_trace_{model}.csv', truth)
+    assert CONSTRAINED.fit_feature_set == 'cross_term' and CHUNK8192.fit_feature_set == FCFS.fit_feature_set == 'legacy'
+
+    # fit -> file: the feature set is recorded, and the cross term is recovered as the sixth coefficient
+    coefficients.fit(calibration, tmp_path/'kvc.json', CONSTRAINED)
+    payload = read(tmp_path/'kvc.json')
+    assert 'cross_term features' in payload['method']
+    for row in payload['models'].values():
+        assert row['feature_set'] == 'cross_term' and row['fit_prediction_diagnostics']['r2_all_rows'] > .99
+        assert abs(row['sum_sq_coeff'] - truth['sum_sq_coeff'])/truth['sum_sq_coeff'] < .05
+
+    # load: values plus the feature set; a file fitted under another feature set is refused
+    fitted = coefficients.load(tmp_path/'kvc.json', CONSTRAINED)
+    assert all(f['feature_set'] == 'cross_term' for f in fitted.values())
+    legacy_file = deepcopy(payload)
+    for row in legacy_file['models'].values(): row['feature_set'] = 'legacy'
+    write(tmp_path/'kvc-legacy.json', legacy_file)
+    with pytest.raises(ValueError, match='expects cross_term'):
+        coefficients.load(tmp_path/'kvc-legacy.json', CONSTRAINED)
+
+    # instances -> argv: every engine is told cross_term and receives the coefficient on the cross-term option
+    cfg = instance_config('qwen', None, bundle, PORTS, 'iso', 'kv_constrained', fitted)
+    parser = FlexibleArgumentParser()
+    for opt in ('--simulation-batch-time-feature-set',):
+        parser.add_argument(opt)
+    for opt in ('intercept', 'prefill-coeff', 'prefill-sq-coeff', 'decode-coeff', 'sum-coeff', 'prefill-x-context-coeff'):
+        parser.add_argument(f'--simulation-{opt}', type=float)
+    parser.add_argument('--simulation-sum-sq-coeff', type=float, default=0.0)
+    for i, row in enumerate(cfg['instances']):
+        assert row['batch_time_feature_set'] == 'cross_term' and 'feature_set' not in row['ttft_batch_model']
+        argv = instance_argv('qwen', tmp_path/'model', row, i, tmp_path, bundle/'qwen/length', bundle, 'kv_constrained')
+        sim = [a for a in argv if a.startswith('--simulation-')]
+        args, _ = parser.parse_known_args(sim)
+        assert args.simulation_batch_time_feature_set == 'cross_term'
+        assert args.simulation_prefill_x_context_coeff == fitted[row['model_id']]['sum_sq_coeff']
+        assert args.simulation_sum_sq_coeff == 0.0 and not any(a.startswith('--simulation-sum-sq-coeff') for a in sim)
+        assert flags(argv)['--max-num-seqs'] == '128' and flags(argv)['--long-prefill-token-threshold'] == '2048'
+
+    # the qualification's residual audit reads the same rows and must agree the fit describes the engines
+    for model in FCFS_MATRIX['models']:
+        (calibration/f'batch_stats_{model}.csv').write_text((calibration/f'calibration_trace_{model}.csv').read_text())
+    report = audit_pool(cfg['instances'], calibration, min_rows=100)
+    assert all(.95 <= e['median_ratio'] <= 1.05 and e['feature_set'] == 'cross_term' for e in report['engines'].values())
+
+
+def test_instances_refuse_coefficients_without_a_declared_feature_set(bundle):
+    """Silently defaulting a missing feature set to legacy is the Ministral defect; it must raise instead."""
+    bare = {m: dict(zip(qwen.COEFFICIENT_NAMES, qwen.COEFFICIENTS[i])) for i, m in enumerate(FCFS_MATRIX['models'])}
+    with pytest.raises(ValueError, match='do not declare a batch-time feature set'):
+        instance_config('qwen', None, bundle, PORTS, 'iso', 'kv_constrained', bare)
