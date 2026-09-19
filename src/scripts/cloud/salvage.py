@@ -40,7 +40,11 @@ SALVAGEABLE_CAUSES = {
     'snapshot_wait_timeout': ('Scheduler simulation failed', 'Timed out waiting for the parsed scheduler snapshot'),
     # sfs_core/routing/snapshot_shm_client.py fails a torn/short header read of the snapshot SHM.
     'shm_header_read': ('Failed to read a consistent scheduler snapshot header from SHM',),
+    # sfs_core/routing/snapshot_shm_client.py: a baseline policy's seqlock read of the snapshot SHM
+    # exhausted its 32 retries while the engine was rewriting the payload (a torn read), before dispatch.
+    'baseline_snapshot_read': ('Failed to read consistent baseline scheduler snapshot',),
 }
+SERVING_PROVENANCE = ('configuration_id', 'coefficient_policy', 'coefficients_sha256')
 MAX_SALVAGEABLE_REQUESTS = 5
 MAX_SALVAGEABLE_FRACTION = 0.0005  # 0.05 percent of the cell's request count
 AUTHORIZATION = 'user authorised 2026-09-17'
@@ -248,7 +252,11 @@ def salvage_summary(record):
 
 
 def _pins(pool, cell, campaign, bundle=None):
-    """Validate the pool's source/bundle/qualification pins and return the ledger fields they fix."""
+    """Validate the pool's source/bundle/qualification pins and return the ledger fields they fix.
+
+    `pool` is the directory holding qualification.json and release.json: the pool output itself, or
+    for a serving-configuration run the separate qualification directory its worker was given.
+    """
     pool = Path(pool)
     qualification, release = read(pool/'qualification.json'), read(pool/'release.json')
     qualification_sha = digest(pool/'qualification.json')
@@ -269,33 +277,65 @@ def _pins(pool, cell, campaign, bundle=None):
             'campaign_sha256': qualification.get('campaign_sha256'), 'campaign_kind': qualification.get('campaign_kind'),
             'remaining_length_rule': qualification['remaining_length_rule'],
             'remaining_length': qualification['remaining_length'],
-            'snapshot_staleness_levels_ms': qualification['snapshot_staleness_levels_ms']}
+            'snapshot_staleness_levels_ms': qualification['snapshot_staleness_levels_ms'],
+            # Provenance a newer worker writes into every ledger entry; copied only when the pool records it.
+            'serving': {key: qualification[key] for key in SERVING_PROVENANCE if key in qualification},
+            'lambda_weights': qualification.get('lambda_weights'), 'data_role': qualification.get('data_role')}
 
 
 def cell_spec(campaign, cell_id, bundle=None):
-    """The cell's frozen spec, from the overlay (cross-checked against the overlaid manifest when a bundle is given)."""
+    """The cell's frozen spec, from the overlay (cross-checked against the overlaid manifest when a bundle is given).
+
+    A serving-configuration overlay derives its cells from `policies` and lists none, so its spec
+    can only come from the overlaid bundle manifest.
+    """
     overlay = read(campaign)
+    if 'cells' not in overlay:
+        if not bundle:
+            raise SalvageError('This overlay derives its cells from the bundle; pass --bundle')
+        from scripts.cloud.campaigns import apply_any_campaign
+        overlay = {'cells': apply_any_campaign(validate_bundle(bundle), overlay, inspect=True)['cells']}
     cells = {c['id']: c for c in overlay['cells']}
     if cell_id not in cells:
         raise SalvageError(f'Overlay has no cell {cell_id}')
     cell = cells[cell_id]
     if bundle:
         from scripts.cloud.campaigns import apply_any_campaign
-        manifest = apply_any_campaign(validate_bundle(bundle), overlay)
+        manifest = apply_any_campaign(validate_bundle(bundle), read(campaign), inspect=True)
         active = {c['id']: c for c in manifest['cells']}
         if active.get(cell_id) != cell:
             raise SalvageError(f'Overlay cell disagrees with the overlaid bundle manifest: {cell_id}')
     return cell
 
 
-def build(point, cell, pool, campaign, bundle=None):
-    """The completed-ledger entry and the salvage record for one preserved cell, or a loud refusal."""
+def _lambda_fields(payload, cell, campaign, bundle, pins):
+    """The lambda provenance the worker writes for a cell, checked against what the router recorded."""
+    from scripts.cloud.worker import routing_lambda
+    if bundle:
+        from scripts.cloud.campaigns import apply_any_campaign
+        manifest = apply_any_campaign(validate_bundle(bundle), read(campaign), inspect=True)
+    else:
+        manifest = read(campaign)
+    weight = routing_lambda(manifest, cell)
+    if weight is not None and float(payload['config'].get('score_lambda_weight', float('nan'))) != weight:
+        raise SalvageError('Router did not record the cell SCORE routing multiplier')
+    return {'lambda_weight': weight, 'lambda_weights': pins['lambda_weights'], 'score_routing_lambda_weight': weight,
+            'evaluation_lambda_weight': float(payload['config']['lambda_weight']),
+            'data_role': cell.get('data_role', pins['data_role'])}
+
+
+def build(point, cell, pool, campaign, bundle=None, qualification=None):
+    """The completed-ledger entry and the salvage record for one preserved cell, or a loud refusal.
+
+    `qualification` is the separate qualification directory of a serving-configuration run, whose
+    worker writes cells under its own output (`pool`) but takes its pins from that directory.
+    """
     point = Path(point).resolve()
     pool = Path(pool).resolve()
     if not point.is_file() or pool/'cells' not in point.parents:
         raise SalvageError('Point must be a file inside this pool\'s cells directory')
     payload = read(point)
-    pins = _pins(pool, cell, campaign, bundle)
+    pins = _pins(Path(qualification).resolve() if qualification else pool, cell, campaign, bundle)
     audit, salvage = audit_salvaged_cell(payload, cell)
     run = payload['router']['runs'][0]
     staleness = cell_staleness(cell)
@@ -309,10 +349,13 @@ def build(point, cell, pool, campaign, bundle=None):
              'campaign_sha256': pins['campaign_sha256'], 'campaign_kind': pins['campaign_kind'],
              'remaining_length_rule': pins['remaining_length_rule'], 'remaining_length': pins['remaining_length'],
              'snapshot_staleness_ms': staleness, 'snapshot_staleness_levels_ms': pins['snapshot_staleness_levels_ms'],
-             'salvage': salvage}
+             **pins['serving'], 'salvage': salvage}
+    if pins['lambda_weights'] is not None:
+        entry.update(_lambda_fields(payload, cell, campaign, bundle, pins))
     # The salvage record is the completed-ledger entry itself plus where it came from: the pool
     # never wrote an audit.json for this cell, so the collation discovers it through this file.
     record = {**entry, 'record': 'salvage', 'pool': str(pool), 'campaign': str(Path(campaign).resolve()),
+              'qualification': str(Path(qualification).resolve()) if qualification else None,
               'ledger_entry': cell['id'] + '.json'}
     return entry, record
 
@@ -322,9 +365,9 @@ def _stable(entry):
     return {k: v for k, v in entry.items() if k != 'recorded_at'}
 
 
-def apply(point, cell, pool, campaign, state, bundle=None, dry_run=False):
+def apply(point, cell, pool, campaign, state, bundle=None, dry_run=False, qualification=None):
     """Validate and write the ledger entry plus the salvage record. Idempotent; refuses on any conflict."""
-    entry, record = build(point, cell, pool, campaign, bundle)
+    entry, record = build(point, cell, pool, campaign, bundle, qualification)
     ledger, sidecar = Path(state)/'completed'/(cell['id']+'.json'), Path(point).resolve().parent/'salvage.json'
     with locks(Path(state)/'cell-locks', [cell['id']]):
         if ledger.exists():
@@ -358,10 +401,12 @@ def main():
     p.add_argument('--pool', required=True, help='Pool output directory (source/bundle/qualification pins)')
     p.add_argument('--state', required=True, help='State directory holding completed/')
     p.add_argument('--bundle', help='Frozen artifact bundle, cross-checked against the pool pins when given')
+    p.add_argument('--qualification', help='Separate qualification directory of a serving-configuration run '
+                                           '(holds qualification.json and release.json); defaults to --pool')
     p.add_argument('--dry-run', action='store_true', help='Validate and report without writing')
     a = p.parse_args()
     cell = cell_spec(a.campaign, a.cell, a.bundle)
-    print(json.dumps(apply(a.point, cell, a.pool, a.campaign, a.state, a.bundle, a.dry_run), indent=2))
+    print(json.dumps(apply(a.point, cell, a.pool, a.campaign, a.state, a.bundle, a.dry_run, a.qualification), indent=2))
 
 
 if __name__ == '__main__':
