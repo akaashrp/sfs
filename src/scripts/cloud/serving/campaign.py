@@ -22,6 +22,7 @@ AUTHORIZATION=('User authorized on 17 September 2026: reduced grids (SFS + two s
 INSPECT_MODES=('calibrate','qualify','inspect')   # modes that never launch a cell and so need no authorization
 KEYS=('id','family','variant','policy','qps','requests')
 REQUESTS=16000
+MAX_RATE=12.0                 # above any rate this hardware sustains; a typo, not a grid
 OVERLAYS={'chunk8192':ROOT/'scripts/cloud/fcfs/campaign-chunk8192-20260917.json',
           'prefix_cache':ROOT/'scripts/cloud/fcfs/campaign-prefix-cache-20260917.json',
           'kv_constrained':ROOT/'scripts/cloud/fcfs/campaign-kv-constrained-20260918.json'}
@@ -67,12 +68,30 @@ NOTES={
                     'observability':'--enable-prompt-tokens-details is added so every response usage carries prompt_tokens_details.cached_tokens; it has no scheduling effect.'}}
 
 
-def cells(profile, policies):
+def cells(profile, policies, rates=RATES):
     return [{'id':f'{profile.configuration_id}-{p}-{q:g}','family':'qwen','variant':'canonical','policy':p,'qps':q,'requests':REQUESTS}
-            for p in policies for q in RATES]
+            for p in policies for q in rates]
 
 
-def build(profile, bundle):
+def check_rates(campaign):
+    """The overlay's request-rate grid: the default 6/7/8/8.3, or a grid that records what chose it.
+
+    A configuration whose capacity sits below the default grid measures nothing there -- every policy
+    is equally past the knee -- so a different grid is allowed, but only with the evidence for it
+    written into the overlay, the way a tuned SCORE multiplier must cite its sweep.
+    """
+    rates=campaign.get('rates')
+    # Types first: a string or a bool in the list must be refused, never compared.
+    if (not isinstance(rates,list) or not rates
+            or any(isinstance(r,bool) or not isinstance(r,(int,float)) or not 0<r<=MAX_RATE for r in rates)
+            or len(set(rates))!=len(rates) or sorted(rates)!=list(rates)):
+        raise ValueError('rates must be an ascending list of distinct positive request rates')
+    if [float(r) for r in rates]!=[float(r) for r in RATES] and not str(campaign.get('rate_rule') or '').strip():
+        raise ValueError('A grid other than the default must record the evidence that chose it in rate_rule')
+    return [float(r) for r in rates]
+
+
+def build(profile, bundle, rates=RATES, rate_rule=None, accepted_prior_campaigns=None, accepted_prior_sources=None):
     """The reduced-grid overlay for a profile, with the canonical overlay's remaining-length block (Qwen models only)."""
     if profile.name not in OVERLAYS:raise ValueError(f'No reduced-grid overlay is defined for the {profile.name} profile')
     b=read(bundle/'bundle.json');models={m:b['models'][m] for m in b['families']['qwen']['models']}
@@ -88,7 +107,7 @@ def build(profile, bundle):
         'policies':list(POLICIES),'policy_rule':POLICY_RULE,
         'policy_edit_note':'Edit `policies` only: cells derive from policies x rates when the overlay is applied (no cells list is stored); any edit changes this '
                            'overlay hash, so every lane re-qualifies against the edited overlay before running',
-        'rates':list(RATES),'requests_per_cell':REQUESTS,'cell_id_form':f'{profile.configuration_id}-<policy>-<qps>',
+        'rates':[float(r) for r in rates],**({'rate_rule':rate_rule} if rate_rule else {}),'requests_per_cell':REQUESTS,'cell_id_form':f'{profile.configuration_id}-<policy>-<qps>',
         'models':models,'evaluation':dict(EVALUATION),'restrictions':list(RESTRICTIONS),
         'gpu_allocation':{'lane':[0,1,2,3],'note':'One four-GPU lane (any free slot: 0-3 or 4-7); the qualification binds the exact hardware and the run must use it'},
         'ledger':f'Separate completion ledger under the configuration state root; cell IDs carry the {profile.configuration_id} prefix and never collide with canonical or FCFS cells',
@@ -101,7 +120,9 @@ def build(profile, bundle):
                    'tables were built from canonical calibration outputs; the evidence is the canonical paired run, adopted by the user for every Qwen '
                    'SFS/SCORE cell including this serving configuration. No paired run exists under this configuration.',
             'evidence':deepcopy(canonical['evidence'])},
-        'accepted_prior_source_digests':{},**{k:v for k,v in NOTES[profile.name].items() if k!='decision'}}
+        'accepted_prior_source_digests':dict(accepted_prior_sources or {}),
+        **({'accepted_prior_campaign_digests':dict(accepted_prior_campaigns)} if accepted_prior_campaigns else {}),
+        **{k:v for k,v in NOTES[profile.name].items() if k!='decision'}}
 
 
 def apply_campaign(profile, bundle, campaign, mode):
@@ -112,21 +133,26 @@ def apply_campaign(profile, bundle, campaign, mode):
     policies=campaign.get('policies')
     if not isinstance(policies,list) or not policies or len(set(policies))!=len(policies) or set(policies)-set(METHODS):
         raise ValueError('policies must be a non-empty list of distinct known router policies')
-    if campaign.get('rates')!=list(RATES) or campaign.get('requests_per_cell')!=REQUESTS:
-        raise ValueError('Serving-configuration overlays keep the 6/7/8/8.3 grid at 16,000 requests per cell')
+    rates=check_rates(campaign)
+    if campaign.get('requests_per_cell')!=REQUESTS:
+        raise ValueError('Serving-configuration overlays keep 16,000 requests per cell')
     if 'cells' in campaign:raise ValueError('Cells derive from policies; remove the explicit cells list')
     if mode not in INSPECT_MODES:
         if campaign.get('full_matrix_authorized') is not True:
             raise ValueError(f'{profile.configuration_id} grid is not authorized; only calibrate/qualify may use this overlay')
         if not isinstance(campaign.get('authorization'),str) or not campaign['authorization'].strip():
             raise ValueError('An authorized overlay must record the authorization text')
-    from scripts.cloud.sfs_score_campaign import accepted_prior_source_digests, resolve_remaining_length
-    result=deepcopy(bundle);result['families']['qwen']=family(profile,bundle,policies)
+    from scripts.cloud.sfs_score_campaign import (accepted_prior_campaign_digests, accepted_prior_source_digests,
+                                                   resolve_remaining_length)
+    result=deepcopy(bundle);result['families']['qwen']=family(profile,bundle,policies,rates)
     result['kind']=KIND;result['configuration_id']=profile.configuration_id;result['coefficient_policy']=profile.coefficient_policy
     # Qwen-only family: off_models must be exactly the Qwen models without a rule (8B, 32B).
     result['remaining_length']=resolve_remaining_length(campaign.get('remaining_length'),{'qwen':result['families']['qwen']})
     result['accepted_prior_source_digests']=accepted_prior_source_digests(campaign)
-    result['cells']=cells(profile,policies);result['blocked_cells']=[]
+    # Adding rates to the grid leaves every cell already measured exactly as it was: its overlay digest is
+    # accepted by name, with the reason, instead of burning GPU hours reproducing identical numbers.
+    result['accepted_prior_campaign_digests']=accepted_prior_campaign_digests(campaign)
+    result['cells']=cells(profile,policies,rates);result['blocked_cells']=[]
     result['requests_total']=sum(c['requests'] for c in result['cells'])
     return result
 
@@ -147,4 +173,14 @@ def apply_configuration_campaign(bundle, campaign, mode='inspect'):
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--bundle',type=Path,required=True);p.add_argument('--output',type=Path)
     p.add_argument('--profile',choices=sorted(OVERLAYS),required=True)
-    a=p.parse_args();output=a.output or OVERLAYS[a.profile];write(output,build(load_profile(a.profile),a.bundle));print(output)
+    p.add_argument('--rates',help='Comma-separated request rates in place of the default grid (requires --rate-rule)')
+    p.add_argument('--rate-rule',help='The evidence that chose a non-default grid')
+    p.add_argument('--accept-prior',action='append',default=[],metavar='SHA256=REASON',
+                   help='An earlier overlay digest whose completed cells stay valid under this grid')
+    p.add_argument('--accept-prior-source',action='append',default=[],metavar='SHA256=REASON',
+                   help='An earlier source digest whose completed cells stay valid under this grid')
+    a=p.parse_args();output=a.output or OVERLAYS[a.profile]
+    rates=tuple(float(r) for r in a.rates.split(',')) if a.rates else RATES
+    prior=dict(entry.split('=',1) for entry in a.accept_prior)
+    sources=dict(entry.split('=',1) for entry in a.accept_prior_source)
+    write(output,build(load_profile(a.profile),a.bundle,rates,a.rate_rule,prior,sources));print(output)

@@ -499,3 +499,60 @@ def test_instances_refuse_coefficients_without_a_declared_feature_set(bundle):
     bare = {m: dict(zip(qwen.COEFFICIENT_NAMES, qwen.COEFFICIENTS[i])) for i, m in enumerate(FCFS_MATRIX['models'])}
     with pytest.raises(ValueError, match='do not declare a batch-time feature set'):
         instance_config('qwen', None, bundle, PORTS, 'iso', 'kv_constrained', bare)
+
+
+LOW_RATES = (4.5, 5.25, 6., 7., 8., 8.3)
+RATE_RULE = ('Load probes on this configuration: 6 QPS stable at +0.13 req/s backlog growth, 8.3 unstable at +2.93; '
+             'the 7 QPS cells ran at a 459 s median TTFT. Capacity sits near 6.1-6.5 QPS, so 4.5 and 5.25 were added '
+             'below it, where the policies still differentiate.')
+
+
+def _low_grid(**extra):
+    """The constrained-capacity overlay with two rates added below its measured capacity."""
+    return {**deepcopy(read(campaign.OVERLAYS['kv_constrained'])), 'rates': list(LOW_RATES), 'rate_rule': RATE_RULE, **extra}
+
+
+def test_a_grid_below_capacity_is_accepted_with_the_evidence_that_chose_it(bundle):
+    m = read(bundle/'bundle.json')
+    applied = campaign.apply_campaign(CONSTRAINED, m, _low_grid(), 'run')
+    assert applied['families']['qwen']['qps'] == list(LOW_RATES)
+    assert len(applied['cells']) == len(campaign.POLICIES)*len(LOW_RATES)
+    added = [c for c in applied['cells'] if c['qps'] in (4.5, 5.25)]
+    assert len(added) == 2*len(campaign.POLICIES)
+    assert {c['id'] for c in added} >= {'qwen-kv-constrained-hard-4.5', 'qwen-kv-constrained-hard-5.25'}
+    assert all(c['requests'] == campaign.REQUESTS for c in applied['cells'])
+    # The cells the 6/7/8/8.3 grid already measured keep their exact identities, so the ledger reuses them.
+    old = {(c['id'], c['qps']) for c in campaign.apply_campaign(CONSTRAINED, m, read(campaign.OVERLAYS['kv_constrained']), 'run')['cells']}
+    assert old <= {(c['id'], c['qps']) for c in applied['cells']}
+
+
+def test_a_grid_other_than_the_default_must_record_its_evidence(bundle):
+    m = read(bundle/'bundle.json')
+    bad = _low_grid(); del bad['rate_rule']
+    with pytest.raises(ValueError, match='rate_rule'):
+        campaign.apply_campaign(CONSTRAINED, m, bad, 'run')
+    with pytest.raises(ValueError, match='rate_rule'):
+        campaign.apply_campaign(CONSTRAINED, m, _low_grid(rate_rule='   '), 'run')
+
+
+@pytest.mark.parametrize('rates', [[6., 4.5], [4.5, 4.5, 6.], [0., 6.], [-1., 6.], [6., 99.], ['6', 7.], [], [True, 6.], 6.])
+def test_a_malformed_rate_grid_is_refused(bundle, rates):
+    with pytest.raises(ValueError, match='rates must be'):
+        campaign.apply_campaign(CONSTRAINED, read(bundle/'bundle.json'), _low_grid(rates=rates), 'run')
+
+
+def test_prior_overlay_digests_carry_measured_cells_into_the_new_grid(bundle):
+    m = read(bundle/'bundle.json')
+    prior = digest(campaign.OVERLAYS['kv_constrained'])
+    applied = campaign.apply_campaign(CONSTRAINED, m, _low_grid(accepted_prior_campaign_digests={prior: 'rates added below capacity'}), 'run')
+    assert applied['accepted_prior_campaign_digests'] == {prior: 'rates added below capacity'}
+    with pytest.raises(ValueError, match='accepted_prior_campaign_digests'):
+        campaign.apply_campaign(CONSTRAINED, m, _low_grid(accepted_prior_campaign_digests={'short': 'reason'}), 'run')
+    with pytest.raises(ValueError, match='accepted_prior_campaign_digests'):
+        campaign.apply_campaign(CONSTRAINED, m, _low_grid(accepted_prior_campaign_digests={prior: ''}), 'run')
+
+
+def test_the_builder_writes_a_requested_grid_and_its_rule(bundle):
+    built = campaign.build(CONSTRAINED, bundle, LOW_RATES, RATE_RULE)
+    assert built['rates'] == list(LOW_RATES) and built['rate_rule'] == RATE_RULE
+    assert campaign.build(CONSTRAINED, bundle)['rates'] == [6., 7., 8., 8.3] and 'rate_rule' not in campaign.build(CONSTRAINED, bundle)

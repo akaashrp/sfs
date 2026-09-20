@@ -107,11 +107,12 @@ def for_configuration(configuration_id):
     return found[0]
 
 
-def family(profile, manifest, policies=None):
+def family(profile, manifest, policies=None, rates=None):
     """The bundle's Qwen family with this configuration's profile, rates, policies and identity."""
     d = deepcopy(manifest['families']['qwen'])
     d['profile'].update(profile.settings)
-    d['qps'] = list(RATES); d['policies'] = list(policies if policies is not None else METHODS); d['configuration_id'] = profile.configuration_id
+    d['qps'] = list(rates if rates is not None else RATES)
+    d['policies'] = list(policies if policies is not None else METHODS); d['configuration_id'] = profile.configuration_id
     return d
 
 
