@@ -3,17 +3,19 @@ from copy import deepcopy
 
 import pytest
 
-from scripts.cloud.common import ROOT, read, validate_bundle
+from scripts.cloud.common import ROOT, read
 from scripts.cloud.campaigns import apply_any_campaign
 from scripts.cloud.length_robustness_campaign import (FILLED_MODELS, KIND, POLICY, RATES, REQUESTS, SUFFIX,
                                                       VARIANTS, cell_id)
+from scripts.cloud.tests.test_sfs_score_campaign import _bundle
 
 OVERLAY = ROOT/'scripts/cloud/length-robustness-campaign-20260920.json'
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture
 def bundle():
-    return validate_bundle('/ocean/projects/cis250162p/aparthas/sfs_cloud_artifacts_20260916')
+    # The same synthetic manifest the other overlay tests use: no artifact tree on the test host.
+    return _bundle()
 
 
 def overlay():
@@ -35,8 +37,8 @@ def test_every_qwen_engine_fills_from_its_table(bundle):
     rules = m['remaining_length']['rules']
     assert set(rules) == set(FILLED_MODELS)
     # The canonical rule itself is unchanged; only the set of engines it covers is wider.
-    canonical = read(ROOT/'scripts/cloud/sfs-score-campaign-20260917.json')['remaining_length']
-    assert set(rules.values()) == {canonical['rules']['qwen3-0.6b']}
+    canonical = apply_any_campaign(_bundle(), read(ROOT/'scripts/cloud/sfs-score-campaign-20260917.json'))['remaining_length']
+    assert list(rules.values()) == [canonical['rules']['qwen3-0.6b']]*len(FILLED_MODELS)
     assert m['remaining_length']['tables'] == canonical['tables'] and m['remaining_length']['files'] == canonical['files']
     assert not [model for model in m['remaining_length']['off_models'] if model.startswith('qwen3-')]
 
