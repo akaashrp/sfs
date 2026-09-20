@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "kind": "length_robustness",
+  "status": "AUTHORIZED_PENDING_QUALIFICATION",
+  "authorization": "User decision 2026-09-20: address the root cause behind SFS falling below the external prefill-TPS estimator at 8.3 QPS in the MLP predictor arms.",
+  "diagnosis": "SFS admits by simulating each candidate wait, and that simulation consumes predicted output lengths; the prefill-TPS estimator uses prompt tokens and measured prefill throughput only. Swapping in the MLP length predictor (6% worse held-out MAE: 235 vs 222 tokens) tripled SFS wait-prediction error on the 8.3 cell (119 ms canonical -> 338 ms), moved 8B share from 27.0% to 34.8% and cost 7.5 points of TTFT attainment (93.6% -> 86.1%), while prefill-TPS held 90.8%. The fill removes the predictor from the simulated backlog of already-admitted requests, so if this is the mechanism, SFS should recover at 8.3 without losing 7 or 8.",
+  "predictor_arms": [
+    "mlp_length",
+    "mlp_quality"
+  ],
+  "rates": [
+    7.0,
+    8.0,
+    8.3
+  ],
+  "requests_per_cell": 16000,
+  "policies": {
+    "qwen": [
+      "hard"
+    ]
+  },
+  "cells": [
+    {
+      "id": "qwen-mlp_length-hard-7-lenfill",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "hard",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-hard-8-lenfill",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "hard",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_length-hard-8.3-lenfill",
+      "family": "qwen",
+      "variant": "mlp_length",
+      "policy": "hard",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-hard-7-lenfill",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "hard",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-hard-8-lenfill",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "hard",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-mlp_quality-hard-8.3-lenfill",
+      "family": "qwen",
+      "variant": "mlp_quality",
+      "policy": "hard",
+      "qps": 8.3,
+      "requests": 16000
+    }
+  ],
+  "repeats": {
+    "qwen-mlp_length-hard-7-lenfill": {
+      "cell": "qwen-mlp_length-hard-7",
+      "sfs_ontimeutility": 0.5278,
+      "prefill_tps_ontimeutility": 0.4971
+    },
+    "qwen-mlp_length-hard-8-lenfill": {
+      "cell": "qwen-mlp_length-hard-8",
+      "sfs_ontimeutility": 0.5047,
+      "prefill_tps_ontimeutility": 0.4909
+    },
+    "qwen-mlp_length-hard-8.3-lenfill": {
+      "cell": "qwen-mlp_length-hard-8.3",
+      "sfs_ontimeutility": 0.4599,
+      "prefill_tps_ontimeutility": 0.4853
+    },
+    "qwen-mlp_quality-hard-7-lenfill": {
+      "cell": "qwen-mlp_quality-hard-7",
+      "sfs_ontimeutility": 0.5189,
+      "prefill_tps_ontimeutility": 0.4988
+    },
+    "qwen-mlp_quality-hard-8-lenfill": {
+      "cell": "qwen-mlp_quality-hard-8",
+      "sfs_ontimeutility": 0.4948,
+      "prefill_tps_ontimeutility": 0.4878
+    },
+    "qwen-mlp_quality-hard-8.3-lenfill": {
+      "cell": "qwen-mlp_quality-hard-8.3",
+      "sfs_ontimeutility": 0.4661,
+      "prefill_tps_ontimeutility": 0.4865
+    }
+  },
+  "reading": "A cell is a win only if it beats the prefill_tps_ontimeutility it repeats; 7 and 8 QPS are the no-regression controls. Any adoption of this fill applies to every SFS cell of the campaign and is reported as the configuration, never chosen per cell.",
+  "remaining_length": {
+    "tables": "scripts/cloud/remaining-length-tables-20260917",
+    "files": {
+      "manifest.json": "2eac8a79de5650982d998c7ded87f8cf48e19f3a53d1005afb734d7c4c491fbb",
+      "qwen3-0.6b.json": "50a14ca76681895a622cbf2d69ba362e37792b32b76c5967b7b9b67f3f6ed87d",
+      "qwen3-32b.json": "74e3a4ef30c8be24e01983b2609c4d76c8641422f26def2a899ec47ec88cf599",
+      "qwen3-8b.json": "2392950a25c04003e945124554fd33654da1c552ccdecf7e59d20770f9c04ce6"
+    },
+    "rules": {
+      "qwen3-0.6b": "running_all:0.5:prompt_bin",
+      "qwen3-8b": "running_all:0.5:prompt_bin",
+      "qwen3-32b": "running_all:0.5:prompt_bin"
+    },
+    "off_models": [
+      "ministral3-3b",
+      "ministral3-8b",
+      "ministral3-14b"
+    ],
+    "note": "The canonical rule, tables and quantile, applied to every Qwen engine instead of the 0.6B alone: a running request contributes its measured survival-quantile remaining length for its prompt bin, so the simulated decode backlog no longer depends on the output-length predictor for requests already admitted. The tables are the committed ones, built from canonical calibration outputs; nothing else changes.",
+    "evidence": {
+      "paired_run": "scripts/cloud/reports/reserve-tail-20260916/paired-qps8p6-on/result_summary.json (Vast /workspace/sfs/state/diagnostics/reserve-tail-20260916/paired-qps8p6-on; canonical 8.6 QPS hard control, 16,000 requests, source bedeec4 + reserve diff)",
+      "readiness_note": "scripts/cloud/reserve-paired-run-20260916.md",
+      "on": {
+        "rule": "qwen3-0.6b=running_all_prompt_bin_q50",
+        "ttft_slo_attainment_pct": 90.89375,
+        "pro_ontimeutility": 0.47315245581222454,
+        "flash_ontimeutility": 0.5106716853900976,
+        "realized_qps": 8.590666810927857,
+        "raw_sha256": "01fb35c7ad67db820ccec798c064a8dcabd851b5bdb772263d5cb5acbf7ebc9b"
+      },
+      "off_controls": {
+        "qps8p6": {
+          "remote_output": "/workspace/sfs/state/controls/qps8p6",
+          "ttft_slo_attainment_pct": 49.9625,
+          "pro_ontimeutility": 0.27815865541318135,
+          "raw_sha256": "d6e6d043c305b107fb4f7d8f54ad41cd461a20df77a279d77724fc2e298da726"
+        },
+        "qps8p6-repeat1": {
+          "remote_output": "/workspace/sfs/state/controls/qps8p6-repeat1",
+          "ttft_slo_attainment_pct": 63.7125,
+          "pro_ontimeutility": 0.35614945124710856,
+          "raw_sha256": "1f6099fff5b066736da2d8ffc2df285494902210d6584916fe02a84dc924224a"
+        }
+      },
+      "reading": "ON exceeds the better OFF control on both acceptance metrics (attainment 90.89 vs 63.71 percent; Pro OnTimeUtility 0.4732 vs 0.3561), outside the 13.8-point OFF spread; the pre-registered reading rule in the readiness note therefore admits the 0.6B rule for the campaign."
+    }
+  },
+  "accepted_prior_source_digests": {}
+}
