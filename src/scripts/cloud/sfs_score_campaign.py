@@ -43,7 +43,7 @@ def accepted_prior_source_digests(campaign):
     return dict(accepted)
 
 
-def resolve_remaining_length(block, families):
+def resolve_remaining_length(block, families, family='qwen'):
     """Verify the committed tables and per-model rules; return the pool-ready block.
 
     Overlay form: {"tables": repo-relative dir, "files": {name: sha256}, "rules": {model:
@@ -72,12 +72,13 @@ def resolve_remaining_length(block, families):
     for model, entry in manifest['tables'].items():
         if files.get(f'{model}.json') != entry['sha256']:
             raise ValueError(f'Table manifest disagrees with the overlay hash for {model}')
-    qwen = set(families['qwen']['models'])
+    # The rule block belongs to one family's engines; Qwen unless a caller measures another.
+    owned = set(families[family]['models'])
     rules = block['rules']
     if not isinstance(rules, dict) or not rules:
-        raise ValueError('remaining_length.rules must name at least one Qwen model')
-    if set(rules) - qwen:
-        raise ValueError(f'Remaining-length rules are Qwen only: {sorted(set(rules) - qwen)}')
+        raise ValueError(f'remaining_length.rules must name at least one {family} model')
+    if set(rules) - owned:
+        raise ValueError(f'Remaining-length rules are {family} only: {sorted(set(rules) - owned)}')
     parsed = parse_remaining_length_rules([f'{model}={spec}' for model, spec in rules.items()])
     for model, rule in parsed.items():
         if rule['mode'] == 'off':

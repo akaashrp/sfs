@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "kind": "length_robustness",
+  "status": "AUTHORIZED_PENDING_QUALIFICATION",
+  "authorization": "User decision 2026-09-20: rerun the Ministral SFS cells with the fill, after it recovered the Qwen arms.",
+  "diagnosis": "Ministral SFS ran with no conditional remaining-length fill on any engine, so every running request contributes its predicted length plus reserve to the engine decode reserve. On Qwen the same setting cost 7.5 points of TTFT attainment under a swapped length predictor and, once filled, recovered every arm (canonical +0.021/+0.029/-0.001/+0.035 at 6/7/8/8.3). Ministral is the family where the external prefill-TPS estimator still leads at 7.8625 (0.5435 against 0.5385), where SFS routes 21.1% of traffic to the 3B for deadline safety and earns 3% less value per on-time request.",
+  "predictor_arms": [
+    "canonical"
+  ],
+  "rates": [
+    7.8625
+  ],
+  "requests_per_cell": 8000,
+  "policies": {
+    "ministral": [
+      "hard"
+    ]
+  },
+  "cells": [
+    {
+      "id": "ministral-hard-7.8625-lenfill",
+      "family": "ministral",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 7.8625,
+      "requests": 8000
+    }
+  ],
+  "repeats": {
+    "ministral-hard-7.8625-lenfill": {
+      "cell": "ministral-hard-7.8625",
+      "sfs_ontimeutility": 0.5385,
+      "prefill_tps_ontimeutility": 0.5435
+    }
+  },
+  "reading": "A win is beating the prefill_tps_ontimeutility this cell repeats (0.5435). Only this rate is measured under the fill; the other Ministral rates stay as originally measured.",
+  "remaining_length": {
+    "tables": "scripts/cloud/remaining-length-tables-ministral-20260920",
+    "files": {
+      "manifest.json": "20dd53ff2186256c3f68b75f3947dbe6c6c3f2cfdffc81006d81e773464cd233",
+      "ministral3-14b.json": "c51a8964d2ccd1848016bf9bcf89bc88e519ca7807d8355e97d27a29c2eb3dd6",
+      "ministral3-3b.json": "11fafb1bcb88e8203416e8ae6ea2b40789c60be3821aac6d9ae55fa8f8b60996",
+      "ministral3-8b.json": "513bbc2470700e8397f48310e1285e19ce256d0d4f1e6aaf833797408b2a8ecf"
+    },
+    "rules": {
+      "ministral3-3b": "running_all:0.5:prompt_bin",
+      "ministral3-8b": "running_all:0.5:prompt_bin",
+      "ministral3-14b": "running_all:0.5:prompt_bin"
+    },
+    "off_models": [
+      "qwen3-0.6b",
+      "qwen3-32b",
+      "qwen3-8b"
+    ],
+    "note": "Survival tables built for the Ministral engines by scripts.prep.remaining_length_tables from the Ministral calibration completions (10,000 prompts per model across four buckets, disjoint from the 8,000 evaluation ids, verified by the builder), with the same bins, minimum support and quantile as the Qwen tables. Every Ministral engine fills; nothing else changes.",
+    "evidence": {
+      "paired_run": "Qwen 0.6B paired run adopted 2026-09-17 (90.89% against 49.96% TTFT attainment)",
+      "qwen_fill": "Canonical Qwen arm under the fill, 2026-09-20: 0.5609/0.5503/0.5029/0.5295 at 6/7/8/8.3"
+    }
+  },
+  "accepted_prior_source_digests": {},
+  "accepted_prior_campaign_digests": {}
+}

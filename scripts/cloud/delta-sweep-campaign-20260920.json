@@ -1,0 +1,272 @@
+{
+  "schema_version": 1,
+  "kind": "delta_sweep",
+  "status": "AUTHORIZED_PENDING_QUALIFICATION",
+  "authorization": "User decision 2026-09-21: redraw figure 6 on the current runtime at its own fifteen delta values and its own 8,000-request point size.",
+  "published_curve": {
+    "source": "vllm_utils/experiments/delta_plots/router_delta_sweep_metrics_summary.json",
+    "deltas_plotted": 15,
+    "requests_per_point": 8000,
+    "qps": 8.0,
+    "policies": [
+      "soft"
+    ],
+    "measured": {
+      "0": [
+        0.6091,
+        237.487
+      ],
+      "1e-07": [
+        0.6055,
+        219.605
+      ],
+      "3e-07": [
+        0.5966,
+        182.945
+      ],
+      "4e-07": [
+        0.5825,
+        126.606
+      ],
+      "5e-07": [
+        0.5754,
+        110.605
+      ],
+      "6e-07": [
+        0.5698,
+        96.223
+      ],
+      "8e-07": [
+        0.5284,
+        18.346
+      ],
+      "1e-06": [
+        0.5285,
+        14.152
+      ],
+      "3e-06": [
+        0.5273,
+        4.831
+      ],
+      "4e-06": [
+        0.5213,
+        1.873
+      ],
+      "5e-06": [
+        0.5355,
+        0.254
+      ],
+      "8e-06": [
+        0.557,
+        0.204
+      ],
+      "1e-05": [
+        0.558,
+        0.133
+      ],
+      "0.005": [
+        0.5356,
+        0.102
+      ],
+      "1000000000": [
+        0.4191,
+        0.097
+      ]
+    },
+    "measured_note": "utility (acc - lambda*cost) and mean TTFT in seconds, as plotted"
+  },
+  "policies": {
+    "qwen": [
+      "soft"
+    ]
+  },
+  "cells": [
+    {
+      "id": "qwen-soft-8-delta0",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 0.0
+    },
+    {
+      "id": "qwen-soft-8-delta1e-07",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 1e-07
+    },
+    {
+      "id": "qwen-soft-8-delta3e-07",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 3e-07
+    },
+    {
+      "id": "qwen-soft-8-delta4e-07",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 4e-07
+    },
+    {
+      "id": "qwen-soft-8-delta5e-07",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 5e-07
+    },
+    {
+      "id": "qwen-soft-8-delta6e-07",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 6e-07
+    },
+    {
+      "id": "qwen-soft-8-delta8e-07",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 8e-07
+    },
+    {
+      "id": "qwen-soft-8-delta1e-06",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 1e-06
+    },
+    {
+      "id": "qwen-soft-8-delta3e-06",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 3e-06
+    },
+    {
+      "id": "qwen-soft-8-delta4e-06",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 4e-06
+    },
+    {
+      "id": "qwen-soft-8-delta5e-06",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 5e-06
+    },
+    {
+      "id": "qwen-soft-8-delta8e-06",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 8e-06
+    },
+    {
+      "id": "qwen-soft-8-delta1e-05",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 1e-05
+    },
+    {
+      "id": "qwen-soft-8-delta0.005",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 0.005
+    },
+    {
+      "id": "qwen-soft-8-delta1e+09",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "soft",
+      "qps": 8.0,
+      "requests": 8000,
+      "delta_weight": 1000000000.0
+    }
+  ],
+  "requests_total": 120000,
+  "reading": "Utility is the ungated mean accuracy - lambda*cost against mean TTFT, as in the published figure. Baselines are plotted from the canonical 8 QPS cells of this campaign (same runtime and SLOs); those cells are 16,000 requests, which makes the mean TTFT of a saturated baseline pessimistic relative to an 8,000-request run.",
+  "remaining_length": {
+    "tables": "scripts/cloud/remaining-length-tables-20260917",
+    "files": {
+      "manifest.json": "2eac8a79de5650982d998c7ded87f8cf48e19f3a53d1005afb734d7c4c491fbb",
+      "qwen3-0.6b.json": "50a14ca76681895a622cbf2d69ba362e37792b32b76c5967b7b9b67f3f6ed87d",
+      "qwen3-32b.json": "74e3a4ef30c8be24e01983b2609c4d76c8641422f26def2a899ec47ec88cf599",
+      "qwen3-8b.json": "2392950a25c04003e945124554fd33654da1c552ccdecf7e59d20770f9c04ce6"
+    },
+    "rules": {
+      "qwen3-0.6b": "running_all:0.5:prompt_bin"
+    },
+    "off_models": [
+      "qwen3-8b",
+      "qwen3-32b",
+      "ministral3-3b",
+      "ministral3-8b",
+      "ministral3-14b"
+    ],
+    "note": "The rule is per engine: only the qwen3-0.6b server receives --remaining-length-mode running_all --remaining-length-table qwen3-0.6b.json --remaining-length-quantile 0.5 --remaining-length-conditioning prompt_bin, and the router attaches that table for its missing-prediction fill on that instance only. qwen3-8b and qwen3-32b stay off: reserve-tail-20260916 README sections 4.2/4.3 (8B target component within noise, hindsight replay worse under every candidate; 32B sub-second either way). Ministral stays off: no Ministral paired evidence (reserve-tail-ministral-20260917 is analysis only), the rule is only plumbed for the Qwen family and scripts.cloud.pool refuses it for a Ministral server. Tables were built from the calibration outputs only (zero overlap with the 16,000 evaluation ids); manifest.json records the build paths on the controller.",
+    "evidence": {
+      "paired_run": "scripts/cloud/reports/reserve-tail-20260916/paired-qps8p6-on/result_summary.json (Vast /workspace/sfs/state/diagnostics/reserve-tail-20260916/paired-qps8p6-on; canonical 8.6 QPS hard control, 16,000 requests, source bedeec4 + reserve diff)",
+      "readiness_note": "scripts/cloud/reserve-paired-run-20260916.md",
+      "on": {
+        "rule": "qwen3-0.6b=running_all_prompt_bin_q50",
+        "ttft_slo_attainment_pct": 90.89375,
+        "pro_ontimeutility": 0.47315245581222454,
+        "flash_ontimeutility": 0.5106716853900976,
+        "realized_qps": 8.590666810927857,
+        "raw_sha256": "01fb35c7ad67db820ccec798c064a8dcabd851b5bdb772263d5cb5acbf7ebc9b"
+      },
+      "off_controls": {
+        "qps8p6": {
+          "remote_output": "/workspace/sfs/state/controls/qps8p6",
+          "ttft_slo_attainment_pct": 49.9625,
+          "pro_ontimeutility": 0.27815865541318135,
+          "raw_sha256": "d6e6d043c305b107fb4f7d8f54ad41cd461a20df77a279d77724fc2e298da726"
+        },
+        "qps8p6-repeat1": {
+          "remote_output": "/workspace/sfs/state/controls/qps8p6-repeat1",
+          "ttft_slo_attainment_pct": 63.7125,
+          "pro_ontimeutility": 0.35614945124710856,
+          "raw_sha256": "1f6099fff5b066736da2d8ffc2df285494902210d6584916fe02a84dc924224a"
+        }
+      },
+      "reading": "ON exceeds the better OFF control on both acceptance metrics (attainment 90.89 vs 63.71 percent; Pro OnTimeUtility 0.4732 vs 0.3561), outside the 13.8-point OFF spread; the pre-registered reading rule in the readiness note therefore admits the 0.6B rule for the campaign."
+    }
+  },
+  "accepted_prior_source_digests": {},
+  "accepted_prior_campaign_digests": {},
+  "scoring_note": "An 8,000-request Qwen cell is not covered by the frozen 16,000-row request map, and a point does not record prompt identities, so this sweep is scored through a request map generated from the same deterministic build (seed 69, the bundle holdout cache) and kept beside the sweep. The bundle is unchanged."
+}

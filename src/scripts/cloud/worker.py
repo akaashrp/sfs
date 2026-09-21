@@ -137,6 +137,33 @@ def lambda_argv(argv, manifest, weight):
     return set_option(argv, '--score-lambda-weight', f'{weight:.12g}')
 
 
+def cell_delta(cell):
+    """The cell's latency penalty delta, or None when the run keeps the bundle's own --delta-weight."""
+    weight = cell.get('delta_weight')
+    return None if weight is None else float(weight)
+
+
+def delta_argv(argv, manifest, weight):
+    """Router argv for one run: the latency penalty of the soft objective (accuracy - lambda*cost - delta*wait).
+
+    Only a delta_sweep overlay varies it per cell; every other overlay leaves the bundle's value alone,
+    so the utility-latency tradeoff curve is the one experiment that moves this knob.
+    """
+    if weight is None:
+        return list(argv)
+    if manifest.get('kind') != 'delta_sweep':
+        raise ValueError('A per-cell delta weight requires a delta_sweep overlay')
+    weight = float(weight)
+    if not math.isfinite(weight) or weight < 0:
+        raise ValueError('A latency penalty must be finite and non-negative')
+    return set_option(argv, '--delta-weight', f'{weight:.12g}')
+
+
+def delta_levels(manifest):
+    """Sorted distinct per-cell delta weights of the manifest cells; [] when no cell overrides the bundle."""
+    return sorted({w for w in (cell_delta(c) for c in manifest['cells']) if w is not None})
+
+
 def family_remaining_length(manifest, definition):
     """Pool-ready {'tables', 'rules'} for this family's models, or None (current rule everywhere)."""
     block = manifest.get('remaining_length')
@@ -390,8 +417,9 @@ async def execute(options, manifest, definition, model_paths, output):
             if options.mode in ('qualify', 'campaign'):
                 await calibrate(options.family, definition, calibration, clients, base_args, output)
             argv = arguments(definition, options.bundle, options.variant, manifest, qualification)
-            def args_for(policy, rate, count, staleness=None, lambda_weight=None):
-                args = parse(lambda_argv(staleness_argv(argv, manifest, staleness), manifest, lambda_weight))
+            def args_for(policy, rate, count, staleness=None, lambda_weight=None, delta_weight=None):
+                args = parse(delta_argv(lambda_argv(staleness_argv(argv, manifest, staleness), manifest, lambda_weight),
+                                        manifest, delta_weight))
                 args.utilities, args.num_requests, args.request_rate_qps = [policy], count, rate
                 args.per_request_wait_log = [str(output/f'wait_{m}.log') for m in definition['models']]
                 return args
@@ -487,8 +515,8 @@ async def execute(options, manifest, definition, model_paths, output):
                             raise ValueError('Completed point checksum changed')
                         continue
                     validate_release(qualification, options, source_hashes(), active_rule['rule'])
-                    staleness, weight = cell_staleness(cell), routing_lambda(manifest, cell)
-                    args = args_for(cell['policy'], cell['qps'], cell['requests'], staleness, weight)
+                    staleness, weight, delta = cell_staleness(cell), routing_lambda(manifest, cell), cell_delta(cell)
+                    args = args_for(cell['policy'], cell['qps'], cell['requests'], staleness, weight, delta)
                     requests, _, _ = exp._build_request_set(args)
                     if len(requests) != cell['requests']:
                         raise ValueError('Evaluation ingestion budget changed')
@@ -502,6 +530,8 @@ async def execute(options, manifest, definition, model_paths, output):
                         raise ValueError('Router did not record the cell snapshot staleness')
                     if weight is not None and float(payload['config']['score_lambda_weight']) != weight:
                         raise ValueError('Router did not record the cell SCORE routing multiplier')
+                    if delta is not None and float(payload['config']['delta_weight']) != delta:
+                        raise ValueError('Router did not record the cell latency penalty')
                     if float(payload['config']['lambda_weight']) != float(parse(argv).lambda_weight):
                         raise ValueError('Cell was scored on a different objective lambda than the bundle')
                     if source_hashes() != source:
@@ -516,6 +546,7 @@ async def execute(options, manifest, definition, model_paths, output):
                         'snapshot_staleness_ms': staleness, 'snapshot_staleness_levels_ms': staleness_levels(manifest),
                         'lambda_weight': weight, 'lambda_weights': lambda_levels(manifest),
                         'score_routing_lambda_weight': weight,
+                        'delta_weight': delta, 'delta_weights': delta_levels(manifest),
                         'evaluation_lambda_weight': float(parse(argv).lambda_weight),
                         'data_role': cell.get('data_role', campaign_data_role(manifest))}
                     write(folder/'audit.json', entry)

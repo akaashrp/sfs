@@ -169,7 +169,7 @@ def test_rule_reaches_only_the_small_qwen_engine_and_the_instances_block(tmp_pat
     assert set(attached) == {'vllm-qwen3-0.6b'} and attached['vllm-qwen3-0.6b'].sha256 == SHA['qwen3-0.6b.json']
 
 
-def test_ministral_pool_never_receives_and_always_refuses_rules(tmp_path):
+def test_ministral_pool_receives_no_rule_under_the_canonical_overlay(tmp_path):
     from scripts.cloud.worker import family_remaining_length
     from scripts.cloud.pool import remaining_length_provenance, server_argv
     active = apply_sfs_score_campaign(_bundle(), read(OVERLAY))
@@ -181,10 +181,14 @@ def test_ministral_pool_never_receives_and_always_refuses_rules(tmp_path):
     assert block['rules'] == forced['remaining_length']['rules']
     with pytest.raises((ValueError, OSError)):   # no Ministral table exists; the pool refuses before any server starts
         remaining_length_provenance(ministral, block)
+    # A Ministral engine can carry the rule (the length-robustness overlay gives it its own committed
+    # tables), but only a declared rule with a table reaches it; the canonical overlay declares none.
     row = {'default_model': 'x', 'model_id': 'ministral3-3b', 'address': 'http://h:1', 'snapshot_shm_name': 's',
-           'snapshot_shm_size_bytes': 1, 'ttft_batch_model': {}}
-    with pytest.raises(ValueError, match='Qwen family'):
-        server_argv('ministral', '/m', row, 0, tmp_path, '/len', {'rule': 'x', 'models': {'ministral3-3b': {'mode': 'running_all'}}})
+           'snapshot_shm_size_bytes': 1, 'batch_time_feature_set': 'legacy',
+           'ttft_batch_model': {'intercept': 0., 'prefill_coeff': 0., 'prefill_sq_coeff': 0.,
+                                'decode_coeff': 0., 'sum_coeff': 0., 'sum_sq_coeff': 0.}}
+    argv = server_argv('ministral', '/m', row, 0, tmp_path, '/len', family_remaining_length(active, ministral))
+    assert not [a for a in argv if a.startswith('--remaining-length')]
 
 
 def test_release_binds_the_remaining_length_rule(tmp_path, monkeypatch):

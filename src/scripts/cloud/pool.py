@@ -104,14 +104,7 @@ def server_argv(family, model_path, row, index, output, length_predictor, remain
         from scripts.runs.qwen_baselines import server_argv as canonical_argv
         argv = canonical_argv(ROOT, model_path, row, index, output)
         argv = set_option(argv, "--output-length-model-path", length_predictor)
-        if rule["mode"] != "off":
-            argv = set_option(argv, "--remaining-length-mode", rule["mode"])
-            argv = set_option(argv, "--remaining-length-table", rule["table"]["path"])
-            argv = set_option(argv, "--remaining-length-quantile", rule["quantile"])
-            argv = set_option(argv, "--remaining-length-conditioning", rule["conditioning"])
     else:
-        if rule["mode"] != "off":
-            raise ValueError("The remaining-length rule is only plumbed for the Qwen family")
         argv = [sys.executable, "-m", "vllm.entrypoints.openai.api_server", "--model", str(model_path),
             "--served-model-name", row["default_model"], "--tokenizer-mode", "mistral",
             "--config-format", "mistral", "--load-format", "mistral", "--dtype", "auto",
@@ -127,6 +120,13 @@ def server_argv(family, model_path, row, index, output, length_predictor, remain
             raise ValueError("This instances.json predates the batch-time feature-set fix; rebuild the pool config")
         argv += build_simulation_args({"sfs_simulation": {**row["ttft_batch_model"],
                                                           "feature_set": row["batch_time_feature_set"]}})
+    # The engine flag is the same for every family; what was Qwen-only was the committed tables, and
+    # Ministral now has its own (built from its calibration completions, same bins and quantile).
+    if rule["mode"] != "off":
+        argv = set_option(argv, "--remaining-length-mode", rule["mode"])
+        argv = set_option(argv, "--remaining-length-table", rule["table"]["path"])
+        argv = set_option(argv, "--remaining-length-quantile", rule["quantile"])
+        argv = set_option(argv, "--remaining-length-conditioning", rule["conditioning"])
     return [*argv, "--host", "127.0.0.1"]
 
 

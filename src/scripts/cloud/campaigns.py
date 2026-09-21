@@ -51,6 +51,9 @@ def apply_any_campaign(bundle, campaign):
     if kind == 'predictor_variants':
         from scripts.cloud.variant_campaign import apply_variant_campaign
         return apply_variant_campaign(bundle, campaign)
+    if kind == 'delta_sweep':
+        from scripts.cloud.delta_sweep_campaign import apply_delta_sweep_campaign
+        return apply_delta_sweep_campaign(bundle, campaign)
     if kind == 'length_robustness':
         from scripts.cloud.length_robustness_campaign import apply_length_robustness_campaign
         return apply_length_robustness_campaign(bundle, campaign)

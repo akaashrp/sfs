@@ -5,14 +5,34 @@
   "authorization": "User decision 2026-09-20: address the root cause behind SFS falling below the external prefill-TPS estimator at 8.3 QPS in the MLP predictor arms.",
   "diagnosis": "SFS admits by simulating each candidate wait, and that simulation consumes predicted output lengths; the prefill-TPS estimator uses prompt tokens and measured prefill throughput only. Swapping in the MLP length predictor (6% worse held-out MAE: 235 vs 222 tokens) tripled SFS wait-prediction error on the 8.3 cell (119 ms canonical -> 338 ms), moved 8B share from 27.0% to 34.8% and cost 7.5 points of TTFT attainment (93.6% -> 86.1%), while prefill-TPS held 90.8%. The fill removes the predictor from the simulated backlog of already-admitted requests, so if this is the mechanism, SFS should recover at 8.3 without losing 7 or 8.",
   "predictor_arms": [
+    "canonical",
     "mlp_length",
-    "mlp_quality"
+    "mlp_quality",
+    "flash_quality"
   ],
-  "rates": [
-    7.0,
-    8.0,
-    8.3
-  ],
+  "rates": {
+    "canonical": [
+      6.0,
+      7.0,
+      8.0,
+      8.3
+    ],
+    "mlp_length": [
+      7.0,
+      8.0,
+      8.3
+    ],
+    "mlp_quality": [
+      7.0,
+      8.0,
+      8.3
+    ],
+    "flash_quality": [
+      7.0,
+      8.0,
+      8.3
+    ]
+  },
   "requests_per_cell": 16000,
   "policies": {
     "qwen": [
@@ -67,6 +87,62 @@
       "policy": "hard",
       "qps": 8.3,
       "requests": 16000
+    },
+    {
+      "id": "qwen-hard-6-lenfill",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 6.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-hard-7-lenfill",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-hard-8-lenfill",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-hard-8.3-lenfill",
+      "family": "qwen",
+      "variant": "canonical",
+      "policy": "hard",
+      "qps": 8.3,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-hard-7-lenfill",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "hard",
+      "qps": 7.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-hard-8-lenfill",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "hard",
+      "qps": 8.0,
+      "requests": 16000
+    },
+    {
+      "id": "qwen-flash_quality-hard-8.3-lenfill",
+      "family": "qwen",
+      "variant": "flash_quality",
+      "policy": "hard",
+      "qps": 8.3,
+      "requests": 16000
     }
   ],
   "repeats": {
@@ -99,6 +175,50 @@
       "cell": "qwen-mlp_quality-hard-8.3",
       "sfs_ontimeutility": 0.4661,
       "prefill_tps_ontimeutility": 0.4865
+    },
+    "qwen-hard-6-lenfill": {
+      "cell": "qwen-hard-6",
+      "sfs_ontimeutility": 0.5402,
+      "prefill_tps_ontimeutility": 0.5199
+    },
+    "qwen-hard-7-lenfill": {
+      "cell": "qwen-hard-7",
+      "sfs_ontimeutility": 0.5209,
+      "prefill_tps_ontimeutility": 0.5012
+    },
+    "qwen-hard-8-lenfill": {
+      "cell": "qwen-hard-8",
+      "sfs_ontimeutility": 0.5043,
+      "prefill_tps_ontimeutility": 0.4927
+    },
+    "qwen-hard-8.3-lenfill": {
+      "cell": "qwen-hard-8.3",
+      "sfs_ontimeutility": 0.4941,
+      "prefill_tps_ontimeutility": 0.4856
+    },
+    "qwen-flash_quality-hard-7-lenfill": {
+      "cell": "qwen-flash_quality-hard-7",
+      "sfs_ontimeutility": 0.5505,
+      "prefill_tps_ontimeutility": 0.532,
+      "strongest_baseline_ontimeutility": 0.562,
+      "strongest_baseline": "mooncake_prefill",
+      "judge": "flash"
+    },
+    "qwen-flash_quality-hard-8-lenfill": {
+      "cell": "qwen-flash_quality-hard-8",
+      "sfs_ontimeutility": 0.5397,
+      "prefill_tps_ontimeutility": 0.5233,
+      "strongest_baseline_ontimeutility": 0.3281,
+      "strongest_baseline": "mooncake_prefill",
+      "judge": "flash"
+    },
+    "qwen-flash_quality-hard-8.3-lenfill": {
+      "cell": "qwen-flash_quality-hard-8.3",
+      "sfs_ontimeutility": 0.5243,
+      "prefill_tps_ontimeutility": 0.4603,
+      "strongest_baseline_ontimeutility": 0.0472,
+      "strongest_baseline": "mooncake_prefill",
+      "judge": "flash"
     }
   },
   "reading": "A cell is a win only if it beats the prefill_tps_ontimeutility it repeats; 7 and 8 QPS are the no-regression controls. Any adoption of this fill applies to every SFS cell of the campaign and is reported as the configuration, never chosen per cell.",
@@ -149,5 +269,26 @@
       "reading": "ON exceeds the better OFF control on both acceptance metrics (attainment 90.89 vs 63.71 percent; Pro OnTimeUtility 0.4732 vs 0.3561), outside the 13.8-point OFF spread; the pre-registered reading rule in the readiness note therefore admits the 0.6B rule for the campaign."
     }
   },
-  "accepted_prior_source_digests": {}
+  "accepted_prior_source_digests": {
+    "d75843ab4af83ff2784cdf88190b36622c73ab3aa29194bd7603ef49887befef": "Source of the six measured cells; the canonical arm adds overlay validation only, no routing, serving or scoring change",
+    "d510740c4952c3c690e1cbddc885a763b4a6bb1a3d1d65b0e1953d06399cf3d6": "Source of the ten measured cells; the flash arm adds overlay validation and a delta-sweep kind, no routing or serving change"
+  },
+  "accepted_prior_campaign_digests": {
+    "57222670aef499f598040a63f59ded23ed685fa145a5bca43a97c8e27d6d19da": "The six swapped-predictor cells were measured under this overlay; adding the canonical arm leaves each of them exactly as it was",
+    "86fbdf5528787083bfa52f72a43ab197de0e2fdfe4b699bd8949b2bde771c7bb": "The ten Qwen cells were measured under this overlay; adding the flash arm leaves each of them exactly as it was"
+  },
+  "canonical_arm": "The same fill under the canonical predictors. Adopting the fill campaign-wide would re-measure the headline Qwen grid, and the canonical configuration currently benefits from the LightGBM length predictor underpredicting (0.55 predicted/actual tokens), which holds the engine decode reserve down. If the fill costs the canonical grid, adopting it only where it helps would be selection after the fact; this arm measures that before any adoption decision.",
+  "results_so_far": {
+    "measured_2026-09-20": {
+      "qwen-mlp_length-hard-7-lenfill": 0.5499,
+      "qwen-mlp_length-hard-8-lenfill": 0.52,
+      "qwen-mlp_length-hard-8.3-lenfill": 0.5085,
+      "qwen-mlp_quality-hard-7-lenfill": 0.5488,
+      "qwen-mlp_quality-hard-8-lenfill": 0.5315,
+      "qwen-mlp_quality-hard-8.3-lenfill": 0.4688
+    },
+    "reading": "Five of six beat the prefill-TPS value they repeat; qwen-mlp_quality-hard-8.3 (0.4688) stays below 0.4865."
+  },
+  "requests_total": 208000,
+  "flash_arm": "Under the Flash judge the flash-trained arm is the one place an external baseline still leads SFS: Mooncake 0.5620 against 0.5505 at 7 QPS. The same fill took the canonical arm scored under Flash from 0.5581 to 0.5890 at that rate, so this measures whether it closes the gap in the arm whose predictor is itself flash-trained. 8 and 8.3 are the no-regression controls."
 }

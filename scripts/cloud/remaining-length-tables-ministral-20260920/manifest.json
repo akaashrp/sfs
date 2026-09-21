@@ -1,0 +1,62 @@
+{
+ "calibration": "/workspace/sfs/lenrobust/ministral/calibration",
+ "cap": 8192,
+ "evaluation_ids": 8000,
+ "min_support": 8,
+ "prompt_bin_edges": [
+  0,
+  128,
+  512,
+  2048,
+  8192,
+  32768,
+  1000000000
+ ],
+ "request_map": "/workspace/sfs/bundle/ministral/request_map.csv",
+ "request_map_sha256": "5d4fa1fda6c3014cb9f8e669b9576bc633e799cfbe58c312768ac2b5ce508106",
+ "schema_version": 1,
+ "tables": {
+  "ministral3-14b": {
+   "path": "/workspace/sfs/lenrobust/ministral/tables/ministral3-14b.json",
+   "records": 10000,
+   "sha256": "c51a8964d2ccd1848016bf9bcf89bc88e519ca7807d8355e97d27a29c2eb3dd6",
+   "support_per_bin": {
+    "0": 4993,
+    "1": 23,
+    "2": 2323,
+    "3": 1328,
+    "4": 1309,
+    "5": 24,
+    "all": 10000
+   }
+  },
+  "ministral3-3b": {
+   "path": "/workspace/sfs/lenrobust/ministral/tables/ministral3-3b.json",
+   "records": 10000,
+   "sha256": "11fafb1bcb88e8203416e8ae6ea2b40789c60be3821aac6d9ae55fa8f8b60996",
+   "support_per_bin": {
+    "0": 4993,
+    "1": 23,
+    "2": 2323,
+    "3": 1328,
+    "4": 1309,
+    "5": 24,
+    "all": 10000
+   }
+  },
+  "ministral3-8b": {
+   "path": "/workspace/sfs/lenrobust/ministral/tables/ministral3-8b.json",
+   "records": 10000,
+   "sha256": "513bbc2470700e8397f48310e1285e19ce256d0d4f1e6aaf833797408b2a8ecf",
+   "support_per_bin": {
+    "0": 4993,
+    "1": 23,
+    "2": 2323,
+    "3": 1328,
+    "4": 1309,
+    "5": 24,
+    "all": 10000
+   }
+  }
+ }
+}
