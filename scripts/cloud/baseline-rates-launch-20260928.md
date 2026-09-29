@@ -72,6 +72,36 @@ lane, which idled GPUs for hours in the September campaign.
 3. Re-render: `python sfs_paper_results/figures/make_figures.py`, then set `FIG5_RATES` to the
    grid you publish (3, 4, 5, 6, 7, 8, 8.3, 8.6, 8.9, 9.0, 9.2).
 
+## Interruptible rentals
+
+The campaign is resumable by construction: the worker writes a receipt per finished cell to
+`<state>/completed/<cell-id>.json` and skips any cell that has one, after checking the bundle
+digest and the source pin. Restarting the same runner therefore re-runs only unfinished cells.
+What is lost to an interruption is the cell in flight — at most ~44 min (3 QPS) or ~31 min
+(8.6 QPS).
+
+Three things have to be true for that to hold:
+
+1. **The state directory must survive.** The instance's disk is not independent of the instance;
+   a destroyed instance takes `/workspace/sfs/ratefill` with it. Start `sfs-ratefill-sync` with
+   `BRIDGES_DEST` set, which mirrors the completed-cell ledger, the points and the audits to
+   durable storage every five minutes. Restore it to the same path on the replacement instance
+   before starting a runner, and the campaign picks up where it stopped.
+2. **Restart has to happen.** The lane programs are `autostart=false` so a reboot never launches
+   GPU work unattended. On an interruptible rental either flip the runner you are using to
+   `autostart=true` — it is idempotent against the ledger — or restart it by hand after each
+   interruption.
+3. **Watch for a machine change.** If the instance is destroyed rather than stopped and you
+   re-rent elsewhere, cells after the interruption are measured on different hardware. That does
+   not matter for 3, 4 and 5 QPS, where nothing saturates, but it does at 8.6 and above, which is
+   exactly where deployment differences show up.
+
+The sensible split, if the price difference is worth it: run **3, 4, 5 on an interruptible**
+instance, and the **8.6–9.2 block on an on-demand** one so that saturated band is measured on a
+single machine. Those two groups are independent — the single-lane script's rate order already
+completes one rate before starting the next, so a rate group never straddles a boundary unless an
+interruption lands mid-rate.
+
 ## Cost
 
 ~19 lane-hours of routing plus seven pool startups. On two lanes that is ~10 h wall clock; on
