@@ -1,0 +1,362 @@
+{
+ "schema_version": 1,
+ "kind": "baseline_rates",
+ "status": "PREPARED_PENDING_GPU_ALLOCATION",
+ "decision": "User decision 2026-09-28: complete the canonical Qwen figure-5 rows for the five baselines that stop at 8.3 QPS (Mooncake, LMDeploy, RouteBalance, SCORE, vLLM-SR) at 3, 4, 5, 8.6, 8.9, 9.0 and 9.2 QPS. 3/4/5 run 8,000 requests because nothing saturates there; 8.6 and above keep the canonical 16,000.",
+ "policies": {
+  "qwen": [
+   "lmdeploy_proxy",
+   "mooncake_prefill",
+   "routebalance",
+   "score",
+   "vllm_sr_latency"
+  ]
+ },
+ "cells": [
+  {
+   "id": "qwen-lmdeploy_proxy-3",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "lmdeploy_proxy",
+   "qps": 3.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-lmdeploy_proxy-4",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "lmdeploy_proxy",
+   "qps": 4.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-lmdeploy_proxy-5",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "lmdeploy_proxy",
+   "qps": 5.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-lmdeploy_proxy-8.6",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "lmdeploy_proxy",
+   "qps": 8.6,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-lmdeploy_proxy-8.9",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "lmdeploy_proxy",
+   "qps": 8.9,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-lmdeploy_proxy-9",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "lmdeploy_proxy",
+   "qps": 9.0,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-lmdeploy_proxy-9.2",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "lmdeploy_proxy",
+   "qps": 9.2,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-mooncake_prefill-3",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "mooncake_prefill",
+   "qps": 3.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-mooncake_prefill-4",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "mooncake_prefill",
+   "qps": 4.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-mooncake_prefill-5",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "mooncake_prefill",
+   "qps": 5.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-mooncake_prefill-8.6",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "mooncake_prefill",
+   "qps": 8.6,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-mooncake_prefill-8.9",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "mooncake_prefill",
+   "qps": 8.9,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-mooncake_prefill-9",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "mooncake_prefill",
+   "qps": 9.0,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-mooncake_prefill-9.2",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "mooncake_prefill",
+   "qps": 9.2,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-routebalance-3",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "routebalance",
+   "qps": 3.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-routebalance-4",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "routebalance",
+   "qps": 4.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-routebalance-5",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "routebalance",
+   "qps": 5.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-routebalance-8.6",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "routebalance",
+   "qps": 8.6,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-routebalance-8.9",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "routebalance",
+   "qps": 8.9,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-routebalance-9",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "routebalance",
+   "qps": 9.0,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-routebalance-9.2",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "routebalance",
+   "qps": 9.2,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-score-3",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "score",
+   "qps": 3.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-score-4",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "score",
+   "qps": 4.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-score-5",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "score",
+   "qps": 5.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-score-8.6",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "score",
+   "qps": 8.6,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-score-8.9",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "score",
+   "qps": 8.9,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-score-9",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "score",
+   "qps": 9.0,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-score-9.2",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "score",
+   "qps": 9.2,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-vllm_sr_latency-3",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "vllm_sr_latency",
+   "qps": 3.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-vllm_sr_latency-4",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "vllm_sr_latency",
+   "qps": 4.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-vllm_sr_latency-5",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "vllm_sr_latency",
+   "qps": 5.0,
+   "requests": 8000
+  },
+  {
+   "id": "qwen-vllm_sr_latency-8.6",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "vllm_sr_latency",
+   "qps": 8.6,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-vllm_sr_latency-8.9",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "vllm_sr_latency",
+   "qps": 8.9,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-vllm_sr_latency-9",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "vllm_sr_latency",
+   "qps": 9.0,
+   "requests": 16000
+  },
+  {
+   "id": "qwen-vllm_sr_latency-9.2",
+   "family": "qwen",
+   "variant": "canonical",
+   "policy": "vllm_sr_latency",
+   "qps": 9.2,
+   "requests": 16000
+  }
+ ],
+ "requests_total": 440000,
+ "reading": "These cells extend the canonical Qwen rows of the published OnTimeUtility-versus-QPS figure. They are plotted on the same axes as the existing 6/7/8/8.3 cells for the same policies and are scored on the same OnTimeUtility with the bundle lambda of 5e-4.",
+ "remaining_length": {
+  "tables": "scripts/cloud/remaining-length-tables-20260917",
+  "files": {
+   "manifest.json": "2eac8a79de5650982d998c7ded87f8cf48e19f3a53d1005afb734d7c4c491fbb",
+   "qwen3-0.6b.json": "50a14ca76681895a622cbf2d69ba362e37792b32b76c5967b7b9b67f3f6ed87d",
+   "qwen3-32b.json": "74e3a4ef30c8be24e01983b2609c4d76c8641422f26def2a899ec47ec88cf599",
+   "qwen3-8b.json": "2392950a25c04003e945124554fd33654da1c552ccdecf7e59d20770f9c04ce6"
+  },
+  "rules": {
+   "qwen3-0.6b": "running_all:0.5:prompt_bin"
+  },
+  "off_models": [
+   "qwen3-8b",
+   "qwen3-32b",
+   "ministral3-3b",
+   "ministral3-8b",
+   "ministral3-14b"
+  ],
+  "note": "The rule is per engine: only the qwen3-0.6b server receives --remaining-length-mode running_all --remaining-length-table qwen3-0.6b.json --remaining-length-quantile 0.5 --remaining-length-conditioning prompt_bin, and the router attaches that table for its missing-prediction fill on that instance only. qwen3-8b and qwen3-32b stay off: reserve-tail-20260916 README sections 4.2/4.3 (8B target component within noise, hindsight replay worse under every candidate; 32B sub-second either way). Ministral stays off: no Ministral paired evidence (reserve-tail-ministral-20260917 is analysis only), the rule is only plumbed for the Qwen family and scripts.cloud.pool refuses it for a Ministral server. Tables were built from the calibration outputs only (zero overlap with the 16,000 evaluation ids); manifest.json records the build paths on the controller.",
+  "evidence": {
+   "paired_run": "scripts/cloud/reports/reserve-tail-20260916/paired-qps8p6-on/result_summary.json (Vast /workspace/sfs/state/diagnostics/reserve-tail-20260916/paired-qps8p6-on; canonical 8.6 QPS hard control, 16,000 requests, source bedeec4 + reserve diff)",
+   "readiness_note": "scripts/cloud/reserve-paired-run-20260916.md",
+   "on": {
+    "rule": "qwen3-0.6b=running_all_prompt_bin_q50",
+    "ttft_slo_attainment_pct": 90.89375,
+    "pro_ontimeutility": 0.47315245581222454,
+    "flash_ontimeutility": 0.5106716853900976,
+    "realized_qps": 8.590666810927857,
+    "raw_sha256": "01fb35c7ad67db820ccec798c064a8dcabd851b5bdb772263d5cb5acbf7ebc9b"
+   },
+   "off_controls": {
+    "qps8p6": {
+     "remote_output": "/workspace/sfs/state/controls/qps8p6",
+     "ttft_slo_attainment_pct": 49.9625,
+     "pro_ontimeutility": 0.27815865541318135,
+     "raw_sha256": "d6e6d043c305b107fb4f7d8f54ad41cd461a20df77a279d77724fc2e298da726"
+    },
+    "qps8p6-repeat1": {
+     "remote_output": "/workspace/sfs/state/controls/qps8p6-repeat1",
+     "ttft_slo_attainment_pct": 63.7125,
+     "pro_ontimeutility": 0.35614945124710856,
+     "raw_sha256": "1f6099fff5b066736da2d8ffc2df285494902210d6584916fe02a84dc924224a"
+    }
+   },
+   "reading": "ON exceeds the better OFF control on both acceptance metrics (attainment 90.89 vs 63.71 percent; Pro OnTimeUtility 0.4732 vs 0.3561), outside the 13.8-point OFF spread; the pre-registered reading rule in the readiness note therefore admits the 0.6B rule for the campaign."
+  }
+ },
+ "score_lambda_weight": 0.05,
+ "score_lambda_evidence": {
+  "sweep": "scripts/cloud/score-lambda-sweep-20260917.json",
+  "results": "scripts/cloud/reports/score-lambda-sweep-20260917/score-lambda-sweep.json",
+  "results_sha256": "1e800cfa156a9b7d07dc304f93cc60fa67072a87c37c18e54275365279939728",
+  "levels_probed": [
+   0.0005,
+   0.005,
+   0.05,
+   0.5
+  ],
+  "basis": "2,000-request probes at 7 QPS on the canonical Qwen pool, all four scored at the campaign's own 5e-4 so the levels are comparable: TTFT SLO attainment 9.70 / 77.35 / 97.30 / 98.25 % and Pro OnTimeUtility 0.0571 / 0.3055 / 0.3056 / 0.2750",
+  "decision": "5e-2 for every SCORE cell of the campaign (user decision, 18 September 2026). 5e-3 ties it on utility but leaves a 62 s p90 TTFT; 5e-1 sends 92 % of traffic to the 0.6B. SCORE's multiplier is a published tuning knob, so it is tuned once and never again; the objective every method is scored on stays at the bundle's 5e-4."
+ },
+ "accepted_prior_source_digests": {},
+ "accepted_prior_campaign_digests": {}
+}

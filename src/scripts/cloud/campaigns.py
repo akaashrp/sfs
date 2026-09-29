@@ -51,6 +51,9 @@ def apply_any_campaign(bundle, campaign):
     if kind == 'predictor_variants':
         from scripts.cloud.variant_campaign import apply_variant_campaign
         return apply_variant_campaign(bundle, campaign)
+    if kind == 'baseline_rates':
+        from scripts.cloud.baseline_rates_campaign import apply_baseline_rates_campaign
+        return apply_baseline_rates_campaign(bundle, campaign)
     if kind == 'delta_sweep':
         from scripts.cloud.delta_sweep_campaign import apply_delta_sweep_campaign
         return apply_delta_sweep_campaign(bundle, campaign)
