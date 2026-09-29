@@ -28,6 +28,14 @@ cells are parameterised exactly like the 6/7/8/8.3 cells they extend.
 order 8.6, 9.0, 5, 4, 3, 8.9, 9.2 — rate by rate, all five policies each — so a run cut short
 still leaves whole columns of the figure complete rather than a partial row everywhere.
 
+## Rental requirements
+
+- **GPUs:** 4 or 8 H100. Four run one lane; eight run two.
+- **Disk: at least 200 GB.** This campaign needs only the Qwen family — Qwen3-0.6B, 8B and 32B
+  in BF16, about 83 GB of weights under `/workspace/sfs/hf/hub/` — plus the vLLM build and conda
+  environment (~20 GB) and the campaign state (35 points at ~50 MB, with logs, under 10 GB).
+  The September box additionally held the three Ministral checkpoints, ~133 GB of weights in all.
+
 ## Deployment
 
 1. Rent, then bootstrap as usual (`.scratch/claude-watchers/vast_deploy_v7.sh`): conda env,
