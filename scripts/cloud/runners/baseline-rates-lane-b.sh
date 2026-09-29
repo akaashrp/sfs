@@ -4,6 +4,10 @@
 # would discard the claim-release trap and leak the lane).
 set -uo pipefail
 export SFS_STORAGE=/workspace/sfs
+if [ ! -f /workspace/sfs/bootstrap-complete ]; then
+  echo "bootstrap-complete marker missing; not starting GPU work" >&2
+  exit 0
+fi
 source "$SFS_STORAGE/$SFS_REPO/scripts/cloud/env.sh"
 cd "$SFS_ROOT"
 C="$SFS_ROOT/scripts/cloud/baseline-rates-campaign-20260928.json"
