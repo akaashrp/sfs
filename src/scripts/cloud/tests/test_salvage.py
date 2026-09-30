@@ -345,6 +345,39 @@ def test_cell_spec_comes_from_the_overlay(tmp_path):
         cell_spec(campaign, 'qwen-score-9')
 
 
+def test_cell_spec_cross_checks_against_the_overlaid_bundle(tmp_path, monkeypatch):
+    """The --bundle path must actually reach apply_any_campaign.
+
+    It did not: cell_spec called it with inspect=True, an argument that function has never accepted,
+    so every campaign kind raised TypeError the moment a bundle was passed. The bug survived because
+    the only cell_spec tests covered the no-bundle path and the missing-bundle error.
+    """
+    cell = _cell()
+    campaign = tmp_path/'campaign.json'
+    write(campaign, {'schema_version': 1, 'kind': 'sfs_score', 'cells': [cell]})
+    seen = {}
+
+    def fake_apply(bundle, doc):                      # positional only, as the real one is
+        seen['called'] = True
+        return {'cells': [cell]}
+
+    monkeypatch.setattr('scripts.cloud.campaigns.apply_any_campaign', fake_apply)
+    monkeypatch.setattr('scripts.cloud.salvage.validate_bundle', lambda b: {'families': {}})
+    assert cell_spec(campaign, 'qwen-score-6', tmp_path) == cell
+    assert seen.get('called'), 'the bundle cross-check never ran'
+
+
+def test_cell_spec_refuses_a_cell_the_bundle_manifest_disagrees_with(tmp_path, monkeypatch):
+    cell = _cell()
+    campaign = tmp_path/'campaign.json'
+    write(campaign, {'schema_version': 1, 'kind': 'sfs_score', 'cells': [cell]})
+    monkeypatch.setattr('scripts.cloud.campaigns.apply_any_campaign',
+                        lambda bundle, doc: {'cells': [dict(cell, requests=cell['requests'] + 1)]})
+    monkeypatch.setattr('scripts.cloud.salvage.validate_bundle', lambda b: {'families': {}})
+    with pytest.raises(SalvageError, match='disagrees with the overlaid bundle manifest'):
+        cell_spec(campaign, 'qwen-score-6', tmp_path)
+
+
 def test_observed_utilities_penalise_a_failed_row_without_raising():
     from scripts.cloud.collate import observed_utilities
     rows = [{'request_id': 'req-0', 'bucket': 'alpaca', 'system_entry_e2e_ttft_slo_met': True,

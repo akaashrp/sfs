@@ -294,14 +294,14 @@ def cell_spec(campaign, cell_id, bundle=None):
         if not bundle:
             raise SalvageError('This overlay derives its cells from the bundle; pass --bundle')
         from scripts.cloud.campaigns import apply_any_campaign
-        overlay = {'cells': apply_any_campaign(validate_bundle(bundle), overlay, inspect=True)['cells']}
+        overlay = {'cells': apply_any_campaign(validate_bundle(bundle), overlay)['cells']}
     cells = {c['id']: c for c in overlay['cells']}
     if cell_id not in cells:
         raise SalvageError(f'Overlay has no cell {cell_id}')
     cell = cells[cell_id]
     if bundle:
         from scripts.cloud.campaigns import apply_any_campaign
-        manifest = apply_any_campaign(validate_bundle(bundle), read(campaign), inspect=True)
+        manifest = apply_any_campaign(validate_bundle(bundle), read(campaign))
         active = {c['id']: c for c in manifest['cells']}
         if active.get(cell_id) != cell:
             raise SalvageError(f'Overlay cell disagrees with the overlaid bundle manifest: {cell_id}')
@@ -313,7 +313,7 @@ def _lambda_fields(payload, cell, campaign, bundle, pins):
     from scripts.cloud.worker import routing_lambda
     if bundle:
         from scripts.cloud.campaigns import apply_any_campaign
-        manifest = apply_any_campaign(validate_bundle(bundle), read(campaign), inspect=True)
+        manifest = apply_any_campaign(validate_bundle(bundle), read(campaign))
     else:
         manifest = read(campaign)
     weight = routing_lambda(manifest, cell)
