@@ -40,10 +40,55 @@ still leaves whole columns of the figure complete rather than a partial row ever
   environment (~20 GB) and the campaign state (35 points at ~50 MB, with logs, under 10 GB).
   The September box additionally held the three Ministral checkpoints, ~133 GB of weights in all.
 
+## Runtime: build vLLM from the pin, never from the archived wheel
+
+`sfs_vast_archive_20260921/runtime/vast-runtime-artifacts.tar.gz` contains
+`vllm-0.11.0rc2.dev266+g4dbdf4a29`. **Do not install it.** The submodule pin is `30ec5b4b5`, twenty
+commits later, and the wheel's commit predates:
+
+- `c71bffaf6` "Migrate simulator to C++" — adds `csrc/scheduler_sim/bindings.cpp`, hence the
+  `_scheduler_sim` extension;
+- `30ec5b4b5` "Add flag-gated conditional remaining-length targets for running requests" — the fill
+  rule itself.
+
+The wheel has no `vllm.v1.core.sched.remaining_length`, so a campaign run against it either dies at
+import or, if the rule were ever made optional, runs without the fill while its cells are labelled
+as fill cells. The September box did not use it either: that archive's `setup/installed.txt` records
+`-e git+https://github.com/akaashrp/vllm.git@28bbf9226...#egg=vllm`, an editable source install.
+The pin adds only Python over `28bbf9226` (7 files; no `csrc`, `CMakeLists.txt` or `setup.py`), so
+one build at the pin reproduces those binaries.
+
+`sfs_work/box_build_vllm.sh` does it, and touches `environment-ready` only once `vllm`,
+`remaining_length` and `_scheduler_sim` all import. Two things the conda toolkit's split layout
+breaks, both handled there:
+
+- `find_package(CUDA)` infers its root from `nvcc` on `PATH` and lands on `$CONDA_PREFIX`, whose
+  `include/` holds no CUDA headers — they are under `targets/x86_64-linux/include`. Hence
+  `Could NOT find CUDA (missing: CUDA_INCLUDE_DIRS)`. Pass the real root in `CMAKE_ARGS`, which
+  `setup.py` appends last so it wins.
+- `setup.py` derives `-DCMAKE_CUDA_COMPILER` from `CUDA_HOME`, which points at the **symlinked**
+  nvcc under `targets/`. nvcc locates its own `nvvm` relative to where it was invoked and there is
+  no `targets/x86_64-linux/nvvm`, so compiler identification fails. Name `$CONDA_PREFIX/bin/nvcc`.
+
+`TORCH_CUDA_ARCH_LIST=9.0a` keeps the build short. sm90 kernels do not depend on which other
+architectures are compiled alongside them, and the box is billed by the hour.
+
+The tarball is still needed: it carries the relocated `SFS_INPUTS` tree, whose entries are symlinks
+into the bundle (`tar -tzv` prints them as size 0, which looks like truncation and is not).
+
 ## Deployment
 
-1. Rent, then bootstrap as usual (`.scratch/claude-watchers/vast_deploy_v7.sh`): conda env,
-   vLLM build, bundle, models, supervisord.
+1. Rent, then bootstrap with the `sfs_work/box_*.sh` set, not `vast_deploy_v7.sh` — that script
+   patches an already-provisioned September box (it starts from `repo-v6`) and does nothing on a
+   fresh rental. The four stages each wait on the previous stage's marker, so they can all be
+   started at once:
+   `box_env_prep.sh` (miniforge, pinned env, torch, then the source build) → `box_models.sh`
+   (the three Qwen checkpoints at the September revisions) → `box_install.sh` (supervisor config,
+   `LANE_CORES`, `bootstrap-complete`) → `box_autopilot.sh` (starts both lanes).
+   The models download is worth starting early on the system Python, since it is the long pole —
+   but note it saturates the box's link, and the Vast ssh proxy rides the same reverse tunnel, so
+   the control channel becomes unusable while it runs. Move the bundle and runtime tarball either
+   before it or after it, not during.
 2. Check out this branch as `/workspace/sfs/<repo-dir>` and export `SFS_REPO=<repo-dir>` for
    every program below — the helpers take the checkout name as an input rather than hardcoding it.
 3. Copy `scripts/cloud/runners/*.sh` to `/workspace/sfs/setup/` and append
