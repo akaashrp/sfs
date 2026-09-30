@@ -17,7 +17,12 @@ bash /workspace/sfs/setup/refresh_gates.sh
 read -r LANE GPUS CPUS < <(CLAIM_ROOT="$R/claims" bash /workspace/sfs/setup/claim_lane.sh)
 trap 'rmdir "$R/claims/$LANE" 2>/dev/null || true' EXIT
 echo "baseline rate fill lane a claimed $LANE gpus=$GPUS cpus=$CPUS"
-taskset -c "$CPUS" python -m scripts.cloud.worker campaign --campaign "$C" --bundle "$SFS_STORAGE/bundle" --models "$SFS_STORAGE/models.json" --state "$R/state" --output "$R/state/lane-a-20260928" --family qwen --variant canonical --gpus "$GPUS" --cpus "$CPUS" --cells qwen-lmdeploy_proxy-3,qwen-mooncake_prefill-3,qwen-routebalance-3,qwen-score-3,qwen-vllm_sr_latency-3,qwen-lmdeploy_proxy-4,qwen-mooncake_prefill-4,qwen-routebalance-4,qwen-score-4,qwen-vllm_sr_latency-4,qwen-lmdeploy_proxy-9.2,qwen-mooncake_prefill-9.2,qwen-routebalance-9.2,qwen-score-9.2,qwen-vllm_sr_latency-9.2
+# taskset takes a range, the worker's --cpus does not: it int()s every comma-separated element, so
+# a range reaches os.sched_setaffinity as the literal '0-47' and dies. September passed
+# `--cpus "$(seq -s, 0 47)"`. Expand the claimed range to the list form for the flag and keep the
+# range for taskset.
+CPU_LIST=$(seq -s, "${CPUS%%-*}" "${CPUS##*-}")
+taskset -c "$CPUS" python -m scripts.cloud.worker campaign --campaign "$C" --bundle "$SFS_STORAGE/bundle" --models "$SFS_STORAGE/models.json" --state "$R/state" --output "$R/state/lane-a-20260928" --family qwen --variant canonical --gpus "$GPUS" --cpus "$CPU_LIST" --cells qwen-lmdeploy_proxy-3,qwen-mooncake_prefill-3,qwen-routebalance-3,qwen-score-3,qwen-vllm_sr_latency-3,qwen-lmdeploy_proxy-4,qwen-mooncake_prefill-4,qwen-routebalance-4,qwen-score-4,qwen-vllm_sr_latency-4,qwen-lmdeploy_proxy-9.2,qwen-mooncake_prefill-9.2,qwen-routebalance-9.2,qwen-score-9.2,qwen-vllm_sr_latency-9.2
 RC=$?
 rmdir "$R/claims/$LANE" 2>/dev/null || true
 exit $RC

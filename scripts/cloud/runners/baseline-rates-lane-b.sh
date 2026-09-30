@@ -17,7 +17,12 @@ bash /workspace/sfs/setup/refresh_gates.sh
 read -r LANE GPUS CPUS < <(CLAIM_ROOT="$R/claims" bash /workspace/sfs/setup/claim_lane.sh)
 trap 'rmdir "$R/claims/$LANE" 2>/dev/null || true' EXIT
 echo "baseline rate fill lane b claimed $LANE gpus=$GPUS cpus=$CPUS"
-taskset -c "$CPUS" python -m scripts.cloud.worker campaign --campaign "$C" --bundle "$SFS_STORAGE/bundle" --models "$SFS_STORAGE/models.json" --state "$R/state" --output "$R/state/lane-b-20260928" --family qwen --variant canonical --gpus "$GPUS" --cpus "$CPUS" --cells qwen-lmdeploy_proxy-5,qwen-mooncake_prefill-5,qwen-routebalance-5,qwen-score-5,qwen-vllm_sr_latency-5,qwen-lmdeploy_proxy-8.6,qwen-mooncake_prefill-8.6,qwen-routebalance-8.6,qwen-score-8.6,qwen-vllm_sr_latency-8.6,qwen-lmdeploy_proxy-8.9,qwen-mooncake_prefill-8.9,qwen-routebalance-8.9,qwen-score-8.9,qwen-vllm_sr_latency-8.9,qwen-lmdeploy_proxy-9,qwen-mooncake_prefill-9,qwen-routebalance-9,qwen-score-9,qwen-vllm_sr_latency-9
+# taskset takes a range, the worker's --cpus does not: it int()s every comma-separated element, so
+# a range reaches os.sched_setaffinity as the literal '0-47' and dies. September passed
+# `--cpus "$(seq -s, 0 47)"`. Expand the claimed range to the list form for the flag and keep the
+# range for taskset.
+CPU_LIST=$(seq -s, "${CPUS%%-*}" "${CPUS##*-}")
+taskset -c "$CPUS" python -m scripts.cloud.worker campaign --campaign "$C" --bundle "$SFS_STORAGE/bundle" --models "$SFS_STORAGE/models.json" --state "$R/state" --output "$R/state/lane-b-20260928" --family qwen --variant canonical --gpus "$GPUS" --cpus "$CPU_LIST" --cells qwen-lmdeploy_proxy-5,qwen-mooncake_prefill-5,qwen-routebalance-5,qwen-score-5,qwen-vllm_sr_latency-5,qwen-lmdeploy_proxy-8.6,qwen-mooncake_prefill-8.6,qwen-routebalance-8.6,qwen-score-8.6,qwen-vllm_sr_latency-8.6,qwen-lmdeploy_proxy-8.9,qwen-mooncake_prefill-8.9,qwen-routebalance-8.9,qwen-score-8.9,qwen-vllm_sr_latency-8.9,qwen-lmdeploy_proxy-9,qwen-mooncake_prefill-9,qwen-routebalance-9,qwen-score-9,qwen-vllm_sr_latency-9
 RC=$?
 rmdir "$R/claims/$LANE" 2>/dev/null || true
 exit $RC
