@@ -1,13 +1,18 @@
 #!/bin/bash
 # Print "<lane> <gpus> <cpus>" for a four-GPU lane this caller now owns, waiting until one is free.
-# A lane is free when no program that owns it is RUNNING, its GPUs hold no memory, and nobody else
-# has claimed it. The claim is a directory, so two waiters can never take the same lane.
+# A lane is free when no foreign program that owns it is RUNNING, its GPUs are idle (a few MiB, not
+# exactly zero), and nobody else has claimed it. The claim is a directory, so two waiters can never take the same lane.
 # Generalised from the September campaign: claim root, lane owners and the CPU split are inputs,
 # because a new rental may not have 96 cores or the same program names.
 set -euo pipefail
 CLAIMS="${CLAIM_ROOT:-/workspace/sfs/ratefill/claims}"
-OWNERS_A="${LANE_A_OWNERS:-sfs-ratefill-a}"
-OWNERS_B="${LANE_B_OWNERS:-sfs-ratefill-b}"
+# Programs from OTHER campaigns that hold these GPUs, so a lane is not claimed out from under one.
+# They default to empty and must never name the caller's own program: the two lane runners are
+# started together, so defaulting these to sfs-ratefill-a/b made each runner see its own program
+# RUNNING, mark its lane busy, and spin forever -- both lanes deadlocked with eight GPUs idle.
+# Exclusion between the two lane runners is the mkdir claim below, not this check.
+OWNERS_A="${LANE_A_OWNERS:-}"
+OWNERS_B="${LANE_B_OWNERS:-}"
 mkdir -p "$CLAIMS"
 CORES=$(nproc)
 HALF=$(( CORES / 2 ))
@@ -27,7 +32,9 @@ while true; do
     [ "$busy" = yes ] && continue
     mem=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -i "$gpus" 2>/dev/null | sort -n | tail -1)
     [ -z "$mem" ] && continue
-    [ "$mem" -gt 0 ] && continue
+    # An idle H100 reports a few MiB, not 0, so an exact-zero test never frees a lane on this
+    # hardware. A live pool holds tens of GB, so any small floor separates the two cleanly.
+    [ "$mem" -gt "${GPU_FREE_MB:-64}" ] && continue
     if mkdir "$CLAIMS/$lane" 2>/dev/null; then
       echo "$lane $gpus $cpus"
       exit 0
