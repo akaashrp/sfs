@@ -11,10 +11,15 @@ OWNERS_B="${LANE_B_OWNERS:-sfs-ratefill-b}"
 mkdir -p "$CLAIMS"
 CORES=$(nproc)
 HALF=$(( CORES / 2 ))
+# Cores per lane. It defaults to half the box, but a rental with more cores than the campaign it
+# extends must not hand its lanes more CPU than the cells already measured had: the September
+# cells ran four GPUs against 48 cores, and giving them 96 here would change the very contention
+# these points are compared on. Each lane still starts at a socket boundary.
+LANE_CORES="${LANE_CORES:-$HALF}"
 while true; do
   for lane in A B; do
-    if [ "$lane" = A ]; then gpus=0,1,2,3; cpus="0-$((HALF - 1))"; owners="$OWNERS_A";
-    else gpus=4,5,6,7; cpus="$HALF-$((CORES - 1))"; owners="$OWNERS_B"; fi
+    if [ "$lane" = A ]; then gpus=0,1,2,3; cpus="0-$((LANE_CORES - 1))"; owners="$OWNERS_A";
+    else gpus=4,5,6,7; cpus="$HALF-$((HALF + LANE_CORES - 1))"; owners="$OWNERS_B"; fi
     busy=no
     for owner in $owners; do
       supervisorctl status "$owner" 2>/dev/null | grep -qE "RUNNING|STARTING" && busy=yes

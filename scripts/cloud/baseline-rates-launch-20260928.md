@@ -17,7 +17,11 @@ cells are parameterised exactly like the 6/7/8/8.3 cells they extend.
 
 ## Allocation plans
 
-**8 GPUs — two lanes, ~10 h wall clock.**
+**8 GPUs — two lanes, ~10 h wall clock.** Set `LANE_CORES` to the per-lane core count the
+cells being extended used — 48 — whenever the box has more cores than the September one (96). The
+claim helper otherwise splits the box in half, so a 192-core rental would hand each lane 96 cores
+and measure these rates under less CPU contention than the 6/7/8/8.3 cells they join. Lane A then
+takes cores 0–47 and lane B 96–143, one socket each, with the gate on the top 12.
 
 | lane | rates | cells | routing |
 |---|---|---|---|
@@ -95,10 +99,19 @@ back. Two safeguards make that safe to leave unattended:
   autostarted runner on a fresh, unbootstrapped instance does nothing rather than failing in a loop;
 - the runner is idempotent against the ledger, so a restart re-runs only unfinished cells.
 
-**The disk is not independent of the instance.** Start `sfs-ratefill-sync` with `BRIDGES_DEST`
-set — it mirrors the ledger, points and audits every five minutes — and on a replacement instance
-run `restore-ratefill.sh` with the same `BRIDGES_DEST` before the runner starts. Without the
-mirror, losing the disk means redoing every cell.
+**The disk is not independent of the instance.** Mirror the ledger, points and audits off the
+box, and on a replacement instance restore them before the runner starts; without the mirror,
+losing the disk means redoing every cell.
+
+Two ways to do it, depending on what the far end has:
+
+- `sfs-ratefill-sync` on the box, with `BRIDGES_DEST` set, pushes with rsync — it needs rsync at
+  **both** ends.
+- `sfs_work/bridges_pull_ratefill.sh` pulls from Bridges instead, over ssh and tar only. Bridges
+  has neither rsync nor scp installed, so this is the one that works there. It compares name and
+  size each pass and fetches only new or grown files, so a pass costs almost nothing once the set
+  is current. `restore-ratefill.sh` needs rsync too; from a pull mirror, push the tree back with
+  `tar -czf - -C <mirror> state | ssh <box> 'tar -xzf - -C /workspace/sfs/ratefill'`.
 
 If an interruption lands mid-rate, the five policies of that rate end up split across two
 machines. At 3, 4 and 5 QPS this is immaterial. At 8.6 and above it is a within-column mix; if
