@@ -14,7 +14,11 @@ CLAIMS="${CLAIM_ROOT:-/workspace/sfs/ratefill/claims}"
 OWNERS_A="${LANE_A_OWNERS:-}"
 OWNERS_B="${LANE_B_OWNERS:-}"
 mkdir -p "$CLAIMS"
-CORES=$(nproc)
+# NOT nproc: GNU nproc honours OMP_NUM_THREADS, and every caller sources env.sh first, which sets
+# OMP_NUM_THREADS=4. That made CORES=4, HALF=2, and lane B claimed cores 2-49 -- overlapping lane A's
+# 0-47 on the same cores the split exists to keep apart. getconf reports the installed processors
+# and ignores both OMP_NUM_THREADS and the caller's affinity.
+CORES=$(getconf _NPROCESSORS_ONLN)
 HALF=$(( CORES / 2 ))
 # Cores per lane. It defaults to half the box, but a rental with more cores than the campaign it
 # extends must not hand its lanes more CPU than the cells already measured had: the September
