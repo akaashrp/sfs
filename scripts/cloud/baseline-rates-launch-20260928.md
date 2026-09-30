@@ -28,9 +28,18 @@ takes cores 0–47 and lane B 96–143, one socket each, with the gate on the to
 | A | 3, 4, 9.2 | 15 | ~8.9 h |
 | B | 5, 8.6, 8.9, 9.0 | 20 | ~9.8 h |
 
-**4 GPUs — one lane, ~19 h wall clock.** `baseline-rates-single.sh` runs all 35 cells in the
-order 8.6, 9.0, 5, 4, 3, 8.9, 9.2 — rate by rate, all five policies each — so a run cut short
-still leaves whole columns of the figure complete rather than a partial row everywhere.
+**4 GPUs — one lane, ~19 h wall clock.** `baseline-rates-single.sh` lists all 35 cells.
+
+**The order given to `--cells` has no effect.** The worker does
+`requested = set(options.cells.split(','))` and then filters the *manifest's* cells by membership,
+so execution follows the overlay's order, which is policy-major: every rate of `lmdeploy_proxy`,
+then every rate of `mooncake_prefill`, and so on. The rate-by-rate ordering these runners were
+written to request is discarded.
+
+What that means for a run cut short is fine, and arguably better than what was intended: each lane
+finishes whole policy series across the rates it owns, so the figure gains complete curves rather
+than gaps scattered through every series. Do not reorder `--cells` expecting it to matter; to
+change the execution order, change the overlay.
 
 ## Rental requirements
 
